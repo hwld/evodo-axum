@@ -3,5 +3,6 @@
         {
             "pattern": "./client/"
         }
-    ]
+    ],
+    "rust-analyzer.check.command": "clippy"
 }
