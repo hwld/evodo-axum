@@ -6,7 +6,8 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite, SqlitePool};
-use std::{env, io::Error};
+use std::{env, io::Error, str::FromStr};
+use strum::EnumString;
 use utoipa::{OpenApi, ToSchema};
 use utoipa_swagger_ui::SwaggerUi;
 use utoipauto::utoipauto;
@@ -53,31 +54,14 @@ struct UpdateTask {
     status: TaskStatus,
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
+#[derive(Serialize, Deserialize, ToSchema, EnumString, sqlx::Type)]
 enum TaskStatus {
     Todo,
     Done,
 }
-
 impl From<String> for TaskStatus {
     fn from(value: String) -> Self {
-        match value.as_str() {
-            "Todo" => TaskStatus::Todo,
-            "Done" => TaskStatus::Done,
-            _ => TaskStatus::Todo,
-        }
-    }
-}
-
-impl std::fmt::Display for TaskStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let str = match self {
-            TaskStatus::Todo => "Todo".to_string(),
-            TaskStatus::Done => "Done".to_string(),
-        };
-
-        write!(f, "{str}")?;
-        Ok(())
+        TaskStatus::from_str(value.as_str()).unwrap_or(TaskStatus::Todo)
     }
 }
 
@@ -125,9 +109,6 @@ async fn update_task(
     State(pool): State<Pool<Sqlite>>,
     Json(payload): Json<UpdateTask>,
 ) -> (StatusCode, Json<Task>) {
-    let UpdateTask { status, title } = payload;
-    let status_str = status.to_string();
-
     let task = sqlx::query_as!(
         Task,
         r#"
@@ -141,8 +122,8 @@ async fn update_task(
                 id = $3 
             RETURNING *;
         "#,
-        status_str,
-        title,
+        payload.status,
+        payload.title,
         id,
     )
     .fetch_one(&pool)
