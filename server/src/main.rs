@@ -1,19 +1,38 @@
+use anyhow::Result;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
+    response::IntoResponse,
     routing::{get, post, put},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite, SqlitePool};
-use std::{env, io::Error, str::FromStr};
+use std::{env, str::FromStr};
 use strum::EnumString;
 use utoipa::{OpenApi, ToSchema};
 use utoipa_swagger_ui::SwaggerUi;
 use utoipauto::utoipauto;
 
+struct AppError(anyhow::Error);
+
+impl IntoResponse for AppError {
+    fn into_response(self) -> axum::response::Response {
+        (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error").into_response()
+    }
+}
+
+impl<E> From<E> for AppError
+where
+    E: Into<anyhow::Error>,
+{
+    fn from(err: E) -> Self {
+        Self(err.into())
+    }
+}
+
 #[tokio::main]
-async fn main() -> Result<(), Error> {
+async fn main() -> Result<(), std::io::Error> {
     #[utoipauto]
     #[derive(OpenApi)]
     #[openapi()]
@@ -40,7 +59,7 @@ async fn main() -> Result<(), Error> {
         "listening onnnn {}",
         listener.local_addr().expect("Failed to get local_addr")
     );
-    axum::serve(listener, app.into_make_service()).await
+    axum::serve(listener, app).await
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -75,20 +94,21 @@ struct Task {
 }
 
 #[utoipa::path(get, path = "/tasks", responses((status = 200, body = [Task])))]
-async fn list_tasks(State(pool): State<Pool<Sqlite>>) -> (StatusCode, Json<Vec<Task>>) {
+async fn list_tasks(
+    State(pool): State<Pool<Sqlite>>,
+) -> Result<(StatusCode, Json<Vec<Task>>), AppError> {
     let tasks = sqlx::query_as!(Task, r#"select * from tasks;"#)
         .fetch_all(&pool)
-        .await
-        .expect("Failed to fetch");
+        .await?;
 
-    (StatusCode::OK, Json(tasks))
+    Ok((StatusCode::OK, Json(tasks)))
 }
 
 #[utoipa::path(post, path = "/tasks", responses((status = 201)))]
 async fn create_task(
     State(pool): State<Pool<Sqlite>>,
     Json(payload): Json<CreateTask>,
-) -> (StatusCode, Json<Task>) {
+) -> Result<(StatusCode, Json<Task>), AppError> {
     let uuid = uuid::Uuid::new_v4().to_string();
     let task = sqlx::query_as!(
         Task,
@@ -97,10 +117,9 @@ async fn create_task(
         payload.title,
     )
     .fetch_one(&pool)
-    .await
-    .expect("Failed to insert");
+    .await?;
 
-    (StatusCode::CREATED, Json(task))
+    Ok((StatusCode::CREATED, Json(task)))
 }
 
 #[utoipa::path(put, path = "/tasks/{id}", responses((status = 200, body = Task)))]
@@ -108,7 +127,7 @@ async fn update_task(
     Path(id): Path<String>,
     State(pool): State<Pool<Sqlite>>,
     Json(payload): Json<UpdateTask>,
-) -> (StatusCode, Json<Task>) {
+) -> Result<(StatusCode, Json<Task>), AppError> {
     let task = sqlx::query_as!(
         Task,
         r#"
@@ -127,21 +146,19 @@ async fn update_task(
         id,
     )
     .fetch_one(&pool)
-    .await
-    .expect("Failed to update");
+    .await?;
 
-    (StatusCode::OK, Json(task))
+    Ok((StatusCode::OK, Json(task)))
 }
 
 #[utoipa::path(delete, path = "/tasks/{id}", responses((status = 200, body = Task)))]
 async fn delete_task(
     Path(id): Path<String>,
     State(pool): State<Pool<Sqlite>>,
-) -> (StatusCode, Json<Task>) {
+) -> Result<(StatusCode, Json<Task>), AppError> {
     let task = sqlx::query_as!(Task, r#"DELETE FROM tasks WHERE id = $1 RETURNING *"#, id)
         .fetch_one(&pool)
-        .await
-        .expect("Failed to delete");
+        .await?;
 
-    (StatusCode::OK, Json(task))
+    Ok((StatusCode::OK, Json(task)))
 }
