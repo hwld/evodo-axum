@@ -10,10 +10,12 @@ use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite, SqlitePool};
 use std::{env, str::FromStr};
 use strum::EnumString;
+use tracing::debug;
 use utoipa::{OpenApi, ToSchema};
 use utoipa_swagger_ui::SwaggerUi;
 use utoipauto::utoipauto;
 
+#[derive(Debug)]
 struct AppError(anyhow::Error);
 
 impl IntoResponse for AppError {
@@ -31,18 +33,26 @@ where
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), std::io::Error> {
-    #[utoipauto]
-    #[derive(OpenApi)]
-    #[openapi()]
-    struct ApiDoc;
+impl std::fmt::Display for AppError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
+#[tokio::main]
+async fn main() {
     dotenv::dotenv().expect("Failed to read .env file");
+
+    tracing_subscriber::fmt::init();
 
     let pool = SqlitePool::connect(&env::var("DATABASE_URL").expect("connect error"))
         .await
         .expect("Failed to connect");
+
+    #[utoipauto]
+    #[derive(OpenApi)]
+    #[openapi()]
+    struct ApiDoc;
 
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
@@ -55,25 +65,25 @@ async fn main() -> Result<(), std::io::Error> {
         .await
         .expect("Failed to bind");
 
-    println!(
-        "listening onnnn {}",
-        listener.local_addr().expect("Failed to get local_addr")
+    debug!(
+        "listening on {:#}",
+        listener.local_addr().expect("Failed to get local_adde")
     );
-    axum::serve(listener, app).await
+    axum::serve(listener, app).await.unwrap();
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize, ToSchema, Debug)]
 struct CreateTask {
     title: String,
 }
 
-#[derive(Deserialize, ToSchema)]
+#[derive(Deserialize, ToSchema, Debug)]
 struct UpdateTask {
     title: String,
     status: TaskStatus,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, EnumString, sqlx::Type)]
+#[derive(Serialize, Deserialize, ToSchema, EnumString, sqlx::Type, Debug)]
 enum TaskStatus {
     Todo,
     Done,
@@ -84,7 +94,7 @@ impl From<String> for TaskStatus {
     }
 }
 
-#[derive(Serialize, ToSchema)]
+#[derive(Serialize, ToSchema, Debug)]
 struct Task {
     id: String,
     status: TaskStatus,
@@ -93,6 +103,7 @@ struct Task {
     updated_at: String,
 }
 
+#[tracing::instrument(err)]
 #[utoipa::path(get, path = "/tasks", responses((status = 200, body = [Task])))]
 async fn list_tasks(
     State(pool): State<Pool<Sqlite>>,
@@ -104,6 +115,7 @@ async fn list_tasks(
     Ok((StatusCode::OK, Json(tasks)))
 }
 
+#[tracing::instrument(err)]
 #[utoipa::path(post, path = "/tasks", responses((status = 201)))]
 async fn create_task(
     State(pool): State<Pool<Sqlite>>,
@@ -122,6 +134,7 @@ async fn create_task(
     Ok((StatusCode::CREATED, Json(task)))
 }
 
+#[tracing::instrument(err)]
 #[utoipa::path(put, path = "/tasks/{id}", responses((status = 200, body = Task)))]
 async fn update_task(
     Path(id): Path<String>,
@@ -151,6 +164,7 @@ async fn update_task(
     Ok((StatusCode::OK, Json(task)))
 }
 
+#[tracing::instrument(err)]
 #[utoipa::path(delete, path = "/tasks/{id}", responses((status = 200, body = Task)))]
 async fn delete_task(
     Path(id): Path<String>,
