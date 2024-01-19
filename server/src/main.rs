@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite, SqlitePool};
 use std::{env, str::FromStr};
 use strum::EnumString;
+use tower_http::cors::CorsLayer;
 use tracing::debug;
 use utoipa::{OpenApi, ToSchema};
 use utoipa_swagger_ui::SwaggerUi;
@@ -59,6 +60,11 @@ async fn main() {
         .route("/tasks", get(list_tasks))
         .route("/tasks", post(create_task))
         .route("/tasks/:id", put(update_task).delete(delete_task))
+        .layer(
+            CorsLayer::new()
+                .allow_origin(["http://localhost:3000".parse().unwrap()])
+                .allow_credentials(true),
+        )
         .with_state(pool);
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8787")
