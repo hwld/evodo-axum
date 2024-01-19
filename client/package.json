@@ -8,7 +8,8 @@
     "dev": "remix dev --manual",
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
     "start": "remix-serve ./build/index.js",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "codegen": "openapi-zod-client \"http://localhost:8787/api-docs/openapi.json\" -o \"./app/api/schema.ts\" --no-with-alias --api-client-name \"_api\" --additional-props-default-value false --export-schemas true"
   },
   "dependencies": {
     "@remix-run/css-bundle": "^2.5.0",
