@@ -12,6 +12,7 @@ import { api } from "~/api";
 import reactFlowStyles from "reactflow/dist/style.css";
 import { TaskNodeForm } from "~/features/task/task-node-form";
 import { useLoaderData } from "@remix-run/react";
+import { TaskNode, TaskNodeData } from "~/features/task/task-node";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: reactFlowStyles },
@@ -22,26 +23,30 @@ export const loader = async () => {
   return json({ taskNodes });
 };
 
+const nodeTypes = { task: TaskNode } as const;
+
 export default function Index() {
   const { taskNodes } = useLoaderData<typeof loader>();
-  const [nodes, setNodes, onNodesChange] = useNodesState(
+  const [nodes, setNodes, onNodesChange] = useNodesState<TaskNodeData>(
     taskNodes.map(({ task, node_info }) => {
       return {
+        type: "task",
         id: node_info.id,
-        data: { label: task.title },
+        data: { title: task.title, taskId: task.id },
         position: { x: node_info.x, y: node_info.y },
       };
     })
   );
   const [edges, _setEdges, onEdgesChange] = useEdgesState([]);
 
-  const handleAddNode = (node: Node) => {
-    setNodes((nodes) => [...nodes, node]);
+  const handleAddTaskNode = (node: Node<TaskNodeData>) => {
+    setNodes((nodes) => [...nodes, { ...node, type: "task" }]);
   };
 
   return (
     <div className="h-[100dvh]">
       <ReactFlow
+        nodeTypes={nodeTypes}
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
@@ -52,7 +57,7 @@ export default function Index() {
         <Background />
         <Controls />
         <Panel position="bottom-center">
-          <TaskNodeForm onAddNode={handleAddNode} />
+          <TaskNodeForm onAddNode={handleAddTaskNode} />
         </Panel>
       </ReactFlow>
     </div>

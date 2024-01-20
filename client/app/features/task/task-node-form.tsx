@@ -4,13 +4,14 @@ import { schemas } from "~/api/schema";
 import { z } from "zod";
 import { useCreateTaskNode } from "./use-create-task-node";
 import { Node } from "reactflow";
+import { TaskNodeData } from "./task-node";
 
 const createTaskNodeSchema = schemas.CreateTaskNode.pick({ task: true });
 type CreateTaskNode = z.infer<typeof createTaskNodeSchema>;
 
-type Props = { onAddNode: (node: Node) => void };
+type Props = { onAddNode: (node: Node<TaskNodeData>) => void };
 export const TaskNodeForm = ({ onAddNode }: Props) => {
-  const createMutation = useCreateTaskNode({ onAddNode });
+  const createMutation = useCreateTaskNode();
   const {
     register,
     handleSubmit: createHandleSubmit,
@@ -22,7 +23,18 @@ export const TaskNodeForm = ({ onAddNode }: Props) => {
   });
 
   const handleSubmit = createHandleSubmit(({ task }) => {
-    createMutation.mutate({ task, id: crypto.randomUUID(), x: 0, y: 0 });
+    createMutation.mutate(
+      { task, id: crypto.randomUUID(), x: 0, y: 0 },
+      {
+        onSuccess: ({ node_info, task }) => {
+          onAddNode({
+            id: node_info.id,
+            data: { title: task.title, taskId: task.id },
+            position: { x: node_info.x, y: node_info.y },
+          });
+        },
+      }
+    );
   });
 
   const { onBlur, ...taskTitleRegister } = register("task.title");

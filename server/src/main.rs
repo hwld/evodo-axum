@@ -6,7 +6,7 @@ use axum::{
     routing::{get, put},
     Json, Router,
 };
-use http::header::CONTENT_TYPE;
+use http::{header::CONTENT_TYPE, Method};
 use serde::{Deserialize, Serialize};
 use sqlx::{Acquire, Pool, Sqlite, SqlitePool};
 use std::{env, str::FromStr};
@@ -66,7 +66,14 @@ async fn main() {
             CorsLayer::new()
                 .allow_origin(["http://localhost:3000".parse().unwrap()])
                 .allow_credentials(true)
-                .allow_headers([CONTENT_TYPE]),
+                .allow_headers([CONTENT_TYPE])
+                .allow_methods([
+                    Method::GET,
+                    Method::POST,
+                    Method::HEAD,
+                    Method::DELETE,
+                    Method::PUT,
+                ]),
         )
         .with_state(pool);
 
