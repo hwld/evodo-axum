@@ -12,15 +12,20 @@
     "codegen": "openapi-zod-client \"http://localhost:8787/api-docs/openapi.json\" -o \"./app/api/schema.ts\" --no-with-alias --api-client-name \"_api\" --additional-props-default-value false --export-schemas true"
   },
   "dependencies": {
+    "@hookform/resolvers": "^3.3.4",
     "@remix-run/css-bundle": "^2.5.0",
     "@remix-run/node": "^2.5.0",
     "@remix-run/react": "^2.5.0",
     "@remix-run/serve": "^2.5.0",
     "@tanstack/react-query": "^5.17.12",
+    "i18next": "^23.7.16",
     "isbot": "^4.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "zod": "^3.22.4"
+    "react-hook-form": "^7.49.3",
+    "reactflow": "^11.10.2",
+    "zod": "^3.22.4",
+    "zod-i18n-map": "^2.25.0"
   },
   "devDependencies": {
     "@remix-run/dev": "^2.5.0",

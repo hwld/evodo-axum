@@ -3,7 +3,7 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
-    routing::{get, post, put},
+    routing::{get, put},
     Json, Router,
 };
 use http::header::CONTENT_TYPE;
@@ -58,11 +58,9 @@ async fn main() {
 
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        .route("/tasks", get(list_tasks))
-        .route("/tasks", post(create_task))
+        .route("/tasks", get(list_tasks).post(create_task))
         .route("/tasks/:id", put(update_task).delete(delete_task))
-        .route("/task-nodes", get(list_task_nodes))
-        .route("/task-nodes/:id", post(create_task_node))
+        .route("/task-nodes", get(list_task_nodes).post(create_task_node))
         .route("/task-node-info/:id", put(update_task_node_info))
         .layer(
             CorsLayer::new()
@@ -85,6 +83,7 @@ async fn main() {
 
 #[derive(Deserialize, ToSchema, Debug)]
 struct CreateTask {
+    #[schema(min_length = 1)]
     title: String,
 }
 
@@ -200,16 +199,14 @@ async fn list_task_nodes(
 }
 
 #[tracing::instrument(err)]
-#[utoipa::path(post, path = "/task-nodes/{id}", responses((status = 201, body = TaskNode)))]
+#[utoipa::path(post, path = "/task-nodes", responses((status = 201, body = TaskNode)))]
 async fn create_task_node(
-    Path(id): Path<String>,
     State(pool): State<Pool<Sqlite>>,
     Json(payload): Json<CreateTaskNode>,
 ) -> Result<(StatusCode, Json<TaskNode>), AppError> {
-    let task_id = uuid::Uuid::new_v4().to_string();
-
     let mut tx = pool.begin().await?;
 
+    let task_id = uuid::Uuid::new_v4().to_string();
     let task = sqlx::query_as!(
         Task,
         r#" INSERT INTO tasks(id, title) VALUES($1, $2) RETURNING * "#,
@@ -219,10 +216,11 @@ async fn create_task_node(
     .fetch_one(tx.acquire().await?)
     .await?;
 
+    let node_info_id = uuid::Uuid::new_v4().to_string();
     let node_info = sqlx::query_as!(
         TaskNodeInfo,
         r#" INSERT INTO task_node_info(id, task_id, x, y) VALUES($1, $2, $3, $4) RETURNING * "#,
-        id,
+        node_info_id,
         task.id,
         payload.x,
         payload.y
