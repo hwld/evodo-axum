@@ -4,15 +4,18 @@ import ReactFlow, {
   Background,
   Controls,
   Node,
+  OnNodesChange,
   Panel,
+  applyNodeChanges,
   useEdgesState,
-  useNodesState,
 } from "reactflow";
 import { api } from "~/api";
 import reactFlowStyles from "reactflow/dist/style.css";
 import { TaskNodeForm } from "~/features/task/task-node-form";
 import { useLoaderData } from "@remix-run/react";
 import { TaskNode, TaskNodeData } from "~/features/task/task-node";
+import { useState } from "react";
+import { useUpdateTaskNode } from "~/features/task/use-update-task-node";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: reactFlowStyles },
@@ -26,8 +29,10 @@ export const loader = async () => {
 const nodeTypes = { task: TaskNode } as const;
 
 export default function Index() {
+  const updatePosition = useUpdateTaskNode();
+
   const { taskNodes } = useLoaderData<typeof loader>();
-  const [nodes, setNodes, onNodesChange] = useNodesState<TaskNodeData>(
+  const [nodes, setNodes] = useState<Node<TaskNodeData>[]>(
     taskNodes.map(({ task, node_info }) => {
       return {
         type: "task",
@@ -43,13 +48,18 @@ export default function Index() {
     setNodes((nodes) => [...nodes, { ...node, type: "task" }]);
   };
 
+  const handleNodesChange: OnNodesChange = (changes) => {
+    updatePosition(changes);
+    setNodes((nodes) => applyNodeChanges(changes, nodes));
+  };
+
   return (
     <div className="h-[100dvh]">
       <ReactFlow
         nodeTypes={nodeTypes}
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChange}
+        onNodesChange={handleNodesChange}
         onEdgesChange={onEdgesChange}
         deleteKeyCode={null}
         fitView
