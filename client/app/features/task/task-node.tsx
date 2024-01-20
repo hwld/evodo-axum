@@ -1,11 +1,5 @@
 import { XIcon } from "lucide-react";
-import {
-  Handle,
-  NodeProps,
-  Position,
-  useNodeId,
-  useReactFlow,
-} from "reactflow";
+import { Handle, NodeProps, Position, useReactFlow } from "reactflow";
 import { useDeleteTask } from "./use-delete-task-node";
 
 export type TaskNodeData = {
@@ -13,24 +7,13 @@ export type TaskNodeData = {
   taskId: string;
 };
 
-export const TaskNode = ({ data }: NodeProps<TaskNodeData>) => {
-  const nodeId = useNodeId();
+export const TaskNode = ({ data, id: nodeId }: NodeProps<TaskNodeData>) => {
   const flow = useReactFlow<TaskNodeData>();
-
   const deleteMutation = useDeleteTask();
 
   const handleDelete = () => {
-    if (!nodeId) {
-      return;
-    }
-
-    const node = flow.getNode(nodeId);
-    if (!node) {
-      return;
-    }
-
     deleteMutation.mutate(
-      { taskId: node.data.taskId },
+      { taskId: data.taskId },
       {
         onSuccess: () => {
           flow.deleteElements({ nodes: [{ id: nodeId }] });
@@ -40,7 +23,7 @@ export const TaskNode = ({ data }: NodeProps<TaskNodeData>) => {
   };
 
   return (
-    <div className="flex border border-neutral-900 rounded px-5 py-1 bg-neutral-50 items-center relative">
+    <div className="flex border border-neutral-900 rounded px-5 py-3 bg-neutral-50 items-center relative w-[300px] break-all">
       <Handle
         type="target"
         position={Position.Left}
@@ -48,7 +31,7 @@ export const TaskNode = ({ data }: NodeProps<TaskNodeData>) => {
       />
       <p>{data.title}</p>
       <button
-        className="hover:bg-black/10 transition-colors rounded p-[2px] absolute top-0 right-0 text-neutral-500"
+        className="hover:bg-black/10 transition-colors rounded p-[2px] absolute top-1 right-1 text-neutral-500"
         onClick={handleDelete}
         disabled={deleteMutation.isPending}
       >

@@ -3,6 +3,7 @@ import { LinksFunction, json } from "@remix-run/node";
 import ReactFlow, {
   Background,
   Controls,
+  MiniMap,
   Node,
   OnNodesChange,
   Panel,
@@ -56,6 +57,7 @@ export default function Index() {
   return (
     <div className="h-[100dvh]">
       <ReactFlow
+        nodeOrigin={[0.5, 0.5]}
         nodeTypes={nodeTypes}
         nodes={nodes}
         edges={edges}
@@ -66,6 +68,7 @@ export default function Index() {
       >
         <Background />
         <Controls />
+        <MiniMap />
         <Panel position="bottom-center">
           <TaskNodeForm onAddNode={handleAddTaskNode} />
         </Panel>
