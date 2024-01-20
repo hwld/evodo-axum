@@ -368,6 +368,7 @@ dependencies = [
  "anyhow",
  "axum",
  "dotenv",
+ "http",
  "serde",
  "serde_json",
  "sqlx",

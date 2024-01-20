@@ -6,8 +6,9 @@ use axum::{
     routing::{get, post, put},
     Json, Router,
 };
+use http::header::CONTENT_TYPE;
 use serde::{Deserialize, Serialize};
-use sqlx::{Pool, Sqlite, SqlitePool};
+use sqlx::{Acquire, Pool, Sqlite, SqlitePool};
 use std::{env, str::FromStr};
 use strum::EnumString;
 use tower_http::cors::CorsLayer;
@@ -60,10 +61,14 @@ async fn main() {
         .route("/tasks", get(list_tasks))
         .route("/tasks", post(create_task))
         .route("/tasks/:id", put(update_task).delete(delete_task))
+        .route("/task-nodes", get(list_task_nodes))
+        .route("/task-nodes/:id", post(create_task_node))
+        .route("/task-node-info/:id", put(update_task_node_info))
         .layer(
             CorsLayer::new()
                 .allow_origin(["http://localhost:3000".parse().unwrap()])
-                .allow_credentials(true),
+                .allow_credentials(true)
+                .allow_headers([CONTENT_TYPE]),
         )
         .with_state(pool);
 
@@ -121,8 +126,146 @@ async fn list_tasks(
     Ok((StatusCode::OK, Json(tasks)))
 }
 
+#[derive(Serialize, ToSchema, Debug)]
+struct TaskNode {
+    task: Task,
+    node_info: TaskNodeInfo,
+}
+
+#[derive(Serialize, ToSchema, Debug)]
+struct TaskNodeInfo {
+    id: String,
+    task_id: String,
+    x: f64,
+    y: f64,
+}
+
+#[derive(Deserialize, ToSchema, Debug)]
+struct CreateTaskNode {
+    x: f64,
+    y: f64,
+    task: CreateTask,
+}
+
+#[derive(Deserialize, ToSchema, Debug)]
+struct UpdateTaskNodeInfo {
+    x: f64,
+    y: f64,
+}
+
 #[tracing::instrument(err)]
-#[utoipa::path(post, path = "/tasks", responses((status = 201)))]
+#[utoipa::path(get, path = "/task-nodes", responses((status = 200, body = [TaskNode])))]
+async fn list_task_nodes(
+    State(pool): State<Pool<Sqlite>>,
+) -> Result<(StatusCode, Json<Vec<TaskNode>>), AppError> {
+    let records = sqlx::query!(
+        // https://docs.rs/sqlx/latest/sqlx/macro.query.html#type-overrides-output-columns
+        // ここを見ると、MySQLの場合はONでnot nullのフィールドを比較してたらnon-nullになるっぽいけど、
+        // sqliteとpostgresqlではならなそうなので "field!"で上書きする
+        r#"
+        SELECT
+            n.*,
+            t.status as "status!",
+            t.title as "title!",
+            t.created_at as "created_at!",
+            t.updated_at as "updated_at!"
+        FROM 
+            task_node_info as n LEFT JOIN tasks as t
+                ON n.task_id = t.id
+        "#,
+    )
+    .fetch_all(&pool)
+    .await?;
+
+    let nodes: Vec<TaskNode> = records
+        .into_iter()
+        .map(|r| TaskNode {
+            task: Task {
+                id: r.task_id.clone(),
+                title: r.title,
+                status: r.status.into(),
+                created_at: r.created_at,
+                updated_at: r.updated_at,
+            },
+            node_info: TaskNodeInfo {
+                id: r.id,
+                task_id: r.task_id,
+                x: r.x,
+                y: r.y,
+            },
+        })
+        .collect();
+
+    Ok((StatusCode::OK, Json(nodes)))
+}
+
+#[tracing::instrument(err)]
+#[utoipa::path(post, path = "/task-nodes/{id}", responses((status = 201, body = TaskNode)))]
+async fn create_task_node(
+    Path(id): Path<String>,
+    State(pool): State<Pool<Sqlite>>,
+    Json(payload): Json<CreateTaskNode>,
+) -> Result<(StatusCode, Json<TaskNode>), AppError> {
+    let task_id = uuid::Uuid::new_v4().to_string();
+
+    let mut tx = pool.begin().await?;
+
+    let task = sqlx::query_as!(
+        Task,
+        r#" INSERT INTO tasks(id, title) VALUES($1, $2) RETURNING * "#,
+        task_id,
+        payload.task.title
+    )
+    .fetch_one(tx.acquire().await?)
+    .await?;
+
+    let node_info = sqlx::query_as!(
+        TaskNodeInfo,
+        r#" INSERT INTO task_node_info(id, task_id, x, y) VALUES($1, $2, $3, $4) RETURNING * "#,
+        id,
+        task.id,
+        payload.x,
+        payload.y
+    )
+    .fetch_one(tx.acquire().await?)
+    .await?;
+
+    tx.commit().await?;
+
+    Ok((StatusCode::OK, Json(TaskNode { task, node_info })))
+}
+
+#[tracing::instrument(err)]
+#[utoipa::path(put, path = "/task-node-info/{id}", responses((status = 200, body = TaskNodeInfo)))]
+async fn update_task_node_info(
+    Path(id): Path<String>,
+    State(pool): State<Pool<Sqlite>>,
+    Json(payload): Json<UpdateTaskNodeInfo>,
+) -> Result<(StatusCode, Json<TaskNodeInfo>), AppError> {
+    let task_node_info = sqlx::query_as!(
+        TaskNodeInfo,
+        r#"
+        UPDATE
+            task_node_info
+        SET
+            x = $1,
+            y = $2
+        WHERE
+            id = $3
+        RETURNING *;
+        "#,
+        payload.x,
+        payload.y,
+        id,
+    )
+    .fetch_one(&pool)
+    .await?;
+
+    Ok((StatusCode::OK, Json(task_node_info)))
+}
+
+#[tracing::instrument(err)]
+#[utoipa::path(post, path = "/tasks", responses((status = 201, body = Task)))]
 async fn create_task(
     State(pool): State<Pool<Sqlite>>,
     Json(payload): Json<CreateTask>,
