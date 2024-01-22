@@ -17,6 +17,7 @@ import { useLoaderData } from "@remix-run/react";
 import { TaskNode, TaskNodeData } from "~/features/task-node/task-node";
 import { useState } from "react";
 import { useUpdateTaskNode } from "~/features/task-node/use-update-task-node";
+import { AppLogo } from "~/components/app-logo";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: reactFlowStyles },
@@ -69,6 +70,13 @@ export default function Index() {
         <Background />
         <Controls />
         <MiniMap />
+        <Panel
+          position="top-left"
+          className="bg-neutral-900 rounded py-2 px-3 flex items-center gap-2 text-neutral-100 w-[150px] justify-center"
+        >
+          <AppLogo size={20} />
+          <div className="mb-[1px]">evodo</div>
+        </Panel>
         <Panel position="bottom-center">
           <TaskNodeForm onAddNode={handleAddTaskNode} />
         </Panel>
