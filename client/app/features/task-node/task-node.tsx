@@ -1,5 +1,10 @@
-import { CheckCircle2Icon, CircleDashedIcon, XIcon } from "lucide-react";
-import { Handle, NodeProps, Position, useReactFlow } from "reactflow";
+import {
+  CheckCircle2Icon,
+  CircleDashedIcon,
+  GripVerticalIcon,
+  XIcon,
+} from "lucide-react";
+import { NodeProps, useReactFlow } from "reactflow";
 import { useDeleteTask } from "./use-delete-task-node";
 import { Checkbox } from "react-aria-components";
 import clsx from "clsx";
@@ -51,27 +56,20 @@ export const TaskNode = ({ data, id: nodeId }: NodeProps<TaskNodeData>) => {
   };
 
   return (
-    <div className="flex border text-sm text-neutral-900 border-neutral-900 min-h-[50px] rounded pl-3 pr-5 bg-neutral-50 items-center relative  break-all max-w-[300px]">
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="!w-[8px] !h-[30px] !rounded !bg-neutral-900"
-      />
+    <div className="flex group gap-1 py-2 border text-sm text-neutral-900 border-neutral-900 min-h-[50px] rounded pl-1 pr-4 bg-neutral-50 items-center relative  break-all max-w-[300px]">
+      <div className="shrink-0">
+        <GripVerticalIcon className="text-neutral-300" />
+      </div>
       <Checkbox
         isSelected={isChecked}
         onChange={handleUpdateStatus}
-        className="flex items-center group cursor-pointer"
+        className="flex items-center group cursor-pointer pr-1 rounded data-[hovered=true]:bg-black/5 transition-colors"
       >
-        {({ isSelected, isFocusVisible, isHovered }) => {
+        {({ isSelected }) => {
           const Icon = isSelected ? CheckCircle2Icon : CircleDashedIcon;
           return (
             <>
-              <div
-                className={clsx(
-                  "transition-colors rounded p-1",
-                  (isHovered || isFocusVisible) && "bg-neutral-200"
-                )}
-              >
+              <div className={clsx("transition-colors rounded p-1")}>
                 <Icon size={20} className={clsx("text-neutral-700")} />
               </div>
               <span className="text-neutral-700">{data.title}</span>
@@ -80,24 +78,15 @@ export const TaskNode = ({ data, id: nodeId }: NodeProps<TaskNodeData>) => {
         }}
       </Checkbox>
       <button
-        className="hover:bg-black/10 transition-colors rounded p-[2px] absolute top-1 right-1 text-neutral-500"
+        className="hover:bg-black/5 rounded p-[2px] absolute top-1 right-1 text-neutral-500 group-hover:opacity-100 opacity-0 transition-[background-color,opacity]"
         onClick={handleDelete}
         disabled={deleteMutation.isPending}
       >
         <XIcon size={15} />
       </button>
-      <Handle
-        type="source"
-        id="block"
-        position={Position.Right}
-        className="!w-[8px] !h-[23px] !rounded !bg-neutral-900 !transform !top-0"
-      />
-      <Handle
-        type="source"
-        id="break"
-        position={Position.Right}
-        className="!w-[8px] !h-[23px] !rounded !bg-neutral-900 !transform !bottom-0 !top-auto"
-      />
+      <div className="shrink-0">
+        <GripVerticalIcon className="text-neutral-300" />
+      </div>
     </div>
   );
 };
