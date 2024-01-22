@@ -40,7 +40,7 @@ export const TaskNodeForm = ({ onAddNode }: Props) => {
         onSuccess: ({ node_info, task }) => {
           onAddNode({
             id: node_info.id,
-            data: { title: task.title, taskId: task.id },
+            data: { title: task.title, taskId: task.id, status: task.status },
             position: { x: node_info.x, y: node_info.y },
           });
         },

@@ -12,11 +12,11 @@ import ReactFlow, {
 } from "reactflow";
 import { api } from "~/api";
 import reactFlowStyles from "reactflow/dist/style.css";
-import { TaskNodeForm } from "~/features/task/task-node-form";
+import { TaskNodeForm } from "~/features/task-node/task-node-form";
 import { useLoaderData } from "@remix-run/react";
-import { TaskNode, TaskNodeData } from "~/features/task/task-node";
+import { TaskNode, TaskNodeData } from "~/features/task-node/task-node";
 import { useState } from "react";
-import { useUpdateTaskNode } from "~/features/task/use-update-task-node";
+import { useUpdateTaskNode } from "~/features/task-node/use-update-task-node";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: reactFlowStyles },
@@ -38,7 +38,7 @@ export default function Index() {
       return {
         type: "task",
         id: node_info.id,
-        data: { title: task.title, taskId: task.id },
+        data: { title: task.title, taskId: task.id, status: task.status },
         position: { x: node_info.x, y: node_info.y },
       };
     })
