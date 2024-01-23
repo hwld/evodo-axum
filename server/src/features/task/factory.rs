@@ -1,20 +1,16 @@
-use uuid::Uuid;
+use axum::{extract::State, Json};
 
-use crate::{AppResult, Db};
+use crate::{features, AppResult, Db};
 
 use super::*;
 
 pub async fn create(db: &Db, input: Option<CreateTask>) -> AppResult<Task> {
-    let uuid = Uuid::new_v4().to_string();
-    let title = input.map(|i| i.title).unwrap_or("title".into());
-
-    let task = sqlx::query_as!(
-        Task,
-        "INSERT INTO tasks(id, title) VALUES ($1, $2) RETURNING *",
-        uuid,
-        title,
+    let (_, Json(task)) = features::task::routers::create_task::handler(
+        State(db.clone()),
+        Json(input.unwrap_or(CreateTask {
+            title: "title".into(),
+        })),
     )
-    .fetch_one(db)
     .await?;
 
     Ok(task)

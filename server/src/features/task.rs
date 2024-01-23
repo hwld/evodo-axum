@@ -1,6 +1,6 @@
-use std::str::FromStr;
 #[cfg(test)]
 pub mod factory;
+use std::str::FromStr;
 pub mod routers;
 pub use routers::router;
 use serde::{Deserialize, Serialize};

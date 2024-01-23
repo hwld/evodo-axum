@@ -1,20 +1,17 @@
 use axum::{extract::State, Json};
 use http::StatusCode;
-use sqlx::{Pool, Sqlite};
 
 use crate::{
     features::{
         task::Task,
         task_node::{TaskNode, TaskNodeInfo},
     },
-    AppResult,
+    AppResult, Db,
 };
 
 #[tracing::instrument(err)]
 #[utoipa::path(get, tag = "task-node", path = "/task-nodes", responses((status = 200, body = [TaskNode])))]
-pub async fn handler(
-    State(pool): State<Pool<Sqlite>>,
-) -> AppResult<(StatusCode, Json<Vec<TaskNode>>)> {
+pub async fn handler(State(db): State<Db>) -> AppResult<(StatusCode, Json<Vec<TaskNode>>)> {
     let records = sqlx::query!(
         // https://docs.rs/sqlx/latest/sqlx/macro.query.html#type-overrides-output-columns
         // ここを見ると、MySQLの場合はONでnot nullのフィールドを比較してたらnon-nullになるっぽいけど、
@@ -31,7 +28,7 @@ pub async fn handler(
                 ON n.task_id = t.id
         "#,
     )
-    .fetch_all(&pool)
+    .fetch_all(&db)
     .await?;
 
     let nodes: Vec<TaskNode> = records
@@ -54,4 +51,26 @@ pub async fn handler(
         .collect();
 
     Ok((StatusCode::OK, Json(nodes)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::{features::task_node, AppResult};
+
+    #[sqlx::test]
+    async fn 全てのタスクノードを取得できる(db: Db) -> AppResult<()> {
+        let _ = tokio::try_join!(
+            task_node::factory::create(&db, None),
+            task_node::factory::create(&db, None),
+            task_node::factory::create(&db, None)
+        )?;
+
+        let (_, tasks) = handler(State(db.clone())).await?;
+
+        assert_eq!(tasks.len(), 3);
+
+        Ok(())
+    }
 }

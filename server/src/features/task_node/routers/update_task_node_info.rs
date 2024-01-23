@@ -3,18 +3,17 @@ use axum::{
     Json,
 };
 use http::StatusCode;
-use sqlx::{Pool, Sqlite};
 
 use crate::{
     features::task_node::{TaskNodeInfo, UpdateTaskNodeInfo},
-    AppResult,
+    AppResult, Db,
 };
 
 #[tracing::instrument(err)]
 #[utoipa::path(put, tag = "task-node", path = "/task-node-info/{id}", responses((status = 200, body = TaskNodeInfo)))]
 pub async fn handler(
     Path(id): Path<String>,
-    State(pool): State<Pool<Sqlite>>,
+    State(db): State<Db>,
     Json(payload): Json<UpdateTaskNodeInfo>,
 ) -> AppResult<(StatusCode, Json<TaskNodeInfo>)> {
     let task_node_info = sqlx::query_as!(
@@ -33,8 +32,41 @@ pub async fn handler(
         payload.y,
         id,
     )
-    .fetch_one(&pool)
+    .fetch_one(&db)
     .await?;
 
     Ok((StatusCode::OK, Json(task_node_info)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{features::task_node, AppResult, Db};
+
+    #[sqlx::test]
+    async fn タスクノードを更新できる(db: Db) -> AppResult<()> {
+        let node = task_node::factory::create(&db, None).await?;
+
+        let new_x = 1.1;
+        let new_y = -100.100;
+        let _ = handler(
+            Path(node.node_info.id.clone()),
+            State(db.clone()),
+            Json(UpdateTaskNodeInfo { x: new_x, y: new_y }),
+        )
+        .await?;
+
+        let updated = sqlx::query_as!(
+            TaskNodeInfo,
+            "SELECT * FROM task_node_info WHERE id = $1",
+            node.node_info.id
+        )
+        .fetch_one(&db)
+        .await?;
+
+        assert_eq!(updated.x, new_x);
+        assert_eq!(updated.y, new_y);
+
+        Ok(())
+    }
 }
