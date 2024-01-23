@@ -22,20 +22,15 @@ pub async fn handler(
 
 #[cfg(test)]
 mod tests {
+    use crate::features::*;
+
     use super::*;
 
     #[sqlx::test]
     async fn タスクを削除できる(pool: Pool<Sqlite>) -> AppResult<()> {
-        let task_id = "task_id";
-        sqlx::query!(
-            "INSERT INTO tasks(id, title) VALUES($1, $2)",
-            task_id,
-            "title"
-        )
-        .execute(&pool)
-        .await?;
+        let created_task = task::factory::create(&pool, None).await?;
 
-        let _ = handler(Path(task_id.into()), State(pool.clone())).await?;
+        let _ = handler(Path(created_task.id), State(pool.clone())).await?;
 
         let tasks = sqlx::query!("select * from tasks;")
             .fetch_all(&pool)

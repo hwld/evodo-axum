@@ -16,20 +16,17 @@ pub async fn handler(State(pool): State<Pool<Sqlite>>) -> AppResult<(StatusCode,
 
 #[cfg(test)]
 mod tests {
+    use crate::features::task;
+
     use super::*;
 
     #[sqlx::test]
     async fn 全てのタスクを取得できる(pool: Pool<Sqlite>) -> AppResult<()> {
-        sqlx::query!(
-            r#"
-            INSERT INTO tasks(id, title) VALUES
-                ('1', 'title'),
-                ('2', 'title'),
-                ('3', 'title');
-            "#
-        )
-        .execute(&pool)
-        .await?;
+        let _ = tokio::try_join!(
+            task::factory::create(&pool, None),
+            task::factory::create(&pool, None),
+            task::factory::create(&pool, None),
+        )?;
 
         let _ = handler(State(pool.clone())).await?;
 
