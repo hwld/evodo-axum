@@ -1,6 +1,6 @@
 use axum::{http::StatusCode, response::IntoResponse, Router};
 use http::{header::CONTENT_TYPE, Method};
-use sqlx::SqlitePool;
+use sqlx::{Pool, Sqlite, SqlitePool};
 use std::env;
 use tower_http::cors::CorsLayer;
 use tracing::debug;
@@ -36,13 +36,15 @@ impl std::fmt::Display for AppError {
 
 type AppResult<T> = anyhow::Result<T, AppError>;
 
+type Db = Pool<Sqlite>;
+
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().expect("Failed to read .env file");
 
     tracing_subscriber::fmt::init();
 
-    let pool = SqlitePool::connect(&env::var("DATABASE_URL").expect("connect error"))
+    let db = SqlitePool::connect(&env::var("DATABASE_URL").expect("connect error"))
         .await
         .expect("Failed to connect");
 
@@ -68,7 +70,7 @@ async fn main() {
                     Method::PUT,
                 ]),
         )
-        .with_state(pool);
+        .with_state(db);
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8787")
         .await

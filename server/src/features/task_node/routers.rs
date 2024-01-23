@@ -3,11 +3,13 @@ use axum::{
     Router,
 };
 
+use crate::Db;
+
 pub mod create_task_node;
 pub mod get_task_nodes;
 pub mod update_task_node_info;
 
-pub fn router() -> Router<sqlx::Pool<sqlx::Sqlite>> {
+pub fn router() -> Router<Db> {
     Router::new()
         .route(
             "/task-nodes",

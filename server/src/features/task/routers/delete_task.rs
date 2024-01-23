@@ -3,18 +3,17 @@ use axum::{
     Json,
 };
 use http::StatusCode;
-use sqlx::{Pool, Sqlite};
 
-use crate::{features::task::Task, AppResult};
+use crate::{features::task::Task, AppResult, Db};
 
 #[tracing::instrument(err)]
 #[utoipa::path(delete, tag = "task", path = "/tasks/{id}", responses((status = 200, body = Task)))]
 pub async fn handler(
     Path(id): Path<String>,
-    State(pool): State<Pool<Sqlite>>,
+    State(db): State<Db>,
 ) -> AppResult<(StatusCode, Json<Task>)> {
     let task = sqlx::query_as!(Task, r#"DELETE FROM tasks WHERE id = $1 RETURNING *"#, id)
-        .fetch_one(&pool)
+        .fetch_one(&db)
         .await?;
 
     Ok((StatusCode::OK, Json(task)))
@@ -27,14 +26,12 @@ mod tests {
     use super::*;
 
     #[sqlx::test]
-    async fn タスクを削除できる(pool: Pool<Sqlite>) -> AppResult<()> {
-        let created_task = task::factory::create(&pool, None).await?;
+    async fn タスクを削除できる(db: Db) -> AppResult<()> {
+        let created_task = task::factory::create(&db, None).await?;
 
-        let _ = handler(Path(created_task.id), State(pool.clone())).await?;
+        let _ = handler(Path(created_task.id), State(db.clone())).await?;
 
-        let tasks = sqlx::query!("select * from tasks;")
-            .fetch_all(&pool)
-            .await?;
+        let tasks = sqlx::query!("select * from tasks;").fetch_all(&db).await?;
 
         assert_eq!(tasks.len(), 0);
 
@@ -42,10 +39,8 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn 存在しないタスクを削除しようとするとエラーが出る(
-        pool: Pool<Sqlite>,
-    ) {
-        let r = handler(Path("not".into()), State(pool.clone())).await;
+    async fn 存在しないタスクを削除しようとするとエラーが出る(db: Db) {
+        let r = handler(Path("not".into()), State(db.clone())).await;
 
         assert!(r.is_err());
     }

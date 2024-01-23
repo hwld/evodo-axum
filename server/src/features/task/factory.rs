@@ -1,11 +1,10 @@
-use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
-use crate::AppResult;
+use crate::{AppResult, Db};
 
 use super::*;
 
-pub async fn create(pool: &Pool<Sqlite>, input: Option<CreateTask>) -> AppResult<Task> {
+pub async fn create(db: &Db, input: Option<CreateTask>) -> AppResult<Task> {
     let uuid = Uuid::new_v4().to_string();
     let title = input.map(|i| i.title).unwrap_or("title".into());
 
@@ -15,7 +14,7 @@ pub async fn create(pool: &Pool<Sqlite>, input: Option<CreateTask>) -> AppResult
         uuid,
         title,
     )
-    .fetch_one(pool)
+    .fetch_one(db)
     .await?;
 
     Ok(task)

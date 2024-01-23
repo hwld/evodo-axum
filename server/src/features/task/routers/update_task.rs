@@ -3,18 +3,17 @@ use axum::{
     Json,
 };
 use http::StatusCode;
-use sqlx::{Pool, Sqlite};
 
 use crate::{
     features::task::{Task, UpdateTask},
-    AppResult,
+    AppResult, Db,
 };
 
 #[tracing::instrument(err)]
 #[utoipa::path(put, tag = "task", path = "/tasks/{id}", responses((status = 200, body = Task)))]
 pub async fn handler(
     Path(id): Path<String>,
-    State(pool): State<Pool<Sqlite>>,
+    State(db): State<Db>,
     Json(payload): Json<UpdateTask>,
 ) -> AppResult<(StatusCode, Json<Task>)> {
     let task = sqlx::query_as!(
@@ -34,7 +33,7 @@ pub async fn handler(
         payload.title,
         id,
     )
-    .fetch_one(&pool)
+    .fetch_one(&db)
     .await?;
 
     Ok((StatusCode::OK, Json(task)))
@@ -42,7 +41,6 @@ pub async fn handler(
 
 #[cfg(test)]
 mod tests {
-    use sqlx::{Pool, Sqlite};
 
     use super::*;
     use crate::{
@@ -51,14 +49,14 @@ mod tests {
     };
 
     #[sqlx::test]
-    async fn タスクを更新できる(pool: Pool<Sqlite>) -> AppResult<()> {
-        let task = task::factory::create(&pool, None).await?;
+    async fn タスクを更新できる(db: Db) -> AppResult<()> {
+        let task = task::factory::create(&db, None).await?;
 
         let new_title = "new_title";
         let new_status = TaskStatus::Done;
         let _ = handler(
             Path(task.id.clone()),
-            State(pool.clone()),
+            State(db.clone()),
             Json(UpdateTask {
                 title: new_title.into(),
                 status: new_status,
@@ -67,7 +65,7 @@ mod tests {
         .await?;
 
         let updated = sqlx::query_as!(Task, "SELECT * FROM tasks WHERE id = $1", task.id)
-            .fetch_one(&pool)
+            .fetch_one(&db)
             .await?;
 
         assert_eq!(updated.title, new_title);
