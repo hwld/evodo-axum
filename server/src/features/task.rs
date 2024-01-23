@@ -14,7 +14,9 @@ pub struct Task {
     pub updated_at: String,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, EnumString, sqlx::Type, Debug)]
+#[derive(
+    Serialize, Deserialize, ToSchema, EnumString, sqlx::Type, Debug, PartialEq, Clone, Copy,
+)]
 pub enum TaskStatus {
     Todo,
     Done,

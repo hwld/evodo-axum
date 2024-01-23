@@ -39,3 +39,45 @@ pub async fn handler(
 
     Ok((StatusCode::OK, Json(task)))
 }
+
+#[cfg(test)]
+mod tests {
+    use sqlx::{Pool, Sqlite};
+
+    use super::*;
+    use crate::{features::task::TaskStatus, AppResult};
+
+    #[sqlx::test]
+    async fn タスクを更新できる(pool: Pool<Sqlite>) -> AppResult<()> {
+        let task_id = "1";
+        let task_status = TaskStatus::Todo;
+        sqlx::query!(
+            "INSERT INTO tasks(id, title, status) VALUES ($1, 'title', $2)",
+            task_id,
+            task_status
+        )
+        .execute(&pool)
+        .await?;
+
+        let new_title = "new_title";
+        let new_status = TaskStatus::Done;
+        let _ = handler(
+            Path(task_id.into()),
+            State(pool.clone()),
+            Json(UpdateTask {
+                title: new_title.into(),
+                status: new_status,
+            }),
+        )
+        .await?;
+
+        let updated = sqlx::query_as!(Task, "SELECT * FROM tasks WHERE id = $1", task_id)
+            .fetch_one(&pool)
+            .await?;
+
+        assert_eq!(updated.title, new_title);
+        assert_eq!(updated.status, new_status);
+
+        Ok(())
+    }
+}
