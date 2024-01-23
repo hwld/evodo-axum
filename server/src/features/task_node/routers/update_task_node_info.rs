@@ -7,7 +7,7 @@ use sqlx::{Pool, Sqlite};
 
 use crate::{
     features::task_node::{TaskNodeInfo, UpdateTaskNodeInfo},
-    AppError,
+    AppResult,
 };
 
 #[tracing::instrument(err)]
@@ -16,7 +16,7 @@ pub async fn handler(
     Path(id): Path<String>,
     State(pool): State<Pool<Sqlite>>,
     Json(payload): Json<UpdateTaskNodeInfo>,
-) -> Result<(StatusCode, Json<TaskNodeInfo>), AppError> {
+) -> AppResult<(StatusCode, Json<TaskNodeInfo>)> {
     let task_node_info = sqlx::query_as!(
         TaskNodeInfo,
         r#"

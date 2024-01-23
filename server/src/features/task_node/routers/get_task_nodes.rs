@@ -7,14 +7,14 @@ use crate::{
         task::Task,
         task_node::{TaskNode, TaskNodeInfo},
     },
-    AppError,
+    AppResult,
 };
 
 #[tracing::instrument(err)]
 #[utoipa::path(get, tag = "task-node", path = "/task-nodes", responses((status = 200, body = [TaskNode])))]
 pub async fn handler(
     State(pool): State<Pool<Sqlite>>,
-) -> Result<(StatusCode, Json<Vec<TaskNode>>), AppError> {
+) -> AppResult<(StatusCode, Json<Vec<TaskNode>>)> {
     let records = sqlx::query!(
         // https://docs.rs/sqlx/latest/sqlx/macro.query.html#type-overrides-output-columns
         // ここを見ると、MySQLの場合はONでnot nullのフィールドを比較してたらnon-nullになるっぽいけど、

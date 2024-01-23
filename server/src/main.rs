@@ -34,6 +34,8 @@ impl std::fmt::Display for AppError {
     }
 }
 
+type AppResult<T> = anyhow::Result<T, AppError>;
+
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().expect("Failed to read .env file");

@@ -5,14 +5,14 @@ use sqlx::{Pool, Sqlite};
 
 use crate::features::task::Task;
 use crate::features::task_node::{CreateTaskNode, TaskNode, TaskNodeInfo};
-use crate::AppError;
+use crate::AppResult;
 
 #[tracing::instrument(err)]
 #[utoipa::path(post, tag = "task-node", path = "/task-nodes", responses((status = 201, body = TaskNode)))]
 pub async fn handler(
     State(pool): State<Pool<Sqlite>>,
     Json(payload): Json<CreateTaskNode>,
-) -> Result<(StatusCode, Json<TaskNode>), AppError> {
+) -> AppResult<(StatusCode, Json<TaskNode>)> {
     let mut tx = pool.begin().await?;
 
     let task_id = uuid::Uuid::new_v4().to_string();
