@@ -15,11 +15,12 @@ pub async fn handler(
     let mut tx = db.begin().await?;
 
     let task_id = uuid::Uuid::new_v4().to_string();
+    let task_input = payload.task.validate(&())?;
     let task = sqlx::query_as!(
         Task,
         r#" INSERT INTO tasks(id, title) VALUES($1, $2) RETURNING * "#,
         task_id,
-        payload.task.title
+        task_input.title,
     )
     .fetch_one(tx.acquire().await?)
     .await?;
@@ -60,7 +61,8 @@ mod tests {
                 y: node_y,
                 task: CreateTask {
                     title: task_title.into(),
-                },
+                }
+                .into(),
             }),
         )
         .await?;
@@ -80,6 +82,22 @@ mod tests {
         assert_eq!(node_info.x, node_x);
         assert_eq!(node_info.y, node_y);
 
+        Ok(())
+    }
+
+    #[sqlx::test]
+    async fn 空文字列のタスクノードは作成できない(db: Db) -> AppResult<()> {
+        let result = handler(
+            State(db),
+            Json(CreateTaskNode {
+                x: 0.0,
+                y: 100.0,
+                task: CreateTask { title: "".into() }.into(),
+            }),
+        )
+        .await;
+
+        assert!(result.is_err());
         Ok(())
     }
 }

@@ -17,7 +17,7 @@ const Task = z.object({
   updated_at: z.string(),
 });
 const TaskNode = z.object({ node_info: TaskNodeInfo, task: Task });
-const CreateTask = z.object({ title: z.string().min(1) });
+const CreateTask = z.object({ title: z.string().min(1).max(100) });
 const CreateTaskNode = z.object({
   task: CreateTask,
   x: z.number(),
@@ -88,7 +88,7 @@ const endpoints = makeApi([
       {
         name: "body",
         type: "Body",
-        schema: z.object({ title: z.string().min(1) }),
+        schema: z.object({ title: z.string().min(1).max(100) }),
       },
     ],
     response: Task,

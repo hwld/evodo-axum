@@ -2,6 +2,7 @@ use axum::{
     extract::{Path, State},
     Json,
 };
+use garde::Unvalidated;
 use http::StatusCode;
 
 use crate::{
@@ -14,8 +15,10 @@ use crate::{
 pub async fn handler(
     Path(id): Path<String>,
     State(db): State<Db>,
-    Json(payload): Json<UpdateTask>,
+    Json(payload): Json<Unvalidated<UpdateTask>>,
 ) -> AppResult<(StatusCode, Json<Task>)> {
+    let input = payload.validate(&())?;
+
     let task = sqlx::query_as!(
         Task,
         r#"
@@ -29,8 +32,8 @@ pub async fn handler(
                 id = $3 
             RETURNING *;
         "#,
-        payload.status,
-        payload.title,
+        input.status,
+        input.title,
         id,
     )
     .fetch_one(&db)
@@ -57,10 +60,13 @@ mod tests {
         let _ = handler(
             Path(task.id.clone()),
             State(db.clone()),
-            Json(UpdateTask {
-                title: new_title.into(),
-                status: new_status,
-            }),
+            Json(
+                UpdateTask {
+                    title: new_title.into(),
+                    status: new_status,
+                }
+                .into(),
+            ),
         )
         .await?;
 
@@ -70,6 +76,28 @@ mod tests {
 
         assert_eq!(updated.title, new_title);
         assert_eq!(updated.status, new_status);
+
+        Ok(())
+    }
+
+    #[sqlx::test]
+    async fn 空文字列には更新できない(db: Db) -> AppResult<()> {
+        let task = task::factory::create(&db, None).await?;
+
+        let result = handler(
+            Path(task.id),
+            State(db.clone()),
+            Json(
+                UpdateTask {
+                    title: "".into(),
+                    status: TaskStatus::Done,
+                }
+                .into(),
+            ),
+        )
+        .await;
+
+        assert!(result.is_err());
 
         Ok(())
     }

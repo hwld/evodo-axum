@@ -2,6 +2,7 @@
 pub mod factory;
 use std::str::FromStr;
 pub mod routers;
+use garde::Validate;
 pub use routers::router;
 use serde::{Deserialize, Serialize};
 use strum::EnumString;
@@ -29,14 +30,18 @@ impl From<String> for TaskStatus {
     }
 }
 
-#[derive(Deserialize, ToSchema, Debug)]
+#[derive(Deserialize, ToSchema, Debug, Validate)]
 pub struct CreateTask {
-    #[schema(min_length = 1)]
+    #[garde(length(min = 1, max = 100))]
+    #[schema(min_length = 1, max_length = 100)]
     pub title: String,
 }
 
-#[derive(Deserialize, ToSchema, Debug)]
+#[derive(Deserialize, ToSchema, Debug, Validate)]
 pub struct UpdateTask {
+    #[garde(length(min = 1, max = 100))]
     pub title: String,
+
+    #[garde(skip)]
     pub status: TaskStatus,
 }

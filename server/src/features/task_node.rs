@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod factory;
 pub mod routers;
+use garde::Unvalidated;
 pub use routers::router;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -25,7 +26,7 @@ pub struct TaskNodeInfo {
 pub struct CreateTaskNode {
     x: f64,
     y: f64,
-    task: CreateTask,
+    task: Unvalidated<CreateTask>,
 }
 
 #[derive(Deserialize, ToSchema, Debug)]
