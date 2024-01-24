@@ -1,5 +1,17 @@
 use axum::{http::StatusCode, response::IntoResponse, Router};
+use axum_login::{
+    tower_sessions::{
+        cookie::{time::Duration, SameSite},
+        Expiry, MemoryStore, SessionManagerLayer,
+    },
+    AuthManagerLayerBuilder,
+};
 use http::{header::CONTENT_TYPE, Method};
+use openidconnect::{
+    core::{CoreClient, CoreProviderMetadata},
+    reqwest::async_http_client,
+    ClientId, ClientSecret, IssuerUrl, RedirectUrl,
+};
 use sqlx::{Pool, Sqlite, SqlitePool};
 use std::env;
 use tower_http::cors::CorsLayer;
@@ -53,8 +65,46 @@ async fn main() {
     #[openapi()]
     struct ApiDoc;
 
+    // Auth TODO
+    // https://github.com/ramosbugs/oauth2-rs/blob/main/examples/google.rs
+    let google_client_id = env::var("GOOGLE_CLIENT_ID")
+        .map(ClientId::new)
+        .expect("GOOGLE_CLIENT_ID should be provided");
+    let google_client_secret = env::var("GOOGLE_CLIENT_SECRET")
+        .map(ClientSecret::new)
+        .expect("GOOGLE_CLIENT_SECRET should be provided");
+    let issuer_url =
+        IssuerUrl::new("https://accounts.google.com".to_string()).expect("Invalid issuer URL");
+
+    let provider_metadata = CoreProviderMetadata::discover_async(issuer_url, async_http_client)
+        .await
+        .expect("Failed");
+
+    let client = CoreClient::from_provider_metadata(
+        provider_metadata,
+        google_client_id,
+        Some(google_client_secret),
+    )
+    .set_redirect_uri(
+        RedirectUrl::new("http://localhost:8787/login-callback".into())
+            .expect("Invalid redirect URL"),
+    );
+
+    let session_store = MemoryStore::default();
+    let session_layer = SessionManagerLayer::new(session_store)
+        .with_secure(false)
+        .with_same_site(SameSite::Lax)
+        .with_expiry(Expiry::OnInactivity(Duration::days(30)));
+
+    let auth = features::auth::Auth {
+        db: db.clone(),
+        client,
+    };
+    let auth_layer = AuthManagerLayerBuilder::new(auth, session_layer).build();
+
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .merge(features::auth::router())
         .merge(features::task::router())
         .merge(features::task_node::router())
         .layer(
@@ -70,6 +120,7 @@ async fn main() {
                     Method::PUT,
                 ]),
         )
+        .layer(auth_layer)
         .with_state(db);
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8787")

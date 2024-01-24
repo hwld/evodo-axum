@@ -1,10 +1,8 @@
+use crate::Db;
 use axum::{
     routing::{get, put},
     Router,
 };
-
-use crate::Db;
-
 pub mod create_task;
 pub mod delete_task;
 pub mod get_tasks;
