@@ -1,15 +1,17 @@
 import { makeApi, Zodios, type ZodiosOptions } from "@zodios/core";
 import { z } from "zod";
 
-const CreateUser = z.object({
-  name: z.string().min(1).max(100),
-  profile: z.string().max(500),
-});
 const User = z.object({
   id: z.string(),
   name: z.string(),
   profile: z.string(),
 });
+const SessionResponse = z.object({ user: User.nullable() }).partial();
+const CreateUser = z.object({
+  name: z.string().min(1).max(100),
+  profile: z.string().max(500),
+});
+const SignupSessionResponse = z.object({ session_exists: z.boolean() });
 const UpdateTaskNodeInfo = z.object({ x: z.number(), y: z.number() });
 const TaskNodeInfo = z.object({
   id: z.string(),
@@ -35,8 +37,10 @@ const CreateTaskNode = z.object({
 const UpdateTask = z.object({ status: TaskStatus, title: z.string() });
 
 export const schemas = {
-  CreateUser,
   User,
+  SessionResponse,
+  CreateUser,
+  SignupSessionResponse,
   UpdateTaskNodeInfo,
   TaskNodeInfo,
   TaskStatus,
@@ -48,6 +52,24 @@ export const schemas = {
 };
 
 const endpoints = makeApi([
+  {
+    method: "get",
+    path: "/login",
+    requestFormat: "json",
+    response: z.void(),
+  },
+  {
+    method: "get",
+    path: "/login-callback",
+    requestFormat: "json",
+    response: z.void(),
+  },
+  {
+    method: "get",
+    path: "/session",
+    requestFormat: "json",
+    response: SessionResponse,
+  },
   {
     method: "post",
     path: "/signup",
@@ -62,6 +84,12 @@ const endpoints = makeApi([
     response: User,
   },
   {
+    method: "get",
+    path: "/signup-session",
+    requestFormat: "json",
+    response: z.object({ session_exists: z.boolean() }),
+  },
+  {
     method: "put",
     path: "/task-node-info/:id",
     requestFormat: "json",
@@ -70,11 +98,6 @@ const endpoints = makeApi([
         name: "body",
         type: "Body",
         schema: UpdateTaskNodeInfo,
-      },
-      {
-        name: "id",
-        type: "Path",
-        schema: z.string(),
       },
     ],
     response: TaskNodeInfo,
@@ -127,11 +150,6 @@ const endpoints = makeApi([
         type: "Body",
         schema: UpdateTask,
       },
-      {
-        name: "id",
-        type: "Path",
-        schema: z.string(),
-      },
     ],
     response: Task,
   },
@@ -139,13 +157,6 @@ const endpoints = makeApi([
     method: "delete",
     path: "/tasks/:id",
     requestFormat: "json",
-    parameters: [
-      {
-        name: "id",
-        type: "Path",
-        schema: z.string(),
-      },
-    ],
     response: Task,
   },
 ]);

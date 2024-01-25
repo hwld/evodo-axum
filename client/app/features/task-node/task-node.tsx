@@ -17,7 +17,8 @@ export type TaskNodeData = {
   status: Task["status"];
 };
 
-export const TaskNode = ({ data, id: nodeId }: NodeProps<TaskNodeData>) => {
+type Props = NodeProps<TaskNodeData>;
+export const TaskNode: React.FC<Props> = ({ data, id: nodeId }) => {
   const flow = useReactFlow<TaskNodeData>();
   const isChecked = data.status === "Done";
 

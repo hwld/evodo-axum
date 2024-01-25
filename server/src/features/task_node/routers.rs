@@ -11,7 +11,7 @@ pub mod update_task_node_info;
 
 pub const TAG: &str = "task_node";
 
-pub const TASK_NODES_PATH: &str = "/tsak-nodes";
+pub const TASK_NODES_PATH: &str = "/task-nodes";
 pub const TASK_NODE_INFO_PATH: &str = "/task-node-info/:id";
 pub const OAS_TASK_NODE_INFO_PATH: &str = "/task-node-info/{id}";
 
