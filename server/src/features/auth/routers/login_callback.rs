@@ -62,5 +62,5 @@ pub async fn handler(
 
     auth_session.login(&user).await?;
 
-    Ok(Redirect::to("http://localhost:3000/login").into_response())
+    Ok(Redirect::to("http://localhost:3000").into_response())
 }

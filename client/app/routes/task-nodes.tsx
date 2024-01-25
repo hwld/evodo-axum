@@ -1,4 +1,4 @@
-import { LinksFunction, json } from "@remix-run/node";
+import { LinksFunction, LoaderFunctionArgs, json } from "@remix-run/node";
 // eslint-disable-next-line import/no-named-as-default
 import ReactFlow, {
   Background,
@@ -18,12 +18,14 @@ import { TaskNode, TaskNodeData } from "~/features/task-node/task-node";
 import { useState } from "react";
 import { useUpdateTaskNode } from "~/features/task-node/use-update-task-node";
 import { AppLogo } from "~/components/app-logo";
+import { requireUserSession } from "~/session.server";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: reactFlowStyles },
 ];
 
-export const loader = async () => {
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const _ = await requireUserSession(request);
   const taskNodes = await api.get("/task-nodes", {});
   return json({ taskNodes });
 };

@@ -1,4 +1,4 @@
-import { LinksFunction } from "@remix-run/node";
+import { LinksFunction, LoaderFunctionArgs, json } from "@remix-run/node";
 // eslint-disable-next-line import/no-named-as-default
 import ReactFlow, {
   Background,
@@ -11,10 +11,16 @@ import reactFlowStyles from "reactflow/dist/style.css";
 import { SignupFormNode } from "~/features/auth/signup-form-node";
 import { Node as NodeComponent } from "~/components/ui/node";
 import { AlignJustifyIcon, UserPlusIcon } from "lucide-react";
+import { requireSignupSession } from "~/session.server";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: reactFlowStyles },
 ];
+
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  await requireSignupSession(request);
+  return json({});
+};
 
 const nodeTypes = {
   dummy: () => (
