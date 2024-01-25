@@ -22,7 +22,7 @@ pub struct CreateUser {
 }
 
 #[tracing::instrument(err)]
-#[utoipa::path(post, tag = "auth", path = "/signup", request_body = CreateUser, responses((status = 201, body = User)))]
+#[utoipa::path(post, tag = super::TAG, path = super::SIGNUP_PATH, request_body = CreateUser, responses((status = 201, body = User)))]
 pub async fn handler(
     mut auth_session: AuthSession<Auth>,
     session: Session,

@@ -7,7 +7,7 @@ use crate::features::task_node::{CreateTaskNode, TaskNode, TaskNodeInfo};
 use crate::{AppResult, AppState};
 
 #[tracing::instrument(err)]
-#[utoipa::path(post, tag = "task-node", path = "/task-nodes", responses((status = 201, body = TaskNode)))]
+#[utoipa::path(post, tag = super::TAG, path = super::TASK_NODES_PATH, responses((status = 201, body = TaskNode)))]
 pub async fn handler(
     State(AppState { db }): State<AppState>,
     Json(payload): Json<CreateTaskNode>,

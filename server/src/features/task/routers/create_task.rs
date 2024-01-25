@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[tracing::instrument(err)]
-#[utoipa::path(post, tag = "task", path = "/tasks", request_body = CreateTask, responses((status = 201, body = Task)))]
+#[utoipa::path(post, tag = super::TAG, path = super::TASKS_PATH, request_body = CreateTask, responses((status = 201, body = Task)))]
 pub async fn handler(
     State(AppState { db }): State<AppState>,
     Json(payload): Json<Unvalidated<CreateTask>>,

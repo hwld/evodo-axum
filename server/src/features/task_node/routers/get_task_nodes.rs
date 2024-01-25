@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[tracing::instrument(err)]
-#[utoipa::path(get, tag = "task-node", path = "/task-nodes", responses((status = 200, body = [TaskNode])))]
+#[utoipa::path(get, tag = super::TAG, path = super::TASK_NODES_PATH, responses((status = 200, body = [TaskNode])))]
 pub async fn handler(
     State(AppState { db }): State<AppState>,
 ) -> AppResult<(StatusCode, Json<Vec<TaskNode>>)> {

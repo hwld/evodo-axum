@@ -4,7 +4,7 @@ use http::StatusCode;
 use crate::{features::task::Task, AppResult, AppState};
 
 #[tracing::instrument(err)]
-#[utoipa::path(get, tag = "task", path = "/tasks", responses((status = 200, body = [Task])))]
+#[utoipa::path(get, tag = super::TAG, path = super::TASKS_PATH, responses((status = 200, body = [Task])))]
 pub async fn handler(
     State(AppState { db }): State<AppState>,
 ) -> AppResult<(StatusCode, Json<Vec<Task>>)> {

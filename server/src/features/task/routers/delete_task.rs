@@ -7,7 +7,7 @@ use http::StatusCode;
 use crate::{features::task::Task, AppResult, AppState};
 
 #[tracing::instrument(err)]
-#[utoipa::path(delete, tag = "task", path = "/tasks/{id}", responses((status = 200, body = Task)))]
+#[utoipa::path(delete, tag = super::TAG, path = super::OAS_TASK_PATH, responses((status = 200, body = Task)))]
 pub async fn handler(
     Path(id): Path<String>,
     State(AppState { db }): State<AppState>,
