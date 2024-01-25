@@ -1,50 +1,69 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { schemas } from "~/api/schema";
-import { useSignup } from "~/features/auth/use-signup";
+import { LinksFunction } from "@remix-run/node";
+// eslint-disable-next-line import/no-named-as-default
+import ReactFlow, {
+  Background,
+  Controls,
+  MiniMap,
+  Node,
+  useNodesState,
+} from "reactflow";
+import reactFlowStyles from "reactflow/dist/style.css";
+import { SignupFormNode } from "~/features/auth/signup-form-node";
+import { Node as NodeComponent } from "~/components/ui/node";
+import { AlignJustifyIcon, UserPlusIcon } from "lucide-react";
 
-const signupSchema = schemas.CreateUser;
-type SignupSchema = z.infer<typeof signupSchema>;
+export const links: LinksFunction = () => [
+  { rel: "stylesheet", href: reactFlowStyles },
+];
 
-export default function Signup() {
-  const {
-    register,
-    handleSubmit: buildHandleSubmit,
-    formState: { errors },
-  } = useForm<SignupSchema>({
-    defaultValues: { name: "", profile: "" },
-    resolver: zodResolver(signupSchema),
-  });
+const nodeTypes = {
+  dummy: () => (
+    <NodeComponent>
+      <AlignJustifyIcon className="text-muted-foreground" />
+    </NodeComponent>
+  ),
+  title: () => {
+    return (
+      <NodeComponent className="w-[400px]">
+        <div className="space-y-2">
+          <div className="flex items-center gap-1">
+            <UserPlusIcon />
+            <h1 className="font-bold">ユーザーを登録する</h1>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            ユーザー名とプロフィールを入力して、ユーザーを登録することができます。
+          </div>
+        </div>
+      </NodeComponent>
+    );
+  },
+  form: SignupFormNode,
+} as const;
 
-  const signup = useSignup();
-  const handleSubmit = buildHandleSubmit((data) => {
-    signup.mutate({ name: data.name, profile: data.profile });
-  });
+const initialNodes: Node[] = [
+  { type: "dummy", data: {}, id: "d1", position: { x: 0, y: -450 } },
+  { type: "dummy", data: {}, id: "d2", position: { x: 0, y: 350 } },
+  { type: "title", data: {}, id: "t", position: { x: 0, y: -260 } },
+  { type: "form", data: {}, id: "1", position: { x: 0, y: 0 } },
+];
+
+export default function SignupPage() {
+  const [nodes, _, onNodesChange] = useNodesState(initialNodes);
 
   return (
-    <div className="p-5">
-      <form className="flex flex-col gap-1" onSubmit={handleSubmit}>
-        <div>
-          <input
-            className="p-1 border rounded w-full"
-            placeholder="ユーザー名を入力してください..."
-            {...register("name")}
-          />
-          <p>{errors.name?.message}</p>
-        </div>
-        <div>
-          <textarea
-            className="p-1 border rounded w-full"
-            placeholder="プロフィールを入力してください..."
-            {...register("profile")}
-          />
-          <p>{errors.profile?.message}</p>
-        </div>
-        <button className="p-2 bg-neutral-900 text-neutral-200 rounded">
-          新規登録
-        </button>
-      </form>
+    <div className="h-[100dvh]">
+      <ReactFlow
+        nodeOrigin={[0.5, 0.5]}
+        nodeTypes={nodeTypes}
+        nodes={nodes}
+        onNodesChange={onNodesChange}
+        fitView
+        deleteKeyCode={null}
+      >
+        <Background />
+        <MiniMap />
+        <Controls />
+      </ReactFlow>
     </div>
   );
 }

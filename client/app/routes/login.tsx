@@ -1,11 +1,11 @@
 import { LinksFunction } from "@remix-run/node";
-import { AlignJustifyIcon, ArrowUpIcon } from "lucide-react";
-import { CSSProperties } from "react";
+import { AlignJustifyIcon } from "lucide-react";
 // eslint-disable-next-line import/no-named-as-default
 import ReactFlow, {
   Background,
+  Controls,
+  MiniMap,
   Node,
-  useEdgesState,
   useNodesState,
 } from "reactflow";
 import reactFlowStyles from "reactflow/dist/style.css";
@@ -38,8 +38,7 @@ const initialNodes: Node[] = [
 ];
 
 export default function Login() {
-  const [nodes, _setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, _setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, _, onNodesChange] = useNodesState(initialNodes);
 
   return (
     <div className="h-[100dvh]">
@@ -48,11 +47,12 @@ export default function Login() {
         nodeTypes={nodeTypes}
         nodes={nodes}
         onNodesChange={onNodesChange}
-        edges={edges}
-        onEdgesChange={onEdgesChange}
         fitView
+        deleteKeyCode={null}
       >
         <Background />
+        <MiniMap />
+        <Controls />
       </ReactFlow>
     </div>
   );
