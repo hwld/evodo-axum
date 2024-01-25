@@ -1,6 +1,15 @@
 import { makeApi, Zodios, type ZodiosOptions } from "@zodios/core";
 import { z } from "zod";
 
+const CreateUser = z.object({
+  name: z.string().min(1).max(100),
+  profile: z.string().max(500),
+});
+const User = z.object({
+  id: z.string(),
+  name: z.string(),
+  profile: z.string(),
+});
 const UpdateTaskNodeInfo = z.object({ x: z.number(), y: z.number() });
 const TaskNodeInfo = z.object({
   id: z.string(),
@@ -26,6 +35,8 @@ const CreateTaskNode = z.object({
 const UpdateTask = z.object({ status: TaskStatus, title: z.string() });
 
 export const schemas = {
+  CreateUser,
+  User,
   UpdateTaskNodeInfo,
   TaskNodeInfo,
   TaskStatus,
@@ -37,6 +48,19 @@ export const schemas = {
 };
 
 const endpoints = makeApi([
+  {
+    method: "post",
+    path: "/signup",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: CreateUser,
+      },
+    ],
+    response: User,
+  },
   {
     method: "put",
     path: "/task-node-info/:id",

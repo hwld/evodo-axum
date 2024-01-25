@@ -7,11 +7,6 @@ use axum_login::{
     AuthManagerLayerBuilder,
 };
 use http::{header::CONTENT_TYPE, Method};
-use openidconnect::{
-    core::{CoreClient, CoreProviderMetadata},
-    reqwest::async_http_client,
-    ClientId, ClientSecret, IssuerUrl, RedirectUrl,
-};
 use sqlx::{Pool, Sqlite, SqlitePool};
 use std::env;
 use tower_http::cors::CorsLayer;
@@ -65,41 +60,14 @@ async fn main() {
     #[openapi()]
     struct ApiDoc;
 
-    // Auth TODO
-    // https://github.com/ramosbugs/oauth2-rs/blob/main/examples/google.rs
-    let google_client_id = env::var("GOOGLE_CLIENT_ID")
-        .map(ClientId::new)
-        .expect("GOOGLE_CLIENT_ID should be provided");
-    let google_client_secret = env::var("GOOGLE_CLIENT_SECRET")
-        .map(ClientSecret::new)
-        .expect("GOOGLE_CLIENT_SECRET should be provided");
-    let issuer_url =
-        IssuerUrl::new("https://accounts.google.com".to_string()).expect("Invalid issuer URL");
-
-    let provider_metadata = CoreProviderMetadata::discover_async(issuer_url, async_http_client)
-        .await
-        .expect("Failed");
-
-    let client = CoreClient::from_provider_metadata(
-        provider_metadata,
-        google_client_id,
-        Some(google_client_secret),
-    )
-    .set_redirect_uri(
-        RedirectUrl::new("http://localhost:8787/login-callback".into())
-            .expect("Invalid redirect URL"),
-    );
-
     let session_store = MemoryStore::default();
     let session_layer = SessionManagerLayer::new(session_store)
         .with_secure(false)
         .with_same_site(SameSite::Lax)
+        .with_http_only(true)
         .with_expiry(Expiry::OnInactivity(Duration::days(30)));
 
-    let auth = features::auth::Auth {
-        db: db.clone(),
-        client,
-    };
+    let auth = features::auth::Auth::new(db.clone()).await;
     let auth_layer = AuthManagerLayerBuilder::new(auth, session_layer).build();
 
     let app = Router::new()
@@ -109,6 +77,7 @@ async fn main() {
         .merge(features::task_node::router())
         .layer(
             CorsLayer::new()
+                // TODO
                 .allow_origin(["http://localhost:3000".parse().unwrap()])
                 .allow_credentials(true)
                 .allow_headers([CONTENT_TYPE])

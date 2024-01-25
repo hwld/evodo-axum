@@ -17,6 +17,5 @@ pub async fn handler(
     session.insert(CSRF_STATE_KEY, csrf_state.secret()).await?;
     session.insert(NONCE_KEY, nonce.secret()).await?;
 
-    tracing::debug!("{}", auth_url.as_str());
     Ok(Redirect::to(auth_url.as_str()))
 }
