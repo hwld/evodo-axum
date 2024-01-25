@@ -1,15 +1,12 @@
-import {
-  CheckCircle2Icon,
-  CircleDashedIcon,
-  GripVerticalIcon,
-  XIcon,
-} from "lucide-react";
+import { CheckCircle2Icon, CircleDashedIcon, XIcon } from "lucide-react";
 import { NodeProps, useReactFlow } from "reactflow";
 import { useDeleteTask } from "./use-delete-task-node";
-import { Checkbox } from "react-aria-components";
-import clsx from "clsx";
 import { Task } from "~/api/types";
 import { useUpdateTask } from "../task/use-update-task";
+import { Node } from "~/components/ui/node";
+import { Checkbox, CheckboxIndicator } from "@radix-ui/react-checkbox";
+import { useId } from "react";
+import { cn } from "~/lib/utils";
 
 export type TaskNodeData = {
   title: string;
@@ -19,6 +16,7 @@ export type TaskNodeData = {
 
 type Props = NodeProps<TaskNodeData>;
 export const TaskNode: React.FC<Props> = ({ data, id: nodeId }) => {
+  const checkboxId = useId();
   const flow = useReactFlow<TaskNodeData>();
   const isChecked = data.status === "Done";
 
@@ -36,6 +34,7 @@ export const TaskNode: React.FC<Props> = ({ data, id: nodeId }) => {
 
   const updateMutation = useUpdateTask();
   const handleUpdateStatus = () => {
+    console.log("?");
     updateMutation.mutate(
       {
         ...data,
@@ -57,27 +56,30 @@ export const TaskNode: React.FC<Props> = ({ data, id: nodeId }) => {
   };
 
   return (
-    <div className="flex group gap-1 py-2 border text-sm text-neutral-900 border-neutral-900 min-h-[50px] rounded pl-1 pr-4 bg-neutral-50 items-center relative  break-all max-w-[300px]">
-      <div className="shrink-0">
-        <GripVerticalIcon className="text-neutral-300" />
+    <Node
+      className={cn(
+        "group max-w-[450px] break-all",
+        isChecked && "border-green-500"
+      )}
+    >
+      <div className="flex items-center">
+        <Checkbox
+          checked={isChecked}
+          onCheckedChange={handleUpdateStatus}
+          id={checkboxId}
+        >
+          <CheckboxIndicator forceMount>
+            {isChecked ? (
+              <CheckCircle2Icon className="text-green-500" />
+            ) : (
+              <CircleDashedIcon className="text-muted-foreground" />
+            )}
+          </CheckboxIndicator>
+        </Checkbox>
+        <label className="pl-2 cursor-pointer" htmlFor={checkboxId}>
+          {data.title}
+        </label>
       </div>
-      <Checkbox
-        isSelected={isChecked}
-        onChange={handleUpdateStatus}
-        className="flex items-center group cursor-pointer pr-1 rounded data-[hovered=true]:bg-black/5 transition-colors"
-      >
-        {({ isSelected }) => {
-          const Icon = isSelected ? CheckCircle2Icon : CircleDashedIcon;
-          return (
-            <>
-              <div className={clsx("transition-colors rounded p-1")}>
-                <Icon size={20} className={clsx("text-neutral-700")} />
-              </div>
-              <span className="text-neutral-700">{data.title}</span>
-            </>
-          );
-        }}
-      </Checkbox>
       <button
         className="hover:bg-black/5 rounded p-[2px] absolute top-1 right-1 text-neutral-500 group-hover:opacity-100 opacity-0 transition-[background-color,opacity]"
         onClick={handleDelete}
@@ -85,9 +87,6 @@ export const TaskNode: React.FC<Props> = ({ data, id: nodeId }) => {
       >
         <XIcon size={15} />
       </button>
-      <div className="shrink-0">
-        <GripVerticalIcon className="text-neutral-300" />
-      </div>
-    </div>
+    </Node>
   );
 };

@@ -65,7 +65,9 @@ export default function TaskNodesPage() {
         onNodesChange={handleNodesChange}
         onEdgesChange={onEdgesChange}
         deleteKeyCode={null}
+        disableKeyboardA11y={true}
         fitView
+        panActivationKeyCode="none"
         defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
       >
         <Background />
@@ -73,7 +75,7 @@ export default function TaskNodesPage() {
         <MiniMap />
         <Panel
           position="top-left"
-          className="bg-neutral-900 rounded py-2 px-3 flex items-center gap-2 text-neutral-100 w-[150px] justify-center"
+          className="bg-neutral-900 rounded-xl py-2 px-3 flex items-center gap-1 text-neutral-100 w-[120px] justify-center"
         >
           <AppLogo size={20} />
           <div className="mb-[1px]">evodo</div>
