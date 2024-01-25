@@ -2,7 +2,7 @@ use axum::{http::StatusCode, response::IntoResponse, Router};
 use axum_login::{
     tower_sessions::{
         cookie::{time::Duration, SameSite},
-        Expiry, MemoryStore, SessionManagerLayer,
+        Expiry, SessionManagerLayer,
     },
     AuthManagerLayerBuilder,
 };
@@ -10,6 +10,7 @@ use http::{header::CONTENT_TYPE, Method};
 use sqlx::{Pool, Sqlite, SqlitePool};
 use std::env;
 use tower_http::cors::CorsLayer;
+use tower_sessions_sqlx_store::SqliteStore;
 use tracing::debug;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -50,10 +51,6 @@ pub struct AppState {
     db: Db,
 }
 
-impl axum::extract::FromRef<AppState> for () {
-    fn from_ref(_: &AppState) -> Self {}
-}
-
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().expect("Failed to read .env file");
@@ -69,7 +66,14 @@ async fn main() {
     #[openapi()]
     struct ApiDoc;
 
-    let session_store = MemoryStore::default();
+    let session_store = SqliteStore::new(db.clone())
+        .with_table_name("sessions")
+        .expect("Failed to create session store");
+    session_store
+        .migrate()
+        .await
+        .expect("Failed to migrate session store");
+
     let session_layer = SessionManagerLayer::new(session_store)
         .with_secure(false)
         .with_same_site(SameSite::Lax)

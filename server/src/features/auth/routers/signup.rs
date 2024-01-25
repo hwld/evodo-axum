@@ -1,4 +1,4 @@
-use super::login_callback::SIGNUP_USER_ID;
+use super::login_callback::SIGNUP_USER_ID_KEY;
 use crate::{
     features::{auth::Auth, user::User},
     AppResult, AppState,
@@ -24,13 +24,13 @@ pub struct CreateUser {
 #[tracing::instrument(err)]
 #[utoipa::path(post, tag = "auth", path = "/signup", request_body = CreateUser, responses((status = 201, body = User)))]
 pub async fn handler(
-    auth_session: AuthSession<Auth>,
+    mut auth_session: AuthSession<Auth>,
     session: Session,
     State(AppState { db }): State<AppState>,
     Json(payload): Json<Unvalidated<CreateUser>>,
 ) -> AppResult<impl IntoResponse> {
     let input = payload.validate(&())?;
-    let Ok(Some(user_id)) = session.get::<String>(SIGNUP_USER_ID).await else {
+    let Ok(Some(user_id)) = session.get::<String>(SIGNUP_USER_ID_KEY).await else {
         return Ok(StatusCode::BAD_REQUEST.into_response());
     };
 
@@ -43,6 +43,9 @@ pub async fn handler(
     )
     .fetch_one(&db)
     .await?;
+
+    session.flush().await?;
+    auth_session.login(&user).await?;
 
     Ok((StatusCode::CREATED, Json(user)).into_response())
 }

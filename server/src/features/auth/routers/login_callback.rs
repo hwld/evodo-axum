@@ -12,7 +12,8 @@ use http::StatusCode;
 use openidconnect::{CsrfToken, Nonce};
 use serde::Deserialize;
 
-pub const SIGNUP_USER_ID: &str = "auth.signup.user-id";
+/// 新規登録しようとしているユーザーのID
+pub const SIGNUP_USER_ID_KEY: &str = "auth.signup.user-id";
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthzResp {
@@ -21,6 +22,7 @@ pub struct AuthzResp {
 }
 
 #[tracing::instrument(err, skip(auth_session, session))]
+#[utoipa::path(get, tag = "auth", path = "login-callback")]
 pub async fn handler(
     mut auth_session: AuthSession<Auth>,
     session: Session,
@@ -47,7 +49,9 @@ pub async fn handler(
         Ok(Some(user)) => user,
         // 認証は通っているがユーザーが存在しない場合は新規登録フローに移行させる
         Err(axum_login::Error::Backend(AuthError::AuthenticationUserNotFound(user_id))) => {
-            session.insert(SIGNUP_USER_ID, user_id).await?;
+            // クリーンな新規登録セッションを作る
+            session.flush().await?;
+            session.insert(SIGNUP_USER_ID_KEY, user_id).await?;
             return Ok(Redirect::to("http://localhost:3000/signup").into_response());
         }
         Ok(None) => return Ok(StatusCode::UNAUTHORIZED.into_response()),
