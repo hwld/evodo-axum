@@ -6,12 +6,14 @@ use crate::{
         task::Task,
         task_node::{TaskNode, TaskNodeInfo},
     },
-    AppResult, Db,
+    AppResult, AppState,
 };
 
 #[tracing::instrument(err)]
 #[utoipa::path(get, tag = "task-node", path = "/task-nodes", responses((status = 200, body = [TaskNode])))]
-pub async fn handler(State(db): State<Db>) -> AppResult<(StatusCode, Json<Vec<TaskNode>>)> {
+pub async fn handler(
+    State(AppState { db }): State<AppState>,
+) -> AppResult<(StatusCode, Json<Vec<TaskNode>>)> {
     let records = sqlx::query!(
         // https://docs.rs/sqlx/latest/sqlx/macro.query.html#type-overrides-output-columns
         // ここを見ると、MySQLの場合はONでnot nullのフィールドを比較してたらnon-nullになるっぽいけど、
@@ -57,7 +59,7 @@ pub async fn handler(State(db): State<Db>) -> AppResult<(StatusCode, Json<Vec<Ta
 mod tests {
     use super::*;
 
-    use crate::{features::task_node, AppResult};
+    use crate::{features::task_node, AppResult, Db};
 
     #[sqlx::test]
     async fn 全てのタスクノードを取得できる(db: Db) -> AppResult<()> {
@@ -67,7 +69,7 @@ mod tests {
             task_node::factory::create(&db, None)
         )?;
 
-        let (_, tasks) = handler(State(db.clone())).await?;
+        let (_, tasks) = handler(State(AppState { db: db.clone() })).await?;
 
         assert_eq!(tasks.len(), 3);
 

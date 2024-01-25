@@ -4,12 +4,12 @@ use sqlx::Acquire;
 
 use crate::features::task::Task;
 use crate::features::task_node::{CreateTaskNode, TaskNode, TaskNodeInfo};
-use crate::{AppResult, Db};
+use crate::{AppResult, AppState};
 
 #[tracing::instrument(err)]
 #[utoipa::path(post, tag = "task-node", path = "/task-nodes", responses((status = 201, body = TaskNode)))]
 pub async fn handler(
-    State(db): State<Db>,
+    State(AppState { db }): State<AppState>,
     Json(payload): Json<CreateTaskNode>,
 ) -> AppResult<(StatusCode, Json<TaskNode>)> {
     let mut tx = db.begin().await?;
@@ -46,7 +46,7 @@ pub async fn handler(
 mod tests {
     use super::*;
 
-    use crate::{features::task::CreateTask, AppResult};
+    use crate::{features::task::CreateTask, AppResult, Db};
 
     #[sqlx::test]
     async fn タスクノードを作成できる(db: Db) -> AppResult<()> {
@@ -55,7 +55,7 @@ mod tests {
         let node_y = 0.0;
 
         let (_, task_node) = handler(
-            State(db.clone()),
+            State(AppState { db: db.clone() }),
             Json(CreateTaskNode {
                 x: node_x,
                 y: node_y,
@@ -88,7 +88,7 @@ mod tests {
     #[sqlx::test]
     async fn 空文字列のタスクノードは作成できない(db: Db) -> AppResult<()> {
         let result = handler(
-            State(db),
+            State(AppState { db }),
             Json(CreateTaskNode {
                 x: 0.0,
                 y: 100.0,

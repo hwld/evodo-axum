@@ -1,11 +1,13 @@
 use axum::{extract::State, Json};
 use http::StatusCode;
 
-use crate::{features::task::Task, AppResult, Db};
+use crate::{features::task::Task, AppResult, AppState};
 
 #[tracing::instrument(err)]
 #[utoipa::path(get, tag = "task", path = "/tasks", responses((status = 200, body = [Task])))]
-pub async fn handler(State(db): State<Db>) -> AppResult<(StatusCode, Json<Vec<Task>>)> {
+pub async fn handler(
+    State(AppState { db }): State<AppState>,
+) -> AppResult<(StatusCode, Json<Vec<Task>>)> {
     let tasks = sqlx::query_as!(Task, r#"select * from tasks;"#)
         .fetch_all(&db)
         .await?;
@@ -27,7 +29,7 @@ mod tests {
             task::factory::create(&db, None),
         )?;
 
-        let _ = handler(State(db.clone())).await?;
+        let _ = handler(State(AppState { db: db.clone() })).await?;
 
         let tasks = sqlx::query_as!(Task, "SELECT * FROM tasks;")
             .fetch_all(&db)

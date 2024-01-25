@@ -6,14 +6,14 @@ use http::StatusCode;
 
 use crate::{
     features::task_node::{TaskNodeInfo, UpdateTaskNodeInfo},
-    AppResult, Db,
+    AppResult, AppState,
 };
 
 #[tracing::instrument(err)]
 #[utoipa::path(put, tag = "task-node", path = "/task-node-info/{id}", responses((status = 200, body = TaskNodeInfo)))]
 pub async fn handler(
     Path(id): Path<String>,
-    State(db): State<Db>,
+    State(AppState { db }): State<AppState>,
     Json(payload): Json<UpdateTaskNodeInfo>,
 ) -> AppResult<(StatusCode, Json<TaskNodeInfo>)> {
     let task_node_info = sqlx::query_as!(
@@ -51,7 +51,7 @@ mod tests {
         let new_y = -100.100;
         let _ = handler(
             Path(node.node_info.id.clone()),
-            State(db.clone()),
+            State(AppState { db: db.clone() }),
             Json(UpdateTaskNodeInfo { x: new_x, y: new_y }),
         )
         .await?;

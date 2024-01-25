@@ -3,13 +3,13 @@ use axum::{
     Router,
 };
 
-use crate::Db;
+use crate::AppState;
 
 pub mod create_task_node;
 pub mod get_task_nodes;
 pub mod update_task_node_info;
 
-pub fn router() -> Router<Db> {
+pub fn router() -> Router<AppState> {
     Router::new()
         .route(
             "/task-nodes",

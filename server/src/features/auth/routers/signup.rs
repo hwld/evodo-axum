@@ -1,7 +1,7 @@
 use super::login_callback::SIGNUP_USER_ID;
 use crate::{
     features::{auth::Auth, user::User},
-    AppResult, Db,
+    AppResult, AppState,
 };
 use axum::{extract::State, response::IntoResponse, Json};
 use axum_login::{tower_sessions::Session, AuthSession};
@@ -26,7 +26,7 @@ pub struct CreateUser {
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     session: Session,
-    State(db): State<Db>,
+    State(AppState { db }): State<AppState>,
     Json(payload): Json<Unvalidated<CreateUser>>,
 ) -> AppResult<impl IntoResponse> {
     let input = payload.validate(&())?;

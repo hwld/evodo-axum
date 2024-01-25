@@ -45,6 +45,15 @@ type AppResult<T> = anyhow::Result<T, AppError>;
 
 type Db = Pool<Sqlite>;
 
+#[derive(Debug, Clone)]
+pub struct AppState {
+    db: Db,
+}
+
+impl axum::extract::FromRef<AppState> for () {
+    fn from_ref(_: &AppState) -> Self {}
+}
+
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().expect("Failed to read .env file");
@@ -90,7 +99,7 @@ async fn main() {
                 ]),
         )
         .layer(auth_layer)
-        .with_state(db);
+        .with_state(AppState { db });
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8787")
         .await

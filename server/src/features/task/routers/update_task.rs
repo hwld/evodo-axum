@@ -7,14 +7,14 @@ use http::StatusCode;
 
 use crate::{
     features::task::{Task, UpdateTask},
-    AppResult, Db,
+    AppResult, AppState,
 };
 
 #[tracing::instrument(err)]
 #[utoipa::path(put, tag = "task", path = "/tasks/{id}", request_body = UpdateTask, responses((status = 200, body = Task)))]
 pub async fn handler(
     Path(id): Path<String>,
-    State(db): State<Db>,
+    State(AppState { db }): State<AppState>,
     Json(payload): Json<Unvalidated<UpdateTask>>,
 ) -> AppResult<(StatusCode, Json<Task>)> {
     let input = payload.validate(&())?;
@@ -48,7 +48,7 @@ mod tests {
     use super::*;
     use crate::{
         features::task::{self, TaskStatus},
-        AppResult,
+        AppResult, Db,
     };
 
     #[sqlx::test]
@@ -59,7 +59,7 @@ mod tests {
         let new_status = TaskStatus::Done;
         let _ = handler(
             Path(task.id.clone()),
-            State(db.clone()),
+            State(AppState { db: db.clone() }),
             Json(
                 UpdateTask {
                     title: new_title.into(),
@@ -86,7 +86,7 @@ mod tests {
 
         let result = handler(
             Path(task.id),
-            State(db.clone()),
+            State(AppState { db: db.clone() }),
             Json(
                 UpdateTask {
                     title: "".into(),

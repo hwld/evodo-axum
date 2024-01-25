@@ -4,13 +4,13 @@ use http::StatusCode;
 
 use crate::{
     features::task::{CreateTask, Task},
-    AppResult, Db,
+    AppResult, AppState,
 };
 
 #[tracing::instrument(err)]
 #[utoipa::path(post, tag = "task", path = "/tasks", request_body = CreateTask, responses((status = 201, body = Task)))]
 pub async fn handler(
-    State(db): State<Db>,
+    State(AppState { db }): State<AppState>,
     Json(payload): Json<Unvalidated<CreateTask>>,
 ) -> AppResult<(StatusCode, Json<Task>)> {
     let input = payload.validate(&())?;
@@ -31,13 +31,14 @@ pub async fn handler(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Db;
 
     #[sqlx::test]
     async fn タスクを作成できる(db: Db) -> AppResult<()> {
         let title = "title";
 
         let (_, task) = handler(
-            State(db.clone()),
+            State(AppState { db: db.clone() }),
             Json(
                 CreateTask {
                     title: title.to_string(),
@@ -59,7 +60,7 @@ mod tests {
     #[sqlx::test]
     async fn 空文字のタスクを作成できない(db: Db) -> AppResult<()> {
         let result = handler(
-            State(db.clone()),
+            State(AppState { db: db.clone() }),
             Json(CreateTask { title: "".into() }.into()),
         )
         .await;
