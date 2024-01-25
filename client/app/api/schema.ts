@@ -53,6 +53,12 @@ export const schemas = {
 
 const endpoints = makeApi([
   {
+    method: "post",
+    path: "/cancel-signup",
+    requestFormat: "json",
+    response: z.void(),
+  },
+  {
     method: "get",
     path: "/login",
     requestFormat: "json",

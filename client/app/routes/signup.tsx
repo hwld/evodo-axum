@@ -24,8 +24,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 const nodeTypes = {
   dummy: () => (
-    <NodeComponent>
-      <AlignJustifyIcon className="text-muted-foreground" />
+    <NodeComponent size="sm">
+      <AlignJustifyIcon className="text-muted-foreground" size={18} />
     </NodeComponent>
   ),
   title: () => {
@@ -49,7 +49,7 @@ const nodeTypes = {
 const initialNodes: Node[] = [
   { type: "dummy", data: {}, id: "d1", position: { x: 0, y: -450 } },
   { type: "dummy", data: {}, id: "d2", position: { x: 0, y: 350 } },
-  { type: "title", data: {}, id: "t", position: { x: 0, y: -260 } },
+  { type: "title", data: {}, id: "t", position: { x: 0, y: -270 } },
   { type: "form", data: {}, id: "1", position: { x: 0, y: 0 } },
 ];
 

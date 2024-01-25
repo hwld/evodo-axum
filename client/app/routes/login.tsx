@@ -20,8 +20,8 @@ export const links: LinksFunction = () => [
 
 const nodeTypes = {
   dummy: () => (
-    <NodeComponent>
-      <AlignJustifyIcon className="text-muted-foreground" />
+    <NodeComponent size="sm">
+      <AlignJustifyIcon className="text-muted-foreground" size={18} />
     </NodeComponent>
   ),
   logo: AppTitleNode,

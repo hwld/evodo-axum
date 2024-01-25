@@ -16,6 +16,7 @@ import { Node } from "~/components/ui/node";
 import { Textarea } from "~/components/ui/textarea";
 import { useSignup } from "~/features/auth/use-signup";
 import { cn } from "~/lib/utils";
+import { CancelSignupButton } from "./cancel-signup-button";
 
 const signupSchema = schemas.CreateUser;
 type SignupSchema = z.infer<typeof signupSchema>;
@@ -81,9 +82,16 @@ export const SignupFormNode: React.FC = () => {
               );
             }}
           />
-          <Button className="w-full" type="submit">
-            登録する
-          </Button>
+          <div className="space-y-2">
+            <Button
+              className="w-full"
+              type="submit"
+              disabled={signup.isPending}
+            >
+              登録する
+            </Button>
+            <CancelSignupButton />
+          </div>
         </form>
       </Form>
     </Node>

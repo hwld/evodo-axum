@@ -7,16 +7,27 @@ type Props = {
   children?: ReactNode;
   className?: string;
   style?: ComponentProps<"div">["style"];
+  size?: "md" | "sm";
 };
-export const Node: React.FC<Props> = ({ children, className, style }) => {
+export const Node: React.FC<Props> = ({
+  children,
+  className,
+  style,
+  size = "md",
+}) => {
   return (
     <Card
-      className={cn("flex items-center p-3 gap-2 justify-between", className)}
+      className={cn(
+        "flex items-center justify-between",
+        size === "md" && "p-3 gap-2",
+        size === "sm" && "p-2 gap-1",
+        className
+      )}
       style={style}
     >
-      <NodeGrip />
+      <NodeGrip size={size === "sm" ? 18 : undefined} />
       {children}
-      <NodeGrip />
+      <NodeGrip size={size === "sm" ? 18 : undefined} />
     </Card>
   );
 };

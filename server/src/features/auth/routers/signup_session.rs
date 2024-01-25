@@ -18,9 +18,6 @@ pub struct SignupSessionResponse {
 pub async fn handler(session: Session) -> AppResult<(StatusCode, Json<SignupSessionResponse>)> {
     let session_exists = matches!(session.get::<String>(SIGNUP_USER_ID_KEY).await, Ok(Some(_)));
 
-    let d = session.get::<String>(SIGNUP_USER_ID_KEY).await?;
-    tracing::info!("{:?}", d);
-
     Ok((
         StatusCode::OK,
         Json(SignupSessionResponse { session_exists }),
