@@ -26,6 +26,7 @@ pub struct TaskNodeInfo {
 pub struct CreateTaskNode {
     x: f64,
     y: f64,
+    #[schema(value_type = CreateTask)]
     task: Unvalidated<CreateTask>,
 }
 

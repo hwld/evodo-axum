@@ -11,7 +11,7 @@ use crate::{
 };
 
 #[tracing::instrument(err)]
-#[utoipa::path(put, tag = "task", path = "/tasks/{id}", responses((status = 200, body = Task)))]
+#[utoipa::path(put, tag = "task", path = "/tasks/{id}", request_body = UpdateTask, responses((status = 200, body = Task)))]
 pub async fn handler(
     Path(id): Path<String>,
     State(db): State<Db>,
