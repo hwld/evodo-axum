@@ -1,5 +1,5 @@
 import { AlignJustifyIcon } from "lucide-react";
-import { Node } from "./node";
+import { Node } from "./ui/node";
 
 type Props = { className?: string };
 

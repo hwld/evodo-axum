@@ -12,7 +12,7 @@ import ReactFlow, {
 import reactFlowStyles from "reactflow/dist/style.css";
 import { Button } from "~/components/ui/button";
 import { Node as NodeComponent } from "~/components/ui/node";
-import { NoopNode } from "~/components/ui/noop-node";
+import { NoopNode } from "~/components/noop-node";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: reactFlowStyles },

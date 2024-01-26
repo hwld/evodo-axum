@@ -19,13 +19,14 @@ import { useState } from "react";
 import { useUpdateTaskNode } from "~/features/task-node/use-update-task-node";
 import { AppLogo } from "~/components/app-logo";
 import { requireUserSession } from "~/session.server";
+import { AppControl } from "~/components/app-control/app-control";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: reactFlowStyles },
 ];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const _ = await requireUserSession(request);
+  await requireUserSession(request);
   const taskNodes = await api.get("/task-nodes", {});
   return json({ taskNodes });
 };
@@ -72,19 +73,25 @@ export default function TaskNodesPage() {
         panActivationKeyCode="none"
         defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
       >
-        <Background />
-        <Controls />
-        <MiniMap />
         <Panel
           position="top-left"
-          className="bg-neutral-900 rounded-xl py-2 px-3 flex items-center gap-1 text-neutral-100 w-[120px] justify-center"
+          className="bg-transparent flex items-center gap-1 text-muted-foreground justify-center"
         >
-          <AppLogo size={20} />
-          <div className="mb-[1px]">evodo</div>
+          <AppLogo size={18} />
+          <div className="mb-[1px] text-sm">evodo</div>
         </Panel>
+
+        <Panel position="top-center">
+          <AppControl />
+        </Panel>
+
         <Panel position="bottom-center">
           <TaskNodeForm onAddNode={handleAddTaskNode} />
         </Panel>
+
+        <Background />
+        <Controls />
+        <MiniMap />
       </ReactFlow>
     </div>
   );

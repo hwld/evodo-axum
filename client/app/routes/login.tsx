@@ -10,7 +10,7 @@ import ReactFlow, {
 import reactFlowStyles from "reactflow/dist/style.css";
 import { AppDescriptionNode } from "~/components/app-description-node";
 import { AppTitleNode } from "~/components/app-title-node";
-import { NoopNode } from "~/components/ui/noop-node";
+import { NoopNode } from "~/components/noop-node";
 import { LoginButtonNode } from "~/features/auth/login-button-node";
 
 export const links: LinksFunction = () => [
@@ -18,10 +18,10 @@ export const links: LinksFunction = () => [
 ];
 
 const nodeTypes = {
-  noop: NoopNode,
-  logo: AppTitleNode,
-  loginButton: LoginButtonNode,
-  description: AppDescriptionNode,
+  noop: () => <NoopNode />,
+  logo: () => <AppTitleNode />,
+  loginButton: () => <LoginButtonNode />,
+  description: () => <AppDescriptionNode />,
 } as const;
 
 const initialNodes: Node[] = [

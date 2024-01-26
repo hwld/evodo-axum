@@ -28,7 +28,7 @@ export const SignupFormNode: React.FC = () => {
   });
 
   const signup = useSignup();
-  const onSubmit = (data: SignupSchema) => {
+  const handleSubmit = (data: SignupSchema) => {
     signup.mutate({ name: data.name, profile: data.profile });
   };
 
@@ -85,7 +85,7 @@ export const SignupFormNode: React.FC = () => {
               disabled={signup.isPending}
               // form要素のhandleSubmitを使うと、inputが一つの場合はtextareaがあっても
               // Enterキーでsubmitが送信されてしまうので、それを防ぐためにボタンにトリガーを置く
-              onClick={form.handleSubmit(onSubmit)}
+              onClick={form.handleSubmit(handleSubmit)}
             >
               登録する
             </Button>

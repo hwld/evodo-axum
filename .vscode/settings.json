@@ -6,5 +6,12 @@
     ],
     "rust-analyzer.check.command": "clippy",
     "rust-analyzer.showUnlinkedFileNotification": false,
-    "editor.wordWrap": "on"
+    "editor.wordWrap": "on",
+    "tailwindCSS.classAttributes": [
+        ".*Class",
+        "class",
+        "className",
+        "classNames",
+        "ngClass"
+    ],
 }

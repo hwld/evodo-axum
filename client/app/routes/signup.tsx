@@ -12,7 +12,7 @@ import { SignupFormNode } from "~/features/auth/signup-form-node";
 import { Node as NodeComponent } from "~/components/ui/node";
 import { UserPlusIcon } from "lucide-react";
 import { requireSignupSession } from "~/session.server";
-import { NoopNode } from "~/components/ui/noop-node";
+import { NoopNode } from "~/components/noop-node";
 import { AppLogo } from "~/components/app-logo";
 
 export const links: LinksFunction = () => [
@@ -25,33 +25,29 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 const nodeTypes = {
-  noop: NoopNode,
-  logo: () => {
-    return (
-      <NodeComponent className="w-[400px] h-[530px]">
-        <div className="flex flex-col items-center gap-3">
-          <AppLogo size={150} />
-          <div className="text-3xl font-bold">evodo-axum</div>
+  noop: () => <NoopNode />,
+  logo: () => (
+    <NodeComponent className="w-[400px] h-[530px]">
+      <div className="flex flex-col items-center gap-3">
+        <AppLogo size={150} />
+        <div className="text-3xl font-bold">evodo-axum</div>
+      </div>
+    </NodeComponent>
+  ),
+  title: () => (
+    <NodeComponent className="w-[400px]">
+      <div className="space-y-2">
+        <div className="flex items-center gap-1">
+          <UserPlusIcon />
+          <h1 className="font-bold">ユーザーを登録する</h1>
         </div>
-      </NodeComponent>
-    );
-  },
-  title: () => {
-    return (
-      <NodeComponent className="w-[400px]">
-        <div className="space-y-2">
-          <div className="flex items-center gap-1">
-            <UserPlusIcon />
-            <h1 className="font-bold">ユーザーを登録する</h1>
-          </div>
-          <div className="text-xs text-muted-foreground">
-            ユーザー名とプロフィールを入力して、ユーザーを登録することができます。
-          </div>
+        <div className="text-xs text-muted-foreground">
+          ユーザー名とプロフィールを入力して、ユーザーを登録することができます。
         </div>
-      </NodeComponent>
-    );
-  },
-  form: SignupFormNode,
+      </div>
+    </NodeComponent>
+  ),
+  form: () => <SignupFormNode />,
 } as const;
 
 const initialNodes: Node[] = [
