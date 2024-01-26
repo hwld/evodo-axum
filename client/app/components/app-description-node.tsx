@@ -2,14 +2,22 @@ import { Node } from "./ui/node";
 
 export const AppDescriptionNode: React.FC = () => {
   return (
-    <Node className="h-[300px] w-[300px]">
+    <Node className="h-[300px] w-[400px]">
       <div className="text-muted-foreground p-1 text-sm">
         <p>
-          evodo-axumは、 RustのAxumを試すために作ったevodoプロジェクトです。
+          evodo-axumは、 RustのAxumとReact Flowを試すために作った
+          <a
+            href="https://github.com/hwld/evodo"
+            className="underline underline-offset-2 text-accent-foreground mx-1"
+          >
+            evodoプロジェクト
+          </a>
+          です。
           <br />
           <br />
-          React
-          Flowを使って、タスク同士の関係を視覚的に表現できれば面白いなぁと思っています。
+          <br />
+          ノードエディタでタスクを管理することで、分解されたタスクやブロックしている・されているタスクをわかりやすく管理できるかもしれないと思い、React
+          Flowを使用しています。
         </p>
       </div>
     </Node>

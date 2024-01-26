@@ -35,10 +35,7 @@ export const SignupFormNode: React.FC = () => {
   return (
     <Node className="w-[400px]">
       <Form {...form}>
-        <form
-          className="space-y-5 pt-5 pb-3 w-full"
-          onSubmit={form.handleSubmit(onSubmit)}
-        >
+        <div className="space-y-5 pt-5 pb-3 w-full">
           <FormField
             control={form.control}
             name="name"
@@ -85,14 +82,16 @@ export const SignupFormNode: React.FC = () => {
           <div className="space-y-2">
             <Button
               className="w-full"
-              type="submit"
               disabled={signup.isPending}
+              // form要素のhandleSubmitを使うと、inputが一つの場合はtextareaがあっても
+              // Enterキーでsubmitが送信されてしまうので、それを防ぐためにボタンにトリガーを置く
+              onClick={form.handleSubmit(onSubmit)}
             >
               登録する
             </Button>
             <CancelSignupButton />
           </div>
-        </form>
+        </div>
       </Form>
     </Node>
   );

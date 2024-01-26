@@ -4,7 +4,8 @@ use crate::{
     AppResult,
 };
 use axum::{
-    extract::Query,
+    extract::{Query, Request},
+    middleware::Next,
     response::{IntoResponse, Redirect},
 };
 use axum_login::{tower_sessions::Session, AuthSession};
@@ -63,4 +64,16 @@ pub async fn handler(
     auth_session.login(&user).await?;
 
     Ok(Redirect::to("http://localhost:3000").into_response())
+}
+
+/// このハンドラで発生したエラーはフロントエンド側で補足できないのでリダイレクトさせる
+pub async fn handle_all_error(request: Request, next: Next) -> impl IntoResponse {
+    let response = next.run(request).await;
+    let status = response.status();
+
+    if status.is_client_error() | status.is_server_error() {
+        return Redirect::to("http://localhost:3000/auth-error").into_response();
+    }
+
+    response
 }

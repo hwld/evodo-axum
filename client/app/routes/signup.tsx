@@ -10,8 +10,10 @@ import ReactFlow, {
 import reactFlowStyles from "reactflow/dist/style.css";
 import { SignupFormNode } from "~/features/auth/signup-form-node";
 import { Node as NodeComponent } from "~/components/ui/node";
-import { AlignJustifyIcon, UserPlusIcon } from "lucide-react";
+import { UserPlusIcon } from "lucide-react";
 import { requireSignupSession } from "~/session.server";
+import { NoopNode } from "~/components/ui/noop-node";
+import { AppLogo } from "~/components/app-logo";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: reactFlowStyles },
@@ -23,11 +25,17 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 const nodeTypes = {
-  dummy: () => (
-    <NodeComponent size="sm">
-      <AlignJustifyIcon className="text-muted-foreground" size={18} />
-    </NodeComponent>
-  ),
+  noop: NoopNode,
+  logo: () => {
+    return (
+      <NodeComponent className="w-[400px] h-[530px]">
+        <div className="flex flex-col items-center gap-3">
+          <AppLogo size={150} />
+          <div className="text-3xl font-bold">evodo-axum</div>
+        </div>
+      </NodeComponent>
+    );
+  },
   title: () => {
     return (
       <NodeComponent className="w-[400px]">
@@ -47,10 +55,11 @@ const nodeTypes = {
 } as const;
 
 const initialNodes: Node[] = [
-  { type: "dummy", data: {}, id: "d1", position: { x: 0, y: -450 } },
-  { type: "dummy", data: {}, id: "d2", position: { x: 0, y: 350 } },
-  { type: "title", data: {}, id: "t", position: { x: 0, y: -270 } },
-  { type: "form", data: {}, id: "1", position: { x: 0, y: 0 } },
+  { type: "noop", data: {}, id: "d1", position: { x: 211, y: -441 } },
+  { type: "noop", data: {}, id: "d2", position: { x: 211, y: 296 } },
+  { type: "logo", data: {}, id: "l1", position: { x: 420, y: -52 } },
+  { type: "title", data: {}, id: "t1", position: { x: 0, y: -270 } },
+  { type: "form", data: {}, id: "f1", position: { x: 0, y: 0 } },
 ];
 
 export default function SignupPage() {

@@ -4,7 +4,7 @@ import { Node } from "~/components/ui/node";
 
 export const LoginButtonNode = () => {
   return (
-    <Node className="w-[300px]">
+    <Node className="w-[400px]">
       <Button asChild>
         <Link to="http://localhost:8787/login">Googleでログインする</Link>
       </Button>

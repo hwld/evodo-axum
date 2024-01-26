@@ -111,7 +111,6 @@ impl AuthnBackend for Auth {
             .expect("Failed to validation");
 
         let user_id = id_token_claims.subject().to_string();
-        tracing::info!("User Id: {:?}", user_id);
 
         let user = sqlx::query_as!(User, "SELECT * FROM users WHERE id = $1", user_id)
             .fetch_one(&self.db)

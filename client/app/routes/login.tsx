@@ -1,5 +1,4 @@
 import { LinksFunction } from "@remix-run/node";
-import { AlignJustifyIcon } from "lucide-react";
 // eslint-disable-next-line import/no-named-as-default
 import ReactFlow, {
   Background,
@@ -11,7 +10,7 @@ import ReactFlow, {
 import reactFlowStyles from "reactflow/dist/style.css";
 import { AppDescriptionNode } from "~/components/app-description-node";
 import { AppTitleNode } from "~/components/app-title-node";
-import { Node as NodeComponent } from "~/components/ui/node";
+import { NoopNode } from "~/components/ui/noop-node";
 import { LoginButtonNode } from "~/features/auth/login-button-node";
 
 export const links: LinksFunction = () => [
@@ -19,19 +18,15 @@ export const links: LinksFunction = () => [
 ];
 
 const nodeTypes = {
-  dummy: () => (
-    <NodeComponent size="sm">
-      <AlignJustifyIcon className="text-muted-foreground" size={18} />
-    </NodeComponent>
-  ),
+  noop: NoopNode,
   logo: AppTitleNode,
   loginButton: LoginButtonNode,
   description: AppDescriptionNode,
 } as const;
 
 const initialNodes: Node[] = [
-  { type: "dummy", data: {}, id: "d1", position: { x: 0, y: -350 } },
-  { type: "dummy", data: {}, id: "d2", position: { x: 0, y: 350 } },
+  { type: "noop", data: {}, id: "d1", position: { x: 0, y: -380 } },
+  { type: "noop", data: {}, id: "d2", position: { x: 0, y: 380 } },
   { type: "logo", data: {}, id: "1", position: { x: 0, y: -200 } },
   { type: "description", data: {}, id: "3", position: { x: 0, y: 0 } },
   { type: "loginButton", data: {}, id: "2", position: { x: 0, y: 200 } },
