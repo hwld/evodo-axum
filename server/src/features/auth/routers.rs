@@ -1,6 +1,7 @@
 pub mod cancel_signup;
 pub mod login;
 pub mod login_callback;
+pub mod logout;
 pub mod session;
 pub mod signup;
 pub mod signup_session;
@@ -19,6 +20,7 @@ pub const SESSION_PATH: &str = "/session";
 pub const SIGNUP_SESSION_PATH: &str = "/signup-session";
 pub const SIGNUP_PATH: &str = "/signup";
 pub const CANCEL_SIGNUP_PATH: &str = "/cancel-signup";
+pub const LOGOUT_PATH: &str = "/logout";
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -32,4 +34,5 @@ pub fn router() -> Router<AppState> {
         .route(SIGNUP_SESSION_PATH, get(signup_session::handler))
         .route(SESSION_PATH, get(session::handler))
         .route(CANCEL_SIGNUP_PATH, post(cancel_signup::handler))
+        .route(LOGOUT_PATH, post(logout::handler))
 }

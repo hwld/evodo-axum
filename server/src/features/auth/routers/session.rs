@@ -1,5 +1,5 @@
 use crate::{
-    features::{auth::Auth, user::User},
+    features::auth::{Auth, Session},
     AppResult,
 };
 use axum::Json;
@@ -10,7 +10,7 @@ use utoipa::ToSchema;
 
 #[derive(Serialize, Debug, ToSchema)]
 pub struct SessionResponse {
-    user: Option<User>,
+    session: Option<Session>,
 }
 
 #[tracing::instrument(err)]
@@ -18,10 +18,6 @@ pub struct SessionResponse {
 pub async fn handler(
     auth_session: AuthSession<Auth>,
 ) -> AppResult<(StatusCode, Json<SessionResponse>)> {
-    Ok((
-        StatusCode::OK,
-        Json(SessionResponse {
-            user: auth_session.user,
-        }),
-    ))
+    let session = auth_session.user.map(|user| Session { user });
+    Ok((StatusCode::OK, Json(SessionResponse { session })))
 }

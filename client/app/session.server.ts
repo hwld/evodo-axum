@@ -3,9 +3,9 @@ import { api } from "./api";
 
 export const requireUserSession = async (request: Request) => {
   const cookie = request.headers.get("cookie");
-  const session = await api.get("/session", { headers: { cookie } });
+  const { session } = await api.get("/session", { headers: { cookie } });
 
-  if (!session.user) {
+  if (!session) {
     throw redirect("/login");
   }
 

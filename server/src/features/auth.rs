@@ -10,9 +10,15 @@ use openidconnect::{
     RedirectUrl, Scope,
 };
 pub use routers::router;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::env;
 use url::Url;
+use utoipa::ToSchema;
+
+#[derive(Serialize, ToSchema, Debug)]
+pub struct Session {
+    pub user: User,
+}
 
 #[derive(Debug, Deserialize)]
 pub struct Credentials {

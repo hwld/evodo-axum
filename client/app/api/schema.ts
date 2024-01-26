@@ -6,7 +6,8 @@ const User = z.object({
   name: z.string(),
   profile: z.string(),
 });
-const SessionResponse = z.object({ user: User.nullable() }).partial();
+const Session = z.object({ user: User });
+const SessionResponse = z.object({ session: Session.nullable() }).partial();
 const CreateUser = z.object({
   name: z.string().min(1).max(100),
   profile: z.string().max(500),
@@ -38,6 +39,7 @@ const UpdateTask = z.object({ status: TaskStatus, title: z.string() });
 
 export const schemas = {
   User,
+  Session,
   SessionResponse,
   CreateUser,
   SignupSessionResponse,
@@ -67,6 +69,12 @@ const endpoints = makeApi([
   {
     method: "get",
     path: "/login-callback",
+    requestFormat: "json",
+    response: z.void(),
+  },
+  {
+    method: "post",
+    path: "/logout",
     requestFormat: "json",
     response: z.void(),
   },

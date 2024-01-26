@@ -20,15 +20,16 @@ import { useUpdateTaskNode } from "~/features/task-node/use-update-task-node";
 import { AppLogo } from "~/components/app-logo";
 import { requireUserSession } from "~/session.server";
 import { AppControl } from "~/components/app-control/app-control";
+import { SessionProvider } from "~/features/auth/use-session";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: reactFlowStyles },
 ];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await requireUserSession(request);
+  const session = await requireUserSession(request);
   const taskNodes = await api.get("/task-nodes", {});
-  return json({ taskNodes });
+  return json({ taskNodes, session });
 };
 
 const nodeTypes = { task: TaskNode } as const;
@@ -36,7 +37,7 @@ const nodeTypes = { task: TaskNode } as const;
 export default function TaskNodesPage() {
   const updatePosition = useUpdateTaskNode();
 
-  const { taskNodes } = useLoaderData<typeof loader>();
+  const { taskNodes, session } = useLoaderData<typeof loader>();
   const [nodes, setNodes] = useState<Node<TaskNodeData>[]>(
     taskNodes.map(({ task, node_info }) => {
       return {
@@ -59,40 +60,42 @@ export default function TaskNodesPage() {
   };
 
   return (
-    <div className="h-[100dvh]">
-      <ReactFlow
-        nodeOrigin={[0.5, 0.5]}
-        nodeTypes={nodeTypes}
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={handleNodesChange}
-        onEdgesChange={onEdgesChange}
-        deleteKeyCode={null}
-        disableKeyboardA11y={true}
-        fitView
-        panActivationKeyCode="none"
-        defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
-      >
-        <Panel
-          position="top-left"
-          className="bg-transparent flex items-center gap-1 text-muted-foreground justify-center"
+    <SessionProvider session={session}>
+      <div className="h-[100dvh]">
+        <ReactFlow
+          nodeOrigin={[0.5, 0.5]}
+          nodeTypes={nodeTypes}
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={handleNodesChange}
+          onEdgesChange={onEdgesChange}
+          deleteKeyCode={null}
+          disableKeyboardA11y={true}
+          fitView
+          panActivationKeyCode="none"
+          defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
         >
-          <AppLogo size={18} />
-          <div className="mb-[1px] text-sm">evodo</div>
-        </Panel>
+          <Panel
+            position="top-left"
+            className="bg-transparent flex items-center gap-1 text-muted-foreground justify-center"
+          >
+            <AppLogo size={18} />
+            <div className="mb-[1px] text-sm">evodo</div>
+          </Panel>
 
-        <Panel position="top-center">
-          <AppControl />
-        </Panel>
+          <Panel position="top-center">
+            <AppControl />
+          </Panel>
 
-        <Panel position="bottom-center">
-          <TaskNodeForm onAddNode={handleAddTaskNode} />
-        </Panel>
+          <Panel position="bottom-center">
+            <TaskNodeForm onAddNode={handleAddTaskNode} />
+          </Panel>
 
-        <Background />
-        <Controls />
-        <MiniMap />
-      </ReactFlow>
-    </div>
+          <Background />
+          <Controls />
+          <MiniMap />
+        </ReactFlow>
+      </div>
+    </SessionProvider>
   );
 }
