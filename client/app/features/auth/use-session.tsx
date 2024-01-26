@@ -1,5 +1,5 @@
 import { ReactNode, createContext, useContext } from "react";
-import { Session } from "~/api/types";
+import { Session } from ".";
 
 type SessionContextData = { session: Session };
 const SessionContext = createContext<SessionContextData | undefined>(undefined);

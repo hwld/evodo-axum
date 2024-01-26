@@ -1,12 +1,12 @@
 import { CheckCircle2Icon, CircleDashedIcon, XIcon } from "lucide-react";
 import { NodeProps, useReactFlow } from "reactflow";
 import { useDeleteTask } from "./use-delete-task-node";
-import { Task } from "~/api/types";
 import { useUpdateTask } from "../task/use-update-task";
 import { Node } from "~/components/ui/node";
 import { Checkbox, CheckboxIndicator } from "@radix-ui/react-checkbox";
 import { useId } from "react";
 import { cn } from "~/lib/utils";
+import { Task } from "../task";
 
 export type TaskNodeData = {
   title: string;
@@ -58,7 +58,7 @@ export const TaskNode: React.FC<Props> = ({ data, id: nodeId }) => {
   return (
     <Node
       className={cn(
-        "group max-w-[450px] break-all",
+        "group max-w-[450px] break-all relative",
         isChecked && "border-green-500"
       )}
     >
@@ -81,11 +81,11 @@ export const TaskNode: React.FC<Props> = ({ data, id: nodeId }) => {
         </label>
       </div>
       <button
-        className="hover:bg-black/5 rounded p-[2px] absolute top-1 right-1 text-neutral-500 group-hover:opacity-100 opacity-0 transition-[background-color,opacity]"
+        className="rounded p-[2px] absolute top-1 right-1 text-neutral-500 group-hover:opacity-100 opacity-0 transition-[background-color,opacity] bg-primary text-primary-foreground hover:bg-primary/80"
         onClick={handleDelete}
         disabled={deleteMutation.isPending}
       >
-        <XIcon size={15} />
+        <XIcon size={20} />
       </button>
     </Node>
   );

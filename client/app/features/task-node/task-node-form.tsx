@@ -20,6 +20,7 @@ export const TaskNodeForm = ({ onAddNode }: Props) => {
   const {
     register,
     handleSubmit: createHandleSubmit,
+    reset,
     clearErrors,
     formState: { errors },
   } = useForm<CreateTaskNode>({
@@ -43,6 +44,7 @@ export const TaskNodeForm = ({ onAddNode }: Props) => {
             data: { title: task.title, taskId: task.id, status: task.status },
             position: { x: node_info.x, y: node_info.y },
           });
+          reset();
         },
       }
     );
