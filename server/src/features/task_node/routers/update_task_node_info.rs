@@ -53,7 +53,7 @@ mod tests {
     #[sqlx::test]
     async fn タスクノードを更新できる(db: Db) -> AppResult<()> {
         let task: Task = Default::default();
-        let TaskNode { node_info, .. } = task_node::factory::create(
+        let TaskNode { node_info, .. } = task_node::test::factory::create(
             &db,
             Some(TaskNode {
                 task: task.clone(),

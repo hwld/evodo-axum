@@ -52,7 +52,7 @@ mod tests {
 
     #[sqlx::test]
     async fn タスクを更新できる(db: Db) -> AppResult<()> {
-        let task = task::factory::create(
+        let task = task::test::factory::create(
             &db,
             Some(Task {
                 title: "old".into(),
@@ -86,7 +86,7 @@ mod tests {
     #[sqlx::test]
     async fn 空文字列には更新できない(db: Db) -> AppResult<()> {
         let old_title = "old_title";
-        let old_task = task::factory::create(
+        let old_task = task::test::factory::create(
             &db,
             Some(Task {
                 title: old_title.into(),

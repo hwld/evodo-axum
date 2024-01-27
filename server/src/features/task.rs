@@ -1,5 +1,4 @@
-#[cfg(test)]
-pub mod factory;
+pub mod test;
 use std::str::FromStr;
 pub mod routers;
 use garde::Validate;

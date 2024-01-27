@@ -68,9 +68,9 @@ mod tests {
     #[sqlx::test]
     async fn 全てのタスクノードを取得できる(db: Db) -> AppResult<()> {
         tokio::try_join!(
-            task_node::factory::create(&db, None),
-            task_node::factory::create(&db, None),
-            task_node::factory::create(&db, None)
+            task_node::test::factory::create(&db, None),
+            task_node::test::factory::create(&db, None),
+            task_node::test::factory::create(&db, None)
         )?;
 
         let server = tests::build(db.clone()).await?;

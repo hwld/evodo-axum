@@ -31,7 +31,7 @@ mod tests {
 
     #[sqlx::test]
     async fn タスクを削除できる(db: Db) -> AppResult<()> {
-        let created_task = task::factory::create(&db, None).await?;
+        let created_task = task::test::factory::create(&db, None).await?;
 
         let server = tests::build(db.clone()).await?;
         server
@@ -48,7 +48,7 @@ mod tests {
     async fn 存在しないタスクを削除しようとしても何も変わらない(
         db: Db,
     ) -> AppResult<()> {
-        task::factory::create(&db, None).await?;
+        task::test::factory::create(&db, None).await?;
 
         let server = tests::build(db.clone()).await?;
         server

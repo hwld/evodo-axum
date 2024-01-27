@@ -1,6 +1,5 @@
-#[cfg(test)]
-mod factory;
 pub mod routers;
+pub mod test;
 use garde::Validate;
 pub use routers::router;
 use serde::{Deserialize, Serialize};
