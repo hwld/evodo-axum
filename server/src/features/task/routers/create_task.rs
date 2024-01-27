@@ -1,5 +1,5 @@
 use axum::{extract::State, Json};
-use garde::Unvalidated;
+use axum_garde::WithValidation;
 use http::StatusCode;
 
 use crate::{
@@ -11,16 +11,14 @@ use crate::{
 #[utoipa::path(post, tag = super::TAG, path = super::TASKS_PATH, request_body = CreateTask, responses((status = 201, body = Task)))]
 pub async fn handler(
     State(AppState { db }): State<AppState>,
-    Json(payload): Json<Unvalidated<CreateTask>>,
+    WithValidation(payload): WithValidation<Json<CreateTask>>,
 ) -> AppResult<(StatusCode, Json<Task>)> {
-    let input = payload.validate(&())?;
-
     let uuid = uuid::Uuid::new_v4().to_string();
     let task = sqlx::query_as!(
         Task,
         r#" INSERT INTO tasks(id, title) VALUES($1, $2) RETURNING *"#,
         uuid,
-        input.title,
+        payload.title,
     )
     .fetch_one(&db)
     .await?;

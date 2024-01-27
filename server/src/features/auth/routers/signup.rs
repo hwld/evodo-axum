@@ -4,8 +4,9 @@ use crate::{
     AppResult, AppState,
 };
 use axum::{extract::State, response::IntoResponse, Json};
+use axum_garde::WithValidation;
 use axum_login::{tower_sessions::Session, AuthSession};
-use garde::{Unvalidated, Validate};
+use garde::Validate;
 use http::StatusCode;
 use serde::Deserialize;
 use utoipa::ToSchema;
@@ -27,9 +28,8 @@ pub async fn handler(
     mut auth_session: AuthSession<Auth>,
     session: Session,
     State(AppState { db }): State<AppState>,
-    Json(payload): Json<Unvalidated<CreateUser>>,
+    WithValidation(payload): WithValidation<Json<CreateUser>>,
 ) -> AppResult<impl IntoResponse> {
-    let input = payload.validate(&())?;
     let Ok(Some(user_id)) = session.get::<String>(SIGNUP_USER_ID_KEY).await else {
         return Ok(StatusCode::BAD_REQUEST.into_response());
     };
@@ -38,8 +38,8 @@ pub async fn handler(
         User,
         "INSERT INTO users(id, name, profile) VALUES($1, $2, $3) RETURNING *",
         user_id,
-        input.name,
-        input.profile,
+        payload.name,
+        payload.profile,
     )
     .fetch_one(&db)
     .await?;

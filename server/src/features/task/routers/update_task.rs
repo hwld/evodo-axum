@@ -2,7 +2,7 @@ use axum::{
     extract::{Path, State},
     Json,
 };
-use garde::Unvalidated;
+use axum_garde::WithValidation;
 use http::StatusCode;
 
 use crate::{
@@ -15,10 +15,8 @@ use crate::{
 pub async fn handler(
     Path(id): Path<String>,
     State(AppState { db }): State<AppState>,
-    Json(payload): Json<Unvalidated<UpdateTask>>,
+    WithValidation(payload): WithValidation<Json<UpdateTask>>,
 ) -> AppResult<(StatusCode, Json<Task>)> {
-    let input = payload.validate(&())?;
-
     let task = sqlx::query_as!(
         Task,
         r#"
@@ -32,8 +30,8 @@ pub async fn handler(
                 id = $3 
             RETURNING *;
         "#,
-        input.status,
-        input.title,
+        payload.status,
+        payload.title,
         id,
     )
     .fetch_one(&db)
