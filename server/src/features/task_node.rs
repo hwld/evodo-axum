@@ -17,6 +17,7 @@ pub struct TaskNode {
 pub struct TaskNodeInfo {
     pub id: String,
     pub task_id: String,
+    pub user_id: String,
     pub x: f64,
     pub y: f64,
 }

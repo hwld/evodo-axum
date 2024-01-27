@@ -12,6 +12,7 @@ pub struct Task {
     pub id: String,
     pub status: TaskStatus,
     pub title: String,
+    pub user_id: String,
     pub created_at: String,
     pub updated_at: String,
 }

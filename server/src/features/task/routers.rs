@@ -1,8 +1,9 @@
-use crate::AppState;
+use crate::{features::auth::Auth, AppState};
 use axum::{
     routing::{get, put},
     Router,
 };
+use axum_login::login_required;
 pub mod create_task;
 pub mod delete_task;
 pub mod get_tasks;
@@ -33,4 +34,5 @@ pub fn router() -> Router<AppState> {
             &Paths::task(),
             put(update_task::handler).delete(delete_task::handler),
         )
+        .route_layer(login_required!(Auth))
 }

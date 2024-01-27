@@ -28,7 +28,9 @@ export const links: LinksFunction = () => [
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const session = await requireUserSession(request);
-  const taskNodes = await api.get("/task-nodes", {});
+  const taskNodes = await api.get("/task-nodes", {
+    headers: { cookie: request.headers.get("cookie") },
+  });
   return json({ taskNodes, session });
 };
 

@@ -2,8 +2,9 @@ use axum::{
     routing::{get, put},
     Router,
 };
+use axum_login::login_required;
 
-use crate::AppState;
+use crate::{features::auth::Auth, AppState};
 
 pub mod create_task_node;
 pub mod get_task_nodes;
@@ -37,4 +38,5 @@ pub fn router() -> Router<AppState> {
             &Paths::task_node_info(),
             put(update_task_node_info::handler),
         )
+        .route_layer(login_required!(Auth))
 }

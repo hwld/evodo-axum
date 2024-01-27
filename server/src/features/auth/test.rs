@@ -13,8 +13,18 @@ pub mod routes {
 
     pub struct Paths;
     impl Paths {
+        /// 指定したユーザーでログインセッションを作成する
         pub fn test_login() -> String {
             "/test/login".into()
+        }
+    }
+
+    impl Default for CreateUser {
+        fn default() -> Self {
+            CreateUser {
+                name: "user".into(),
+                profile: "profile".into(),
+            }
         }
     }
 

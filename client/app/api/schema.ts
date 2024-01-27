@@ -17,6 +17,7 @@ const UpdateTaskNodeInfo = z.object({ x: z.number(), y: z.number() });
 const TaskNodeInfo = z.object({
   id: z.string(),
   task_id: z.string(),
+  user_id: z.string(),
   x: z.number(),
   y: z.number(),
 });
@@ -27,6 +28,7 @@ const Task = z.object({
   status: TaskStatus,
   title: z.string(),
   updated_at: z.string(),
+  user_id: z.string(),
 });
 const TaskNode = z.object({ node_info: TaskNodeInfo, task: Task });
 const CreateTask = z.object({ title: z.string().min(1).max(100) });

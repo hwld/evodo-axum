@@ -1,3 +1,5 @@
+pub mod test;
+
 use axum_login::AuthUser;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
