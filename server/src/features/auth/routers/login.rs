@@ -7,7 +7,7 @@ pub const CSRF_STATE_KEY: &str = "auth.state";
 pub const NONCE_KEY: &str = "auth.nonce";
 
 #[tracing::instrument(err, skip(auth_session))]
-#[utoipa::path(get, tag = super::TAG, path = super::LOGIN_PATH)]
+#[utoipa::path(get, tag = super::TAG, path = super::Paths::login())]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     session: Session,

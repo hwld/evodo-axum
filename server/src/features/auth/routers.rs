@@ -14,25 +14,42 @@ use axum::{
 
 pub const TAG: &str = "auth";
 
-pub const LOGIN_CALLBACK_PATH: &str = "/login-callback";
-pub const LOGIN_PATH: &str = "/login";
-pub const SESSION_PATH: &str = "/session";
-pub const SIGNUP_SESSION_PATH: &str = "/signup-session";
-pub const SIGNUP_PATH: &str = "/signup";
-pub const CANCEL_SIGNUP_PATH: &str = "/cancel-signup";
-pub const LOGOUT_PATH: &str = "/logout";
+pub struct Paths;
+impl Paths {
+    pub fn login_callback() -> String {
+        "/login-callback".into()
+    }
+    pub fn login() -> String {
+        "/login".into()
+    }
+    pub fn session() -> String {
+        "/session".into()
+    }
+    pub fn signup() -> String {
+        "/signup".into()
+    }
+    pub fn signup_session() -> String {
+        "/signup-session".into()
+    }
+    pub fn cancel_signup() -> String {
+        "/cancel-signup".into()
+    }
+    pub fn logout() -> String {
+        "/logout".into()
+    }
+}
 
 pub fn router() -> Router<AppState> {
     Router::new()
-        .route(LOGIN_PATH, get(login::handler))
+        .route(&Paths::login(), get(login::handler))
         .route(
-            LOGIN_CALLBACK_PATH,
+            &Paths::login_callback(),
             get(login_callback::handler)
                 .layer(middleware::from_fn(login_callback::handle_all_error)),
         )
-        .route(SIGNUP_PATH, post(signup::handler))
-        .route(SIGNUP_SESSION_PATH, get(signup_session::handler))
-        .route(SESSION_PATH, get(session::handler))
-        .route(CANCEL_SIGNUP_PATH, post(cancel_signup::handler))
-        .route(LOGOUT_PATH, post(logout::handler))
+        .route(&Paths::signup(), post(signup::handler))
+        .route(&Paths::signup_session(), get(signup_session::handler))
+        .route(&Paths::session(), get(session::handler))
+        .route(&Paths::cancel_signup(), post(cancel_signup::handler))
+        .route(&Paths::logout(), post(logout::handler))
 }
