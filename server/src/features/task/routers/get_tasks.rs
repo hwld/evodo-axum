@@ -4,7 +4,7 @@ use http::StatusCode;
 use crate::{features::task::Task, AppResult, AppState};
 
 #[tracing::instrument(err)]
-#[utoipa::path(get, tag = super::TAG, path = super::TASKS_PATH, responses((status = 200, body = [Task])))]
+#[utoipa::path(get, tag = super::TAG, path = super::Paths::tasks(), responses((status = 200, body = [Task])))]
 pub async fn handler(
     State(AppState { db }): State<AppState>,
 ) -> AppResult<(StatusCode, Json<Vec<Task>>)> {
@@ -19,7 +19,7 @@ pub async fn handler(
 mod tests {
     use crate::{
         app::tests,
-        features::task::{self, routers::TASKS_PATH},
+        features::task::{self, routers::Paths},
         Db,
     };
 
@@ -34,7 +34,7 @@ mod tests {
         )?;
 
         let server = tests::build(db.clone()).await?;
-        let tasks: Vec<Task> = server.get(TASKS_PATH).await.json();
+        let tasks: Vec<Task> = server.get(&Paths::tasks()).await.json();
 
         assert_eq!(tasks.len(), 3);
 

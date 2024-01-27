@@ -11,7 +11,7 @@ use crate::{
 };
 
 #[tracing::instrument(err)]
-#[utoipa::path(put, tag = super::TAG, path = super::OAS_TASK_PATH, request_body = UpdateTask, responses((status = 200, body = Task)))]
+#[utoipa::path(put, tag = super::TAG, path = super::Paths::oas_task(), request_body = UpdateTask, responses((status = 200, body = Task)))]
 pub async fn handler(
     Path(id): Path<String>,
     State(AppState { db }): State<AppState>,
@@ -46,7 +46,7 @@ mod tests {
     use super::*;
     use crate::{
         app::tests,
-        features::task::{self, routers::TASKS_PATH, TaskStatus},
+        features::task::{self, routers::Paths, TaskStatus},
         AppResult, Db,
     };
 
@@ -66,7 +66,7 @@ mod tests {
 
         let server = tests::build(db.clone()).await?;
         server
-            .put(&[TASKS_PATH, &task.id].join("/"))
+            .put(&format!("{}/{}", Paths::tasks(), task.id))
             .json(&UpdateTask {
                 title: new_title.into(),
                 status: new_status,
@@ -97,7 +97,7 @@ mod tests {
 
         let server = tests::build(db.clone()).await?;
         let res = server
-            .post(&[TASKS_PATH, &old_task.id].join("/"))
+            .post(&format!("{}/{}", Paths::tasks(), old_task.id))
             .json(&UpdateTask {
                 title: "".into(),
                 status: TaskStatus::Todo,

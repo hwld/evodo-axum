@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[tracing::instrument(err)]
-#[utoipa::path(post, tag = super::TAG, path = super::TASKS_PATH, request_body = CreateTask, responses((status = 201, body = Task)))]
+#[utoipa::path(post, tag = super::TAG, path = super::Paths::tasks(), request_body = CreateTask, responses((status = 201, body = Task)))]
 pub async fn handler(
     State(AppState { db }): State<AppState>,
     WithValidation(payload): WithValidation<Json<CreateTask>>,
@@ -30,7 +30,7 @@ pub async fn handler(
 mod tests {
     use crate::{
         app::tests,
-        features::task::{routers::TASKS_PATH, CreateTask, Task},
+        features::task::{routers::Paths, CreateTask, Task},
         AppResult, Db,
     };
 
@@ -40,7 +40,7 @@ mod tests {
 
         let server = tests::build(db.clone()).await?;
         let res_task: Task = server
-            .post(TASKS_PATH)
+            .post(&Paths::tasks())
             .json(&CreateTask {
                 title: title.into(),
             })
@@ -60,7 +60,7 @@ mod tests {
     async fn 空文字のタスクを作成できない(db: Db) -> AppResult<()> {
         let server = tests::build(db.clone()).await?;
         server
-            .post(TASKS_PATH)
+            .post(&Paths::tasks())
             .json(&CreateTask { title: "".into() })
             .await;
 

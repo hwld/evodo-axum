@@ -10,18 +10,27 @@ pub mod update_task;
 
 pub const TAG: &str = "task";
 
-pub const TASKS_PATH: &str = "/tasks";
-pub const TASK_PATH: &str = "/tasks/:id";
-pub const OAS_TASK_PATH: &str = "/tasks/{id}";
+pub struct Paths;
+impl Paths {
+    pub fn tasks() -> String {
+        "/tasks".into()
+    }
+    pub fn task() -> String {
+        Paths::tasks() + "/:id"
+    }
+    pub fn oas_task() -> String {
+        Paths::tasks() + "/{id}"
+    }
+}
 
 pub fn router() -> Router<AppState> {
     Router::new()
         .route(
-            TASKS_PATH,
+            &Paths::tasks(),
             get(get_tasks::handler).post(create_task::handler),
         )
         .route(
-            TASK_PATH,
+            &Paths::task(),
             put(update_task::handler).delete(delete_task::handler),
         )
 }

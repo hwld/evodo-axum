@@ -11,16 +11,30 @@ pub mod update_task_node_info;
 
 pub const TAG: &str = "task_node";
 
-pub const TASK_NODES_PATH: &str = "/task-nodes";
-pub const TASK_NODE_INFO_LIST_PATH: &str = "/task-node-info";
-pub const TASK_NODE_INFO_PATH: &str = "/task-node-info/:id";
-pub const OAS_TASK_NODE_INFO_PATH: &str = "/task-node-info/{id}";
+pub struct Paths;
+impl Paths {
+    pub fn task_nodes() -> String {
+        "/task-nodes".into()
+    }
+    pub fn task_node_info_list() -> String {
+        "/task-node-info".into()
+    }
+    pub fn task_node_info() -> String {
+        Paths::task_node_info_list() + "/:id"
+    }
+    pub fn oas_task_node_info() -> String {
+        Paths::task_node_info_list() + "/{id}"
+    }
+}
 
 pub fn router() -> Router<AppState> {
     Router::new()
         .route(
-            TASK_NODES_PATH,
+            &Paths::task_nodes(),
             get(get_task_nodes::handler).post(create_task_node::handler),
         )
-        .route(TASK_NODE_INFO_PATH, put(update_task_node_info::handler))
+        .route(
+            &Paths::task_node_info(),
+            put(update_task_node_info::handler),
+        )
 }

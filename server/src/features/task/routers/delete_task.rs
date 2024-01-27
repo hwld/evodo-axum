@@ -7,7 +7,7 @@ use http::StatusCode;
 use crate::{features::task::Task, AppResult, AppState};
 
 #[tracing::instrument(err)]
-#[utoipa::path(delete, tag = super::TAG, path = super::OAS_TASK_PATH, responses((status = 200, body = Task)))]
+#[utoipa::path(delete, tag = super::TAG, path = super::Paths::oas_task(), responses((status = 200, body = Task)))]
 pub async fn handler(
     Path(id): Path<String>,
     State(AppState { db }): State<AppState>,
@@ -23,7 +23,7 @@ pub async fn handler(
 mod tests {
     use crate::{
         app::tests,
-        features::task::{self, routers::TASKS_PATH},
+        features::task::{self, routers::Paths},
         Db,
     };
 
@@ -35,7 +35,7 @@ mod tests {
 
         let server = tests::build(db.clone()).await?;
         server
-            .delete(&[TASKS_PATH, &created_task.id].join("/"))
+            .delete(&format!("{}/{}", Paths::tasks(), created_task.id))
             .await;
 
         let tasks = sqlx::query!("SELECT * FROM tasks;").fetch_all(&db).await?;
@@ -51,7 +51,9 @@ mod tests {
         task::factory::create(&db, None).await?;
 
         let server = tests::build(db.clone()).await?;
-        server.delete(&[TASKS_PATH, &"not"].join("/")).await;
+        server
+            .delete(&format!("{}/{}", Paths::tasks(), "not"))
+            .await;
 
         let tasks = sqlx::query!("SELECT * FROM tasks;").fetch_all(&db).await?;
         assert_eq!(tasks.len(), 1);

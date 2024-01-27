@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[tracing::instrument(err)]
-#[utoipa::path(put, tag = super::TAG, path = super::OAS_TASK_NODE_INFO_PATH, responses((status = 200, body = TaskNodeInfo)))]
+#[utoipa::path(put, tag = super::TAG, path = super::Paths::oas_task_node_info(), responses((status = 200, body = TaskNodeInfo)))]
 pub async fn handler(
     Path(id): Path<String>,
     State(AppState { db }): State<AppState>,
@@ -45,7 +45,7 @@ mod tests {
         app::tests,
         features::{
             task::Task,
-            task_node::{self, routers::TASK_NODE_INFO_LIST_PATH, TaskNode},
+            task_node::{self, routers::Paths, TaskNode},
         },
         AppResult, Db,
     };
@@ -53,7 +53,7 @@ mod tests {
     #[sqlx::test]
     async fn タスクノードを更新できる(db: Db) -> AppResult<()> {
         let task: Task = Default::default();
-        let node = task_node::factory::create(
+        let TaskNode { node_info, .. } = task_node::factory::create(
             &db,
             Some(TaskNode {
                 task: task.clone(),
@@ -71,14 +71,18 @@ mod tests {
         let new_y = -100.100;
         let server = tests::build(db.clone()).await?;
         server
-            .put(&[TASK_NODE_INFO_LIST_PATH, &node.node_info.id].join("/"))
+            .put(&format!(
+                "{}/{}",
+                Paths::task_node_info_list(),
+                node_info.id
+            ))
             .json(&UpdateTaskNodeInfo { x: new_x, y: new_y })
             .await;
 
         let updated = sqlx::query_as!(
             TaskNodeInfo,
             "SELECT * FROM task_node_info WHERE id = $1",
-            node.node_info.id
+            node_info.id
         )
         .fetch_one(&db)
         .await?;

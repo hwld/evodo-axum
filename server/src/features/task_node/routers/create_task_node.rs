@@ -8,7 +8,7 @@ use crate::features::task_node::{CreateTaskNode, TaskNode, TaskNodeInfo};
 use crate::{AppResult, AppState};
 
 #[tracing::instrument(err)]
-#[utoipa::path(post, tag = super::TAG, path = super::TASK_NODES_PATH, request_body = CreateTaskNode, responses((status = 201, body = TaskNode)))]
+#[utoipa::path(post, tag = super::TAG, path = super::Paths::task_nodes(), request_body = CreateTaskNode, responses((status = 201, body = TaskNode)))]
 pub async fn handler(
     State(AppState { db }): State<AppState>,
     WithValidation(payload): WithValidation<Json<CreateTaskNode>>,
@@ -49,7 +49,7 @@ mod tests {
 
     use crate::{
         app::tests,
-        features::{task::CreateTask, task_node::routers::TASK_NODES_PATH},
+        features::{task::CreateTask, task_node::routers::Paths},
         AppResult, Db,
     };
 
@@ -63,7 +63,7 @@ mod tests {
 
         let server = tests::build(db.clone()).await?;
         let task_node: TaskNode = server
-            .post(TASK_NODES_PATH)
+            .post(&Paths::task_nodes())
             .json(&CreateTaskNode {
                 x: node_x,
                 y: node_y,
@@ -96,7 +96,7 @@ mod tests {
     async fn 空文字列のタスクノードは作成できない(db: Db) -> AppResult<()> {
         let server = tests::build(db.clone()).await?;
         let res = server
-            .post(TASK_NODES_PATH)
+            .post(&Paths::task_nodes())
             .json(&CreateTaskNode {
                 task: CreateTask { title: "".into() },
                 x: 0.0,
