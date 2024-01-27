@@ -1,4 +1,5 @@
 pub mod routers;
+pub mod test;
 use super::user::User;
 use crate::Db;
 use axum::async_trait;
@@ -15,7 +16,7 @@ use std::env;
 use url::Url;
 use utoipa::ToSchema;
 
-#[derive(Serialize, ToSchema, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Debug)]
 pub struct Session {
     pub user: User,
 }

@@ -32,3 +32,4 @@ uuid = { version = "1.6.1", features = ["v4"] }
 
 [dev-dependencies]
 axum-test = "14.2.2"
+axum-macros = "0.4.1"

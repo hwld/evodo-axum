@@ -15,7 +15,7 @@ use utoipauto::utoipauto;
 
 use crate::{features, AppState, Db};
 
-pub async fn build(db: Db) -> Router {
+async fn build_inner(db: Db, router: Option<Router<AppState>>) -> Router {
     dotenv::dotenv().expect("Failed to read .env file");
 
     #[utoipauto]
@@ -40,8 +40,13 @@ pub async fn build(db: Db) -> Router {
     let auth = features::auth::Auth::new(db.clone()).await;
     let auth_layer = AuthManagerLayerBuilder::new(auth, session_layer).build();
 
-    Router::new()
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+    let app = if let Some(router) = router {
+        Router::new().merge(router)
+    } else {
+        Router::new()
+    };
+
+    app.merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .merge(features::auth::router())
         .merge(features::task::router())
         .merge(features::task_node::router())
@@ -63,13 +68,18 @@ pub async fn build(db: Db) -> Router {
         .with_state(AppState { db })
 }
 
+pub async fn build(db: Db) -> Router {
+    build_inner(db, None).await
+}
+
 #[cfg(test)]
 pub mod tests {
+    use crate::{features::auth, AppResult, Db};
     use axum_test::TestServer;
 
-    use crate::{AppResult, Db};
-
     pub async fn build(db: Db) -> AppResult<TestServer> {
-        Ok(TestServer::new(super::build(db).await)?)
+        Ok(TestServer::new(
+            super::build_inner(db, Some(auth::test::routes::router())).await,
+        )?)
     }
 }

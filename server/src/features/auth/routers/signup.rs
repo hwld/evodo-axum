@@ -8,10 +8,10 @@ use axum_garde::WithValidation;
 use axum_login::{tower_sessions::Session, AuthSession};
 use garde::Validate;
 use http::StatusCode;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-#[derive(Deserialize, ToSchema, Debug, Validate)]
+#[derive(Deserialize, Serialize, ToSchema, Debug, Validate)]
 pub struct CreateUser {
     #[garde(length(min = 1, max = 100))]
     #[schema(min_length = 1, max_length = 100)]

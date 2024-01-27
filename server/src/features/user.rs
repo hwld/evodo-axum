@@ -1,8 +1,8 @@
 use axum_login::AuthUser;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-#[derive(Serialize, ToSchema, Debug, Clone)]
+#[derive(Serialize, Deserialize, ToSchema, Debug, Clone)]
 pub struct User {
     pub id: String,
     pub name: String,

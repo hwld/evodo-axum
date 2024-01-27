@@ -5,12 +5,12 @@ use crate::{
 use axum::Json;
 use axum_login::AuthSession;
 use http::StatusCode;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-#[derive(Serialize, Debug, ToSchema)]
+#[derive(Serialize, Deserialize, Debug, ToSchema)]
 pub struct SessionResponse {
-    session: Option<Session>,
+    pub session: Option<Session>,
 }
 
 #[tracing::instrument(err)]
