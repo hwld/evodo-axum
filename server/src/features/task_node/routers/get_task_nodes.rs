@@ -59,17 +59,22 @@ pub async fn handler(
 mod tests {
     use super::*;
 
-    use crate::{features::task_node, AppResult, Db};
+    use crate::{
+        app::tests,
+        features::task_node::{self, routers::TASK_NODES_PATH},
+        AppResult, Db,
+    };
 
     #[sqlx::test]
     async fn 全てのタスクノードを取得できる(db: Db) -> AppResult<()> {
-        let _ = tokio::try_join!(
+        tokio::try_join!(
             task_node::factory::create(&db, None),
             task_node::factory::create(&db, None),
             task_node::factory::create(&db, None)
         )?;
 
-        let (_, tasks) = handler(State(AppState { db: db.clone() })).await?;
+        let server = tests::build(db.clone()).await?;
+        let tasks: Vec<TaskNode> = server.get(TASK_NODES_PATH).await.json();
 
         assert_eq!(tasks.len(), 3);
 

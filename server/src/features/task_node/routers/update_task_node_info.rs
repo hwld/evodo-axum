@@ -41,20 +41,39 @@ pub async fn handler(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{features::task_node, AppResult, Db};
+    use crate::{
+        app::tests,
+        features::{
+            task::Task,
+            task_node::{self, routers::TASK_NODE_INFO_LIST_PATH, TaskNode},
+        },
+        AppResult, Db,
+    };
 
     #[sqlx::test]
     async fn タスクノードを更新できる(db: Db) -> AppResult<()> {
-        let node = task_node::factory::create(&db, None).await?;
+        let task: Task = Default::default();
+        let node = task_node::factory::create(
+            &db,
+            Some(TaskNode {
+                task: task.clone(),
+                node_info: TaskNodeInfo {
+                    task_id: task.id,
+                    x: 0.0,
+                    y: 0.0,
+                    ..TaskNode::default().node_info
+                },
+            }),
+        )
+        .await?;
 
         let new_x = 1.1;
         let new_y = -100.100;
-        let _ = handler(
-            Path(node.node_info.id.clone()),
-            State(AppState { db: db.clone() }),
-            Json(UpdateTaskNodeInfo { x: new_x, y: new_y }),
-        )
-        .await?;
+        let server = tests::build(db.clone()).await?;
+        server
+            .put(&[TASK_NODE_INFO_LIST_PATH, &node.node_info.id].join("/"))
+            .json(&UpdateTaskNodeInfo { x: new_x, y: new_y })
+            .await;
 
         let updated = sqlx::query_as!(
             TaskNodeInfo,

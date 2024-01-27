@@ -38,6 +38,9 @@ pub struct AppState {
     db: Db,
 }
 
+impl axum::extract::FromRef<AppState> for () {
+    fn from_ref(_: &AppState) {}
+}
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().expect("Failed to read .env file");

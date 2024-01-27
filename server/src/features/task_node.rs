@@ -1,20 +1,20 @@
 #[cfg(test)]
 mod factory;
 pub mod routers;
-use garde::Unvalidated;
+use garde::Validate;
 pub use routers::router;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use super::task::{CreateTask, Task};
 
-#[derive(Serialize, ToSchema, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Debug)]
 pub struct TaskNode {
     pub task: Task,
     pub node_info: TaskNodeInfo,
 }
 
-#[derive(Serialize, ToSchema, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Debug)]
 pub struct TaskNodeInfo {
     pub id: String,
     pub task_id: String,
@@ -22,15 +22,17 @@ pub struct TaskNodeInfo {
     pub y: f64,
 }
 
-#[derive(Deserialize, ToSchema, Debug)]
+#[derive(Deserialize, Serialize, ToSchema, Debug, Validate)]
 pub struct CreateTaskNode {
+    #[garde(skip)]
     x: f64,
+    #[garde(skip)]
     y: f64,
-    #[schema(value_type = CreateTask)]
-    task: Unvalidated<CreateTask>,
+    #[garde(dive)]
+    task: CreateTask,
 }
 
-#[derive(Deserialize, ToSchema, Debug)]
+#[derive(Deserialize, Serialize, ToSchema, Debug)]
 pub struct UpdateTaskNodeInfo {
     pub x: f64,
     pub y: f64,
