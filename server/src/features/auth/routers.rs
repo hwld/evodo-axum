@@ -16,26 +16,30 @@ pub const TAG: &str = "auth";
 
 pub struct Paths;
 impl Paths {
+    fn auth() -> String {
+        "/auth".into()
+    }
+
     pub fn login_callback() -> String {
-        "/login-callback".into()
+        Paths::auth() + "/login-callback"
     }
     pub fn login() -> String {
-        "/login".into()
+        Paths::auth() + "/login"
     }
     pub fn session() -> String {
-        "/session".into()
+        Paths::auth() + "/session"
     }
     pub fn signup() -> String {
-        "/signup".into()
+        Paths::auth() + "/signup"
     }
     pub fn signup_session() -> String {
-        "/signup-session".into()
+        Paths::auth() + "/signup-session"
     }
     pub fn cancel_signup() -> String {
-        "/cancel-signup".into()
+        Paths::auth() + "/cancel-signup"
     }
     pub fn logout() -> String {
-        "/logout".into()
+        Paths::auth() + "/logout"
     }
 }
 

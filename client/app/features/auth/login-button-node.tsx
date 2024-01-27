@@ -6,7 +6,7 @@ export const LoginButtonNode = () => {
   return (
     <Node className="w-[400px]">
       <Button asChild>
-        <Link to="http://localhost:8787/login">Googleでログインする</Link>
+        <Link to="http://localhost:8787/auth/login">Googleでログインする</Link>
       </Button>
     </Node>
   );

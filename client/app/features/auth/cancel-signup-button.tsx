@@ -7,7 +7,7 @@ export const CancelSignupButton: React.FC = () => {
   const navigate = useNavigate();
   const cancelMutation = useMutation({
     mutationFn: () => {
-      return api.post("/cancel-signup", undefined);
+      return api.post("/auth/cancel-signup", undefined);
     },
     onError: (err) => {
       console.error(err);

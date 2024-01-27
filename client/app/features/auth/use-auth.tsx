@@ -9,7 +9,7 @@ export const useAuth = () => {
   const navigate = useNavigate();
   const logoutMutation = useMutation({
     mutationFn: () => {
-      return api.post("/logout", undefined);
+      return api.post("/auth/logout", undefined);
     },
     onError: (err) => {
       console.error(err);

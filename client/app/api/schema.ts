@@ -58,37 +58,37 @@ export const schemas = {
 const endpoints = makeApi([
   {
     method: "post",
-    path: "/cancel-signup",
+    path: "/auth/cancel-signup",
     requestFormat: "json",
     response: z.void(),
   },
   {
     method: "get",
-    path: "/login",
+    path: "/auth/login",
     requestFormat: "json",
     response: z.void(),
   },
   {
     method: "get",
-    path: "/login-callback",
+    path: "/auth/login-callback",
     requestFormat: "json",
     response: z.void(),
   },
   {
     method: "post",
-    path: "/logout",
+    path: "/auth/logout",
     requestFormat: "json",
     response: z.void(),
   },
   {
     method: "get",
-    path: "/session",
+    path: "/auth/session",
     requestFormat: "json",
     response: SessionResponse,
   },
   {
     method: "post",
-    path: "/signup",
+    path: "/auth/signup",
     requestFormat: "json",
     parameters: [
       {
@@ -101,7 +101,7 @@ const endpoints = makeApi([
   },
   {
     method: "get",
-    path: "/signup-session",
+    path: "/auth/signup-session",
     requestFormat: "json",
     response: z.object({ session_exists: z.boolean() }),
   },
