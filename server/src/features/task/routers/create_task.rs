@@ -30,25 +30,26 @@ pub async fn handler(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::Db;
+    use crate::{
+        app::tests,
+        features::task::{routers::TASKS_PATH, CreateTask, Task},
+        AppResult, Db,
+    };
 
     #[sqlx::test]
     async fn タスクを作成できる(db: Db) -> AppResult<()> {
         let title = "title";
 
-        let (_, task) = handler(
-            State(AppState { db: db.clone() }),
-            Json(
-                CreateTask {
-                    title: title.to_string(),
-                }
-                .into(),
-            ),
-        )
-        .await?;
+        let server = tests::build(db.clone()).await?;
+        let res_task: Task = server
+            .post(TASKS_PATH)
+            .json(&CreateTask {
+                title: title.into(),
+            })
+            .await
+            .json();
 
-        let created = sqlx::query_as!(Task, "select * from tasks where id = $1", task.id)
+        let created = sqlx::query_as!(Task, "SELECT * FROM tasks where id = $1", res_task.id)
             .fetch_all(&db)
             .await?;
         assert_eq!(created.len(), 1);
@@ -59,13 +60,14 @@ mod tests {
 
     #[sqlx::test]
     async fn 空文字のタスクを作成できない(db: Db) -> AppResult<()> {
-        let result = handler(
-            State(AppState { db: db.clone() }),
-            Json(CreateTask { title: "".into() }.into()),
-        )
-        .await;
+        let server = tests::build(db.clone()).await?;
+        server
+            .post(TASKS_PATH)
+            .json(&CreateTask { title: "".into() })
+            .await;
 
-        assert!(result.is_err());
+        let tasks = sqlx::query!("SELECT * FROM tasks;").fetch_all(&db).await?;
+        assert_eq!(tasks.len(), 0);
         Ok(())
     }
 }

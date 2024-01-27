@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use strum::EnumString;
 use utoipa::ToSchema;
 
-#[derive(Serialize, ToSchema, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Debug, Clone)]
 pub struct Task {
     pub id: String,
     pub status: TaskStatus,
@@ -30,14 +30,14 @@ impl From<String> for TaskStatus {
     }
 }
 
-#[derive(Deserialize, ToSchema, Debug, Validate)]
+#[derive(Serialize, Deserialize, ToSchema, Debug, Validate)]
 pub struct CreateTask {
     #[garde(length(min = 1, max = 100))]
     #[schema(min_length = 1, max_length = 100)]
     pub title: String,
 }
 
-#[derive(Deserialize, ToSchema, Debug, Validate)]
+#[derive(Deserialize, Serialize, ToSchema, Debug, Validate)]
 pub struct UpdateTask {
     #[garde(length(min = 1, max = 100))]
     pub title: String,

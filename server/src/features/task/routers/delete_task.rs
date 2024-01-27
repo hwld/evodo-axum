@@ -21,7 +21,11 @@ pub async fn handler(
 
 #[cfg(test)]
 mod tests {
-    use crate::{features::*, Db};
+    use crate::{
+        app::tests,
+        features::task::{self, routers::TASKS_PATH},
+        Db,
+    };
 
     use super::*;
 
@@ -29,19 +33,29 @@ mod tests {
     async fn タスクを削除できる(db: Db) -> AppResult<()> {
         let created_task = task::factory::create(&db, None).await?;
 
-        let _ = handler(Path(created_task.id), State(AppState { db: db.clone() })).await?;
+        let server = tests::build(db.clone()).await?;
+        server
+            .delete(&[TASKS_PATH, &created_task.id].join("/"))
+            .await;
 
-        let tasks = sqlx::query!("select * from tasks;").fetch_all(&db).await?;
-
+        let tasks = sqlx::query!("SELECT * FROM tasks;").fetch_all(&db).await?;
         assert_eq!(tasks.len(), 0);
 
         Ok(())
     }
 
     #[sqlx::test]
-    async fn 存在しないタスクを削除しようとするとエラーが出る(db: Db) {
-        let r = handler(Path("not".into()), State(AppState { db: db.clone() })).await;
+    async fn 存在しないタスクを削除しようとしても何も変わらない(
+        db: Db,
+    ) -> AppResult<()> {
+        task::factory::create(&db, None).await?;
 
-        assert!(r.is_err());
+        let server = tests::build(db.clone()).await?;
+        server.delete(&[TASKS_PATH, &"not"].join("/")).await;
+
+        let tasks = sqlx::query!("SELECT * FROM tasks;").fetch_all(&db).await?;
+        assert_eq!(tasks.len(), 1);
+
+        Ok(())
     }
 }

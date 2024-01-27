@@ -1,27 +1,40 @@
-use axum::{extract::State, Json};
-
+use super::{TaskNode, TaskNodeInfo};
 use crate::{
-    features::{self, task::CreateTask},
-    AppResult, AppState, Db,
+    features::task::{self, Task},
+    AppResult, Db,
 };
 
-use super::{CreateTaskNode, TaskNode};
+impl Default for TaskNode {
+    fn default() -> Self {
+        let id = uuid::Uuid::new_v4().to_string();
+        let task: Task = Default::default();
 
-pub async fn create(db: &Db, input: Option<CreateTaskNode>) -> AppResult<TaskNode> {
-    let (_, Json(task_node)) = features::task_node::routers::create_task_node::handler(
-        State(AppState { db: db.clone() }),
-        Json(
-            input.unwrap_or(CreateTaskNode {
+        TaskNode {
+            task: task.clone(),
+            node_info: TaskNodeInfo {
+                id,
+                task_id: task.id,
                 x: 0.0,
                 y: 0.0,
-                task: CreateTask {
-                    title: "title".into(),
-                }
-                .into(),
-            }),
-        ),
+            },
+        }
+    }
+}
+
+pub async fn create(db: &Db, input: Option<TaskNode>) -> AppResult<TaskNode> {
+    let task_node = input.unwrap_or_default();
+
+    let task = task::factory::create(db, Some(task_node.task)).await?;
+    let node_info = sqlx::query_as!(
+        TaskNodeInfo,
+        "INSERT INTO task_node_info(id, task_id, x, y) VALUES($1, $2, $3, $4) RETURNING *;",
+        task_node.node_info.id,
+        task.id,
+        task_node.node_info.x,
+        task_node.node_info.y
     )
+    .fetch_one(db)
     .await?;
 
-    Ok(task_node)
+    Ok(TaskNode { task, node_info })
 }

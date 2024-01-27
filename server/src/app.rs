@@ -62,3 +62,14 @@ pub async fn build(db: Db) -> Router {
         .layer(auth_layer)
         .with_state(AppState { db })
 }
+
+#[cfg(test)]
+pub mod tests {
+    use axum_test::TestServer;
+
+    use crate::{AppResult, Db};
+
+    pub async fn build(db: Db) -> AppResult<TestServer> {
+        Ok(TestServer::new(super::build(db).await)?)
+    }
+}
