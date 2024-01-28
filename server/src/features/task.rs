@@ -1,9 +1,9 @@
-pub mod test;
-use std::str::FromStr;
 pub mod routers;
+pub mod test;
 use garde::Validate;
 pub use routers::router;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use strum::EnumString;
 use utoipa::ToSchema;
 

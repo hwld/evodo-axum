@@ -14,9 +14,7 @@ pub mod factory {
         }
     }
 
-    pub async fn create(db: &Db, input: Option<User>) -> AppResult<User> {
-        let user = input.unwrap_or_default();
-
+    async fn create_inner(db: &Db, user: User) -> AppResult<User> {
         let created = sqlx::query_as!(
             User,
             "INSERT INTO users(id, name, profile) VALUES($1, $2, $3) RETURNING * ;",
@@ -28,5 +26,9 @@ pub mod factory {
         .await?;
 
         Ok(created)
+    }
+
+    pub async fn create_default(db: &Db) -> AppResult<User> {
+        create_inner(db, User::default()).await
     }
 }

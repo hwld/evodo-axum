@@ -57,7 +57,7 @@ mod tests {
         app::tests::AppTest,
         features::{
             task::Task,
-            task_node::{self, routers::Paths, TaskNode},
+            task_node::{routers::Paths, test::factory as task_node_factory, TaskNode},
         },
         AppResult, Db,
     };
@@ -71,10 +71,9 @@ mod tests {
             user_id: user.clone().id,
             ..Default::default()
         };
-        let TaskNode { node_info, .. } = task_node::test::factory::create(
+        let TaskNode { node_info, .. } = task_node_factory::create(
             &db,
-            user.clone().id,
-            Some(TaskNode {
+            TaskNode {
                 task: task.clone(),
                 node_info: TaskNodeInfo {
                     task_id: task.id,
@@ -83,18 +82,14 @@ mod tests {
                     y: 0.0,
                     ..TaskNode::default().node_info
                 },
-            }),
+            },
         )
         .await?;
 
         let new_x = 1.1;
         let new_y = -100.100;
         test.server()
-            .put(&format!(
-                "{}/{}",
-                Paths::task_node_info_list(),
-                node_info.id
-            ))
+            .put(&Paths::one_task_node_info(&node_info.id))
             .json(&UpdateTaskNodeInfo { x: new_x, y: new_y })
             .await;
 

@@ -88,7 +88,7 @@ pub mod tests {
     }
     impl AppTest {
         pub async fn new(db: &Db) -> AppResult<Self> {
-            let router = super::build_inner(db.clone(), Some(auth::test::routes::router())).await;
+            let router = super::build_inner(db.clone(), Some(auth::test::routers::router())).await;
             let mut server = TestServer::new(router)?;
             server.do_save_cookies();
 
@@ -99,7 +99,7 @@ pub mod tests {
         pub async fn login(&self, create_user: Option<CreateUser>) -> AppResult<User> {
             let logged_in_user: User = self
                 .server
-                .post(&auth::test::routes::Paths::test_login())
+                .post(&auth::test::routers::Paths::test_login())
                 .json(&create_user.unwrap_or_default())
                 .await
                 .json();

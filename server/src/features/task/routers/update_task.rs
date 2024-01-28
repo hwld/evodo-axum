@@ -58,8 +58,8 @@ mod tests {
     use crate::{
         app::tests::AppTest,
         features::{
-            task::{self, routers::Paths, TaskStatus},
-            user::{self, User},
+            task::{routers::Paths, test::factory as task_factory, TaskStatus},
+            user::test::factory as user_factory,
         },
         AppResult, Db,
     };
@@ -69,22 +69,21 @@ mod tests {
         let test = AppTest::new(&db).await?;
         let user = test.login(None).await?;
 
-        let task = task::test::factory::create(
+        let task = task_factory::create(
             &db,
-            user.clone().id,
-            Some(Task {
-                user_id: user.clone().id,
+            Task {
+                user_id: user.id,
                 title: "old".into(),
                 status: TaskStatus::Todo,
                 ..Default::default()
-            }),
+            },
         )
         .await?;
         let new_title = "new_title";
         let new_status = TaskStatus::Done;
 
         test.server()
-            .put(&format!("{}/{}", Paths::tasks(), task.id))
+            .put(&Paths::one_task(&task.id))
             .json(&UpdateTask {
                 title: new_title.into(),
                 status: new_status,
@@ -107,20 +106,19 @@ mod tests {
         let user = test.login(None).await?;
 
         let old_title = "old_title";
-        let old_task = task::test::factory::create(
+        let old_task = task_factory::create(
             &db,
-            user.clone().id,
-            Some(Task {
+            Task {
                 user_id: user.id,
                 title: old_title.into(),
                 ..Default::default()
-            }),
+            },
         )
         .await?;
 
         let res = test
             .server()
-            .post(&format!("{}/{}", Paths::tasks(), old_task.id))
+            .put(&Paths::one_task(&old_task.id))
             .json(&UpdateTask {
                 title: "".into(),
                 status: TaskStatus::Todo,
@@ -140,16 +138,15 @@ mod tests {
     async fn 他人のタスクを更新できない(db: Db) -> AppResult<()> {
         let test = AppTest::new(&db).await?;
 
-        let other_user = user::test::factory::create(&db, Some(User::default())).await?;
-        let other_user_task = task::test::factory::create(
+        let other_user = user_factory::create_default(&db).await?;
+        let other_user_task = task_factory::create(
             &db,
-            other_user.clone().id,
-            Some(Task {
+            Task {
                 title: "old_title".into(),
                 status: TaskStatus::Todo,
-                user_id: other_user.clone().id,
+                user_id: other_user.id,
                 ..Default::default()
-            }),
+            },
         )
         .await?;
 
@@ -158,7 +155,7 @@ mod tests {
 
         test.login(None).await?;
         test.server()
-            .post(&format!("{}/{}", Paths::tasks(), other_user_task.id))
+            .post(&Paths::one_task(&other_user_task.id))
             .json(&UpdateTask {
                 title: new_title.into(),
                 status: new_status,

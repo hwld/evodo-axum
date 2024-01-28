@@ -73,7 +73,7 @@ mod tests {
 
     use crate::{
         app::tests::AppTest,
-        features::task_node::{self, routers::Paths},
+        features::task_node::{routers::Paths, test::factory as task_node_factory},
         AppResult, Db,
     };
 
@@ -83,9 +83,9 @@ mod tests {
         let user = test.login(None).await?;
 
         tokio::try_join!(
-            task_node::test::factory::create(&db, user.clone().id, None),
-            task_node::test::factory::create(&db, user.clone().id, None),
-            task_node::test::factory::create(&db, user.clone().id, None)
+            task_node_factory::create_with_user(&db, &user.id),
+            task_node_factory::create_with_user(&db, &user.id),
+            task_node_factory::create_with_user(&db, &user.id)
         )?;
 
         let tasks: Vec<TaskNode> = test.server().get(&Paths::task_nodes()).await.json();

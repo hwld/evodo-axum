@@ -21,25 +21,25 @@ impl Paths {
     }
 
     pub fn login_callback() -> String {
-        Paths::auth() + "/login-callback"
+        Self::auth() + "/login-callback"
     }
     pub fn login() -> String {
-        Paths::auth() + "/login"
+        Self::auth() + "/login"
     }
     pub fn session() -> String {
-        Paths::auth() + "/session"
+        Self::auth() + "/session"
     }
     pub fn signup() -> String {
-        Paths::auth() + "/signup"
+        Self::auth() + "/signup"
     }
     pub fn signup_session() -> String {
-        Paths::auth() + "/signup-session"
+        Self::auth() + "/signup-session"
     }
     pub fn cancel_signup() -> String {
-        Paths::auth() + "/cancel-signup"
+        Self::auth() + "/cancel-signup"
     }
     pub fn logout() -> String {
-        Paths::auth() + "/logout"
+        Self::auth() + "/logout"
     }
 }
 

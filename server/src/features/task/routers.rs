@@ -17,10 +17,10 @@ impl Paths {
         "/tasks".into()
     }
     pub fn task() -> String {
-        Paths::tasks() + "/:id"
+        Self::tasks() + "/:id"
     }
     pub fn oas_task() -> String {
-        Paths::tasks() + "/{id}"
+        Self::tasks() + "/{id}"
     }
 }
 

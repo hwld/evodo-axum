@@ -1,5 +1,5 @@
 #[cfg(test)]
-pub mod routes {
+pub mod routers {
     use crate::{
         features::{
             auth::{routers::signup::CreateUser, Auth},

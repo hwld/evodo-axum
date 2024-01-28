@@ -26,14 +26,11 @@ pub async fn handler(
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        app::tests::AppTest,
-        features::{
-            task::{self, routers::Paths},
-            user::{self, User},
-        },
-        Db,
+    use crate::features::task::routers::Paths;
+    use crate::features::{
+        task::test::factory as task_factory, user::test::factory as user_factory,
     };
+    use crate::{app::tests::AppTest, Db};
 
     use super::*;
 
@@ -41,14 +38,14 @@ mod tests {
     async fn 自分の全てのタスクを取得できる(db: Db) -> AppResult<()> {
         let test = AppTest::new(&db).await?;
 
-        let other_user = user::test::factory::create(&db, Some(User::default())).await?;
-        task::test::factory::create(&db, other_user.id, None).await?;
+        let other_user = user_factory::create_default(&db).await?;
+        task_factory::create_with_user(&db, &other_user.id).await?;
 
         let user = test.login(None).await?;
         tokio::try_join!(
-            task::test::factory::create(&db, user.clone().id, None),
-            task::test::factory::create(&db, user.clone().id, None),
-            task::test::factory::create(&db, user.clone().id, None),
+            task_factory::create_with_user(&db, &user.id),
+            task_factory::create_with_user(&db, &user.id),
+            task_factory::create_with_user(&db, &user.id),
         )?;
 
         let tasks: Vec<Task> = test.server().get(&Paths::tasks()).await.json();

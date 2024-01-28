@@ -21,10 +21,10 @@ impl Paths {
         "/task-node-info".into()
     }
     pub fn task_node_info() -> String {
-        Paths::task_node_info_list() + "/:id"
+        Self::task_node_info_list() + "/:id"
     }
     pub fn oas_task_node_info() -> String {
-        Paths::task_node_info_list() + "/{id}"
+        Self::task_node_info_list() + "/{id}"
     }
 }
 

@@ -36,14 +36,9 @@ pub async fn handler(
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        app::tests::AppTest,
-        features::{
-            task::{self, routers::Paths},
-            user::{self, User},
-        },
-        Db,
-    };
+    use crate::features::task::test::factory as task_factory;
+    use crate::features::user::test::factory as user_factory;
+    use crate::{app::tests::AppTest, features::task::routers::Paths, Db};
 
     use super::*;
 
@@ -52,11 +47,11 @@ mod tests {
         let test = AppTest::new(&db).await?;
         let user = test.login(None).await?;
 
-        task::test::factory::create(&db, user.clone().id, None).await?;
-        let created_task = task::test::factory::create(&db, user.id, None).await?;
+        task_factory::create_with_user(&db, &user.id).await?;
+        let created_task = task_factory::create_with_user(&db, &user.id).await?;
 
         test.server()
-            .delete(&format!("{}/{}", Paths::tasks(), created_task.id))
+            .delete(&Paths::one_task(&created_task.id))
             .await;
 
         let tasks = sqlx::query!("SELECT * FROM tasks;").fetch_all(&db).await?;
@@ -69,13 +64,13 @@ mod tests {
     async fn 他人のタスクは削除できない(db: Db) -> AppResult<()> {
         let test = AppTest::new(&db).await?;
 
-        let other_user = user::test::factory::create(&db, Some(User::default())).await?;
-        let other_user_task = task::test::factory::create(&db, other_user.id, None).await?;
+        let other_user = user_factory::create_default(&db).await?;
+        let other_user_task = task_factory::create_with_user(&db, &other_user.id).await?;
 
         test.login(None).await?;
         let res = test
             .server()
-            .delete(&format!("{}/{}", Paths::tasks(), other_user_task.id))
+            .delete(&Paths::one_task(&other_user_task.id))
             .await;
         assert_ne!(res.status_code(), StatusCode::UNAUTHORIZED);
 

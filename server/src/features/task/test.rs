@@ -1,6 +1,5 @@
 #[cfg(test)]
 pub mod factory {
-
     use uuid::Uuid;
 
     use crate::{
@@ -21,13 +20,7 @@ pub mod factory {
         }
     }
 
-    // TODO:user_idとinputのuser_idが重複しちゃう
-    pub async fn create(db: &Db, user_id: String, input: Option<Task>) -> AppResult<Task> {
-        let task = input.unwrap_or(Task {
-            user_id,
-            ..Default::default()
-        });
-
+    pub async fn create(db: &Db, task: Task) -> AppResult<Task> {
         let created = sqlx::query_as!(
             Task,
             // user_idが存在しないときにはエラーになる
@@ -41,5 +34,24 @@ pub mod factory {
         .await?;
 
         Ok(created)
+    }
+
+    pub async fn create_with_user(db: &Db, user_id: &str) -> AppResult<Task> {
+        let task = Task {
+            user_id: user_id.into(),
+            ..Default::default()
+        };
+        create(db, task).await
+    }
+}
+
+#[cfg(test)]
+pub mod routers {
+    use crate::features::task;
+
+    impl task::routers::Paths {
+        pub fn one_task(id: &str) -> String {
+            Self::tasks() + "/" + id
+        }
     }
 }
