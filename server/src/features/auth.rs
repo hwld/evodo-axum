@@ -1,7 +1,7 @@
 pub mod routers;
 pub mod test;
 use super::user::User;
-use crate::Db;
+use crate::{config, Db};
 use axum::async_trait;
 use axum_login::{AuthnBackend, UserId};
 use openidconnect::{
@@ -12,7 +12,6 @@ use openidconnect::{
 };
 pub use routers::router;
 use serde::{Deserialize, Serialize};
-use std::env;
 use url::Url;
 use utoipa::ToSchema;
 
@@ -37,11 +36,13 @@ pub struct Auth {
 
 impl Auth {
     pub async fn new(db: Db) -> Self {
-        let google_client_id = env::var("GOOGLE_CLIENT_ID")
+        config::load();
+
+        let google_client_id = config::google_client_id()
             .map(ClientId::new)
             .expect("GOOGLE_CLIENT_ID should be provided");
 
-        let google_client_secret = env::var("GOOGLE_CLIENT_SECRET")
+        let google_client_secret = config::google_client_secret()
             .map(ClientSecret::new)
             .expect("GOOGLE_CLIENT_SECRET should be provided");
 
@@ -59,7 +60,7 @@ impl Auth {
         )
         .set_redirect_uri(
             // TODO
-            RedirectUrl::new("http://localhost:8787/login-callback".into())
+            RedirectUrl::new("http://localhost:8787/auth/login-callback".into())
                 .expect("Invalid redirect URL"),
         );
 

@@ -16,8 +16,6 @@ use utoipauto::utoipauto;
 use crate::{features, AppState, Db};
 
 async fn build_inner(db: Db, router: Option<Router<AppState>>) -> Router {
-    dotenv::dotenv().expect("Failed to read .env file");
-
     #[utoipauto]
     #[derive(OpenApi)]
     #[openapi()]

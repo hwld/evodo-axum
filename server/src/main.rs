@@ -1,12 +1,12 @@
 use axum::{http::StatusCode, response::IntoResponse};
 use sqlx::{Pool, Sqlite, SqlitePool};
-use std::env;
 use tracing::debug;
 mod app;
+mod config;
 mod features;
 
 #[derive(Debug)]
-struct AppError(anyhow::Error);
+pub struct AppError(anyhow::Error);
 
 impl IntoResponse for AppError {
     fn into_response(self) -> axum::response::Response {
@@ -29,7 +29,7 @@ impl std::fmt::Display for AppError {
     }
 }
 
-type AppResult<T> = anyhow::Result<T, AppError>;
+pub type AppResult<T> = anyhow::Result<T, AppError>;
 
 type Db = Pool<Sqlite>;
 
@@ -43,11 +43,11 @@ impl axum::extract::FromRef<AppState> for () {
 }
 #[tokio::main]
 async fn main() {
-    dotenv::dotenv().expect("Failed to read .env file");
+    config::load();
 
     tracing_subscriber::fmt::init();
 
-    let db = SqlitePool::connect(&env::var("DATABASE_URL").expect("connect error"))
+    let db = SqlitePool::connect(&config::database_url().expect("Failed load database_url"))
         .await
         .expect("Failed to connect");
 
