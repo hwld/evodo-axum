@@ -1,6 +1,8 @@
 use axum::{http::StatusCode, response::IntoResponse};
 use sqlx::{Pool, Sqlite, SqlitePool};
 use tracing::debug;
+
+use crate::config::Env;
 mod app;
 mod config;
 mod features;
@@ -43,17 +45,16 @@ impl axum::extract::FromRef<AppState> for () {
 }
 #[tokio::main]
 async fn main() {
-    config::load();
-
+    Env::load();
     tracing_subscriber::fmt::init();
 
-    let db = SqlitePool::connect(&config::database_url().expect("Failed load database_url"))
+    let db = SqlitePool::connect(&Env::database_url())
         .await
         .expect("Failed to connect");
 
     let app = app::build(db).await;
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:8787")
+    let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", Env::port()))
         .await
         .expect("Failed to bind");
 

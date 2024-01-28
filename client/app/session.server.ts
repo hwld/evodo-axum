@@ -1,9 +1,11 @@
 import { redirect } from "@remix-run/node";
-import { api } from "./api";
+import { serverFetch } from "./api/index.server";
 
 export const requireUserSession = async (request: Request) => {
   const cookie = request.headers.get("cookie");
-  const { session } = await api.get("/auth/session", { headers: { cookie } });
+  const { session } = await serverFetch.get("/auth/session", {
+    headers: { cookie },
+  });
 
   if (!session) {
     throw redirect("/login");
@@ -14,7 +16,7 @@ export const requireUserSession = async (request: Request) => {
 
 export const requireSignupSession = async (request: Request) => {
   const cookie = request.headers.get("cookie");
-  const session = await api.get("/auth/signup-session", {
+  const session = await serverFetch.get("/auth/signup-session", {
     headers: { cookie },
   });
 

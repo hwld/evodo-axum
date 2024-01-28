@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useSession } from "./use-session";
-import { api } from "~/api";
+import { api } from "~/api/index.client";
 import { useNavigate } from "@remix-run/react";
 
 export const useAuth = () => {

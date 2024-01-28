@@ -1,7 +1,10 @@
 pub mod routers;
 pub mod test;
+
+use self::routers::Paths;
+
 use super::user::User;
-use crate::{config, Db};
+use crate::{config::Env, Db};
 use axum::async_trait;
 use axum_login::{AuthnBackend, UserId};
 use openidconnect::{
@@ -36,15 +39,8 @@ pub struct Auth {
 
 impl Auth {
     pub async fn new(db: Db) -> Self {
-        config::load();
-
-        let google_client_id = config::google_client_id()
-            .map(ClientId::new)
-            .expect("GOOGLE_CLIENT_ID should be provided");
-
-        let google_client_secret = config::google_client_secret()
-            .map(ClientSecret::new)
-            .expect("GOOGLE_CLIENT_SECRET should be provided");
+        let google_client_id = ClientId::new(Env::google_client_id());
+        let google_client_secret = ClientSecret::new(Env::google_client_secret());
 
         let issuer_url =
             IssuerUrl::new("https://accounts.google.com".to_string()).expect("Invalid issuer URL");
@@ -59,8 +55,7 @@ impl Auth {
             Some(google_client_secret),
         )
         .set_redirect_uri(
-            // TODO
-            RedirectUrl::new("http://localhost:8787/auth/login-callback".into())
+            RedirectUrl::new(format!("{}{}", Env::base_url(), Paths::login_callback()))
                 .expect("Invalid redirect URL"),
         );
 

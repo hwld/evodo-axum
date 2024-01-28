@@ -1,10 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
-import { api } from "~/api";
+import { api } from "~/api/index.client";
 
 export const useDeleteTask = () => {
   return useMutation({
     mutationFn: ({ taskId }: { taskId: string }) => {
-      return api.delete("/tasks/:id", undefined, { params: { id: taskId } });
+      return api.delete("/tasks/:id", undefined, {
+        params: { id: taskId },
+      });
     },
     onError: (err) => {
       console.error(err);

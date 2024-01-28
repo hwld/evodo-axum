@@ -13,7 +13,7 @@ use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 use utoipauto::utoipauto;
 
-use crate::{features, AppState, Db};
+use crate::{config::Env, features, AppState, Db};
 
 async fn build_inner(db: Db, router: Option<Router<AppState>>) -> Router {
     #[utoipauto]
@@ -50,8 +50,7 @@ async fn build_inner(db: Db, router: Option<Router<AppState>>) -> Router {
         .merge(features::task_node::router())
         .layer(
             CorsLayer::new()
-                // TODO
-                .allow_origin(["http://localhost:3000".parse().unwrap()])
+                .allow_origin([Env::client_url().parse().unwrap()])
                 .allow_credentials(true)
                 .allow_headers([CONTENT_TYPE])
                 .allow_methods([
@@ -73,6 +72,7 @@ pub async fn build(db: Db) -> Router {
 #[cfg(test)]
 pub mod tests {
     use crate::{
+        config::Env,
         features::{
             auth::{self, routers::signup::CreateUser},
             user::User,
@@ -86,6 +86,8 @@ pub mod tests {
     }
     impl AppTest {
         pub async fn new(db: &Db) -> AppResult<Self> {
+            Env::load();
+
             let router = super::build_inner(db.clone(), Some(auth::test::routers::router())).await;
             let mut server = TestServer::new(router)?;
             server.do_save_cookies();

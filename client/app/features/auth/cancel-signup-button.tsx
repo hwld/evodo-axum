@@ -1,6 +1,6 @@
 import { useNavigate } from "@remix-run/react";
 import { useMutation } from "@tanstack/react-query";
-import { api } from "~/api";
+import { api } from "~/api/index.client";
 import { Button } from "~/components/ui/button";
 
 export const CancelSignupButton: React.FC = () => {

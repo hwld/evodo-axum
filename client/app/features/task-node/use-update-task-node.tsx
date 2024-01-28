@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { NodeChange } from "reactflow";
-import { api } from "~/api";
+import { api } from "~/api/index.client";
 
 export const useUpdateTaskNode = () => {
   const mutation = useMutation({

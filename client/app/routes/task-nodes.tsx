@@ -10,7 +10,6 @@ import ReactFlow, {
   applyNodeChanges,
   useEdgesState,
 } from "reactflow";
-import { api } from "~/api";
 import reactFlowStyles from "reactflow/dist/style.css";
 import { TaskNodeForm } from "~/features/task-node/task-node-form";
 import { useLoaderData } from "@remix-run/react";
@@ -21,6 +20,7 @@ import { AppLogo } from "~/components/app-logo";
 import { requireUserSession } from "~/session.server";
 import { AppControl } from "~/components/app-control/app-control";
 import { SessionProvider } from "~/features/auth/use-session";
+import { serverFetch } from "~/api/index.server";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: reactFlowStyles },
@@ -28,9 +28,10 @@ export const links: LinksFunction = () => [
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const session = await requireUserSession(request);
-  const taskNodes = await api.get("/task-nodes", {
+  const taskNodes = await serverFetch.get("/task-nodes", {
     headers: { cookie: request.headers.get("cookie") },
   });
+
   return json({ taskNodes, session });
 };
 

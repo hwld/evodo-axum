@@ -1,7 +1,7 @@
 import { useNavigate } from "@remix-run/react";
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
-import { api } from "~/api";
+import { api } from "~/api/index.client";
 import { schemas } from "~/api/schema";
 
 export const useSignup = () => {
