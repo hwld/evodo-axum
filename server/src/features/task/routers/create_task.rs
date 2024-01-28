@@ -39,26 +39,19 @@ pub async fn handler(
 #[cfg(test)]
 mod tests {
     use crate::{
-        app::tests,
-        features::{
-            auth::{self, routers::signup::CreateUser},
-            task::{routers::Paths, CreateTask, Task},
-        },
+        app::tests::AppTest,
+        features::task::{routers::Paths, CreateTask, Task},
         AppResult, Db,
     };
 
     #[sqlx::test]
     async fn タスクを作成できる(db: Db) -> AppResult<()> {
-        let mut server = tests::build(db.clone()).await?;
-        server.do_save_cookies();
-
-        server
-            .post(&auth::test::routes::Paths::test_login())
-            .json(&CreateUser::default())
-            .await;
+        let test = AppTest::new(&db).await?;
+        test.login(None).await?;
 
         let title = "title";
-        let res_task: Task = server
+        let task: Task = test
+            .server()
             .post(&Paths::tasks())
             .json(&CreateTask {
                 title: title.into(),
@@ -66,7 +59,7 @@ mod tests {
             .await
             .json();
 
-        let created = sqlx::query_as!(Task, "SELECT * FROM tasks where id = $1", res_task.id)
+        let created = sqlx::query_as!(Task, "SELECT * FROM tasks where id = $1", task.id)
             .fetch_all(&db)
             .await?;
         assert_eq!(created.len(), 1);
@@ -77,15 +70,10 @@ mod tests {
 
     #[sqlx::test]
     async fn 空文字のタスクを作成できない(db: Db) -> AppResult<()> {
-        let mut server = tests::build(db.clone()).await?;
-        server.do_save_cookies();
+        let test = AppTest::new(&db).await?;
+        test.login(None).await?;
 
-        server
-            .post(&auth::test::routes::Paths::test_login())
-            .json(&CreateUser::default())
-            .await;
-
-        server
+        test.server()
             .post(&Paths::tasks())
             .json(&CreateTask { title: "".into() })
             .await;

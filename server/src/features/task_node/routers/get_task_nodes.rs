@@ -72,25 +72,15 @@ mod tests {
     use super::*;
 
     use crate::{
-        app::tests,
-        features::{
-            auth::{self, routers::signup::CreateUser},
-            task_node::{self, routers::Paths},
-            user::User,
-        },
+        app::tests::AppTest,
+        features::task_node::{self, routers::Paths},
         AppResult, Db,
     };
 
     #[sqlx::test]
     async fn 全てのタスクノードを取得できる(db: Db) -> AppResult<()> {
-        let mut server = tests::build(db.clone()).await?;
-        server.do_save_cookies();
-
-        let user: User = server
-            .post(&auth::test::routes::Paths::test_login())
-            .json(&CreateUser::default())
-            .await
-            .json();
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
 
         tokio::try_join!(
             task_node::test::factory::create(&db, user.clone().id, None),
@@ -98,7 +88,7 @@ mod tests {
             task_node::test::factory::create(&db, user.clone().id, None)
         )?;
 
-        let tasks: Vec<TaskNode> = server.get(&Paths::task_nodes()).await.json();
+        let tasks: Vec<TaskNode> = test.server().get(&Paths::task_nodes()).await.json();
 
         assert_eq!(tasks.len(), 3);
 

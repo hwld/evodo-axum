@@ -27,9 +27,8 @@ pub async fn handler(
 #[cfg(test)]
 mod tests {
     use crate::{
-        app::tests,
+        app::tests::AppTest,
         features::{
-            auth::{self, routers::signup::CreateUser},
             task::{self, routers::Paths},
             user::{self, User},
         },
@@ -40,25 +39,19 @@ mod tests {
 
     #[sqlx::test]
     async fn 自分の全てのタスクを取得できる(db: Db) -> AppResult<()> {
-        let mut server = tests::build(db.clone()).await?;
-        server.do_save_cookies();
+        let test = AppTest::new(&db).await?;
 
         let other_user = user::test::factory::create(&db, Some(User::default())).await?;
         task::test::factory::create(&db, other_user.id, None).await?;
 
-        let user: User = server
-            .post(&auth::test::routes::Paths::test_login())
-            .json(&CreateUser::default())
-            .await
-            .json();
-
+        let user = test.login(None).await?;
         tokio::try_join!(
             task::test::factory::create(&db, user.clone().id, None),
             task::test::factory::create(&db, user.clone().id, None),
             task::test::factory::create(&db, user.clone().id, None),
         )?;
 
-        let tasks: Vec<Task> = server.get(&Paths::tasks()).await.json();
+        let tasks: Vec<Task> = test.server().get(&Paths::tasks()).await.json();
         assert_eq!(tasks.len(), 3);
 
         Ok(())

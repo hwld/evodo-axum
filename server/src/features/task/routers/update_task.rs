@@ -56,9 +56,8 @@ mod tests {
 
     use super::*;
     use crate::{
-        app::tests,
+        app::tests::AppTest,
         features::{
-            auth::{self, routers::signup::CreateUser},
             task::{self, routers::Paths, TaskStatus},
             user::{self, User},
         },
@@ -67,14 +66,8 @@ mod tests {
 
     #[sqlx::test]
     async fn タスクを更新できる(db: Db) -> AppResult<()> {
-        let mut server = tests::build(db.clone()).await?;
-        server.do_save_cookies();
-
-        let user: User = server
-            .post(&auth::test::routes::Paths::test_login())
-            .json(&CreateUser::default())
-            .await
-            .json();
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
 
         let task = task::test::factory::create(
             &db,
@@ -90,7 +83,7 @@ mod tests {
         let new_title = "new_title";
         let new_status = TaskStatus::Done;
 
-        server
+        test.server()
             .put(&format!("{}/{}", Paths::tasks(), task.id))
             .json(&UpdateTask {
                 title: new_title.into(),
@@ -110,14 +103,8 @@ mod tests {
 
     #[sqlx::test]
     async fn 空文字列には更新できない(db: Db) -> AppResult<()> {
-        let mut server = tests::build(db.clone()).await?;
-        server.do_save_cookies();
-
-        let user: User = server
-            .post(&auth::test::routes::Paths::test_login())
-            .json(&CreateUser::default())
-            .await
-            .json();
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
 
         let old_title = "old_title";
         let old_task = task::test::factory::create(
@@ -131,7 +118,8 @@ mod tests {
         )
         .await?;
 
-        let res = server
+        let res = test
+            .server()
             .post(&format!("{}/{}", Paths::tasks(), old_task.id))
             .json(&UpdateTask {
                 title: "".into(),
@@ -150,8 +138,7 @@ mod tests {
 
     #[sqlx::test]
     async fn 他人のタスクを更新できない(db: Db) -> AppResult<()> {
-        let mut server = tests::build(db.clone()).await?;
-        server.do_save_cookies();
+        let test = AppTest::new(&db).await?;
 
         let other_user = user::test::factory::create(&db, Some(User::default())).await?;
         let other_user_task = task::test::factory::create(
@@ -166,14 +153,11 @@ mod tests {
         )
         .await?;
 
-        server
-            .post(&auth::test::routes::Paths::test_login())
-            .json(&CreateUser::default())
-            .await;
-
         let new_title = "new_title";
         let new_status = TaskStatus::Done;
-        server
+
+        test.login(None).await?;
+        test.server()
             .post(&format!("{}/{}", Paths::tasks(), other_user_task.id))
             .json(&UpdateTask {
                 title: new_title.into(),

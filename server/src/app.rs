@@ -74,12 +74,41 @@ pub async fn build(db: Db) -> Router {
 
 #[cfg(test)]
 pub mod tests {
-    use crate::{features::auth, AppResult, Db};
+    use crate::{
+        features::{
+            auth::{self, routers::signup::CreateUser},
+            user::User,
+        },
+        AppResult, Db,
+    };
     use axum_test::TestServer;
 
-    pub async fn build(db: Db) -> AppResult<TestServer> {
-        Ok(TestServer::new(
-            super::build_inner(db, Some(auth::test::routes::router())).await,
-        )?)
+    pub struct AppTest {
+        server: TestServer,
+    }
+    impl AppTest {
+        pub async fn new(db: &Db) -> AppResult<Self> {
+            let router = super::build_inner(db.clone(), Some(auth::test::routes::router())).await;
+            let mut server = TestServer::new(router)?;
+            server.do_save_cookies();
+
+            Ok(AppTest { server })
+        }
+
+        /// 指定したユーザーでログイン状態にする
+        pub async fn login(&self, create_user: Option<CreateUser>) -> AppResult<User> {
+            let logged_in_user: User = self
+                .server
+                .post(&auth::test::routes::Paths::test_login())
+                .json(&create_user.unwrap_or_default())
+                .await
+                .json();
+
+            Ok(logged_in_user)
+        }
+
+        pub fn server(&self) -> &TestServer {
+            &self.server
+        }
     }
 }

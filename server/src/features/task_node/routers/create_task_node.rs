@@ -57,12 +57,8 @@ pub async fn handler(
 mod tests {
     use super::*;
     use crate::{
-        app::tests,
-        features::{
-            auth::{self, routers::signup::CreateUser},
-            task::CreateTask,
-            task_node::routers::Paths,
-        },
+        app::tests::AppTest,
+        features::{task::CreateTask, task_node::routers::Paths},
         AppResult, Db,
     };
 
@@ -70,19 +66,15 @@ mod tests {
     async fn タスクノードを作成するとタスクとノード情報が作成される(
         db: Db,
     ) -> AppResult<()> {
-        let mut server = tests::build(db.clone()).await?;
-        server.do_save_cookies();
-
-        server
-            .post(&auth::test::routes::Paths::test_login())
-            .json(&CreateUser::default())
-            .await;
+        let test = AppTest::new(&db).await?;
+        test.login(None).await?;
 
         let task_title = "title";
         let node_x = 0.0;
         let node_y = 0.0;
 
-        let task_node: TaskNode = server
+        let task_node: TaskNode = test
+            .server()
             .post(&Paths::task_nodes())
             .json(&CreateTaskNode {
                 x: node_x,
@@ -114,15 +106,11 @@ mod tests {
 
     #[sqlx::test]
     async fn 空文字列のタスクノードは作成できない(db: Db) -> AppResult<()> {
-        let mut server = tests::build(db.clone()).await?;
-        server.do_save_cookies();
+        let test = AppTest::new(&db).await?;
+        test.login(None).await?;
 
-        server
-            .post(&auth::test::routes::Paths::test_login())
-            .json(&CreateUser::default())
-            .await;
-
-        let res = server
+        let res = test
+            .server()
             .post(&Paths::task_nodes())
             .json(&CreateTaskNode {
                 task: CreateTask { title: "".into() },

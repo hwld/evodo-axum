@@ -37,9 +37,8 @@ pub async fn handler(
 #[cfg(test)]
 mod tests {
     use crate::{
-        app::tests,
+        app::tests::AppTest,
         features::{
-            auth::{self, routers::signup::CreateUser},
             task::{self, routers::Paths},
             user::{self, User},
         },
@@ -50,19 +49,13 @@ mod tests {
 
     #[sqlx::test]
     async fn 指定したタスクだけを削除できる(db: Db) -> AppResult<()> {
-        let mut server = tests::build(db.clone()).await?;
-        server.do_save_cookies();
-
-        let user: User = server
-            .post(&auth::test::routes::Paths::test_login())
-            .json(&CreateUser::default())
-            .await
-            .json();
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
 
         task::test::factory::create(&db, user.clone().id, None).await?;
         let created_task = task::test::factory::create(&db, user.id, None).await?;
 
-        server
+        test.server()
             .delete(&format!("{}/{}", Paths::tasks(), created_task.id))
             .await;
 
@@ -74,17 +67,14 @@ mod tests {
 
     #[sqlx::test]
     async fn 他人のタスクは削除できない(db: Db) -> AppResult<()> {
-        let mut server = tests::build(db.clone()).await?;
-        server.do_save_cookies();
+        let test = AppTest::new(&db).await?;
 
         let other_user = user::test::factory::create(&db, Some(User::default())).await?;
         let other_user_task = task::test::factory::create(&db, other_user.id, None).await?;
 
-        server
-            .post(&auth::test::routes::Paths::test_login())
-            .json(&CreateUser::default())
-            .await;
-        let res = server
+        test.login(None).await?;
+        let res = test
+            .server()
             .delete(&format!("{}/{}", Paths::tasks(), other_user_task.id))
             .await;
         assert_ne!(res.status_code(), StatusCode::UNAUTHORIZED);

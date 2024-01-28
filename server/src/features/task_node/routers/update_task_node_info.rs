@@ -54,26 +54,18 @@ mod tests {
 
     use super::*;
     use crate::{
-        app::tests,
+        app::tests::AppTest,
         features::{
-            auth::{self, routers::signup::CreateUser},
             task::Task,
             task_node::{self, routers::Paths, TaskNode},
-            user::User,
         },
         AppResult, Db,
     };
 
     #[sqlx::test]
     async fn タスクノードを更新できる(db: Db) -> AppResult<()> {
-        let mut server = tests::build(db.clone()).await?;
-        server.do_save_cookies();
-
-        let user: User = server
-            .post(&auth::test::routes::Paths::test_login())
-            .json(&CreateUser::default())
-            .await
-            .json();
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
 
         let task: Task = Task {
             user_id: user.clone().id,
@@ -97,7 +89,7 @@ mod tests {
 
         let new_x = 1.1;
         let new_y = -100.100;
-        server
+        test.server()
             .put(&format!(
                 "{}/{}",
                 Paths::task_node_info_list(),
