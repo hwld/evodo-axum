@@ -66,6 +66,13 @@ const endpoints = makeApi([
     method: "get",
     path: "/auth/login",
     requestFormat: "json",
+    parameters: [
+      {
+        name: "after_login_redirect",
+        type: "Query",
+        schema: z.string().nullish(),
+      },
+    ],
     response: z.void(),
   },
   {

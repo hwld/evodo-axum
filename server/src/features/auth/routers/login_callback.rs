@@ -1,4 +1,4 @@
-use super::login::{CSRF_STATE_KEY, NONCE_KEY};
+use super::login::{AFTER_LOGIN_REDIRECT_KEY, CSRF_STATE_KEY, NONCE_KEY};
 use crate::{
     config::Env,
     features::auth::{Auth, AuthError, Credentials},
@@ -39,6 +39,10 @@ pub async fn handler(
     let Ok(Some(nonce)) = session.get::<Nonce>(NONCE_KEY).await else {
         return Ok(StatusCode::BAD_REQUEST.into_response());
     };
+    let Ok(Some(after_login_redirect)) = session.get::<String>(AFTER_LOGIN_REDIRECT_KEY).await
+    else {
+        return Ok(StatusCode::BAD_REQUEST.into_response());
+    };
 
     let creds = Credentials {
         code,
@@ -54,7 +58,10 @@ pub async fn handler(
             // クリーンな新規登録セッションを作る
             session.flush().await?;
             session.insert(SIGNUP_USER_ID_KEY, user_id).await?;
-            return Ok(Redirect::to(&format!("{}/signup", Env::client_url())).into_response());
+            return Ok(
+                Redirect::to(&format!("{}{}", Env::client_url(), Env::signup_page()))
+                    .into_response(),
+            );
         }
         Ok(None) => return Ok(StatusCode::UNAUTHORIZED.into_response()),
         Err(_) => {
@@ -64,7 +71,7 @@ pub async fn handler(
 
     auth_session.login(&user).await?;
 
-    Ok(Redirect::to(&Env::client_url()).into_response())
+    Ok(Redirect::to(&format!("{}{}", Env::client_url(), after_login_redirect)).into_response())
 }
 
 /// このハンドラで発生したエラーはフロントエンド側で補足できないのでリダイレクトさせる
@@ -73,7 +80,8 @@ pub async fn handle_all_error(request: Request, next: Next) -> impl IntoResponse
     let status = response.status();
 
     if status.is_client_error() | status.is_server_error() {
-        return Redirect::to(&format!("{}/auth-error", Env::client_url())).into_response();
+        return Redirect::to(&format!("{}{}", Env::client_url(), Env::auth_error_page()))
+            .into_response();
     }
 
     response
