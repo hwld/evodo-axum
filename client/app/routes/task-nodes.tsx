@@ -1,30 +1,21 @@
-import { LinksFunction, LoaderFunctionArgs, json } from "@remix-run/node";
-// eslint-disable-next-line import/no-named-as-default
-import ReactFlow, {
-  Background,
-  Controls,
-  MiniMap,
+import { LoaderFunctionArgs, json } from "@remix-run/node";
+import {
   Node,
   OnNodesChange,
   Panel,
   applyNodeChanges,
   useEdgesState,
 } from "reactflow";
-import reactFlowStyles from "reactflow/dist/style.css";
 import { TaskNodeForm } from "~/features/task-node/task-node-form";
 import { useLoaderData } from "@remix-run/react";
 import { TaskNode, TaskNodeData } from "~/features/task-node/task-node";
 import { useState } from "react";
 import { useUpdateTaskNode } from "~/features/task-node/use-update-task-node";
-import { AppLogo } from "~/components/app-logo";
 import { requireUserSession } from "~/session.server";
 import { AppControl } from "~/components/app-control/app-control";
 import { SessionProvider } from "~/features/auth/use-session";
 import { serverFetch } from "~/api/index.server";
-
-export const links: LinksFunction = () => [
-  { rel: "stylesheet", href: reactFlowStyles },
-];
+import { NodeView } from "~/components/node-view";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const session = await requireUserSession(request);
@@ -64,40 +55,21 @@ export default function TaskNodesPage() {
 
   return (
     <SessionProvider session={session}>
-      <div className="h-[100dvh]">
-        <ReactFlow
-          nodeOrigin={[0.5, 0.5]}
+      <div className="h-dvh">
+        <NodeView
           nodeTypes={nodeTypes}
           nodes={nodes}
           edges={edges}
           onNodesChange={handleNodesChange}
           onEdgesChange={onEdgesChange}
-          deleteKeyCode={null}
-          disableKeyboardA11y={true}
-          fitView
-          panActivationKeyCode="none"
-          defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
         >
-          <Panel
-            position="top-left"
-            className="bg-transparent flex items-center gap-1 text-muted-foreground justify-center"
-          >
-            <AppLogo size={18} />
-            <div className="mb-[1px] text-sm">evodo</div>
-          </Panel>
-
           <Panel position="top-center">
             <AppControl />
           </Panel>
-
           <Panel position="bottom-center">
             <TaskNodeForm onAddNode={handleAddTaskNode} />
           </Panel>
-
-          <Background />
-          <Controls />
-          <MiniMap />
-        </ReactFlow>
+        </NodeView>
       </div>
     </SessionProvider>
   );

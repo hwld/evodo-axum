@@ -9,12 +9,14 @@ import {
   useLoaderData,
 } from "@remix-run/react";
 import { json } from "@remix-run/node";
-import stylesheet from "~/tailwind.css";
+import tailwindStylesheet from "~/tailwind.css";
+import reactFlowStyles from "reactflow/dist/style.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 
 export const links: LinksFunction = () => [
-  { rel: "stylesheet", href: stylesheet },
+  { rel: "stylesheet", href: tailwindStylesheet },
+  { rel: "stylesheet", href: reactFlowStyles },
 ];
 
 export const loader = async () => {

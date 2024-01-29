@@ -1,28 +1,16 @@
-import { LinksFunction } from "@remix-run/node";
 import { Link } from "@remix-run/react";
 import { AlertTriangleIcon } from "lucide-react";
-// eslint-disable-next-line import/no-named-as-default
-import ReactFlow, {
-  Background,
-  Controls,
-  MiniMap,
-  Node,
-  useNodesState,
-} from "reactflow";
-import reactFlowStyles from "reactflow/dist/style.css";
+import { Node, useNodesState } from "reactflow";
 import { Button } from "~/components/ui/button";
 import { Node as NodeComponent } from "~/components/ui/node";
 import { NoopNode } from "~/components/noop-node";
-
-export const links: LinksFunction = () => [
-  { rel: "stylesheet", href: reactFlowStyles },
-];
+import { NodeView } from "~/components/node-view";
 
 const nodeTypes = {
   noop: () => <NoopNode />,
   alert: () => {
     return (
-      <NodeComponent className="w-[300px] h-[300px] text-destructive">
+      <NodeComponent className="size-[300px] text-destructive">
         <AlertTriangleIcon size={200} />
       </NodeComponent>
     );
@@ -69,19 +57,12 @@ export default function AuthErrorPage() {
   const [nodes, _, onNodesChange] = useNodesState(initialNodes);
 
   return (
-    <div className="h-[100dvh]">
-      <ReactFlow
-        nodeOrigin={[0.5, 0.5]}
+    <div className="h-dvh">
+      <NodeView
         nodeTypes={nodeTypes}
         nodes={nodes}
         onNodesChange={onNodesChange}
-        fitView
-        deleteKeyCode={null}
-      >
-        <Background />
-        <MiniMap />
-        <Controls />
-      </ReactFlow>
+      />
     </div>
   );
 }

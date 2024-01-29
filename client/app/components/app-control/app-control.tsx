@@ -51,7 +51,7 @@ export const AppControl: React.FC = () => {
       <button
         onClick={() => setMode("idle")}
         className={cn(
-          "flex bg-primary rounded-full absolute left-[calc(100%+5px)] w-[35px] h-[35px] top-1 text-primary-foreground justify-center items-center transition-all hover:bg-primary/85",
+          "flex bg-primary rounded-full absolute left-[calc(100%+5px)] size-[35px] top-1 text-primary-foreground justify-center items-center transition-all hover:bg-primary/85",
           mode === "idle" ? "opacity-0" : "opacity-100"
         )}
       >

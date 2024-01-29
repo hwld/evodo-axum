@@ -1,23 +1,12 @@
-import { LinksFunction, LoaderFunctionArgs, json } from "@remix-run/node";
-// eslint-disable-next-line import/no-named-as-default
-import ReactFlow, {
-  Background,
-  Controls,
-  MiniMap,
-  Node,
-  useNodesState,
-} from "reactflow";
-import reactFlowStyles from "reactflow/dist/style.css";
+import { LoaderFunctionArgs, json } from "@remix-run/node";
+import { Node, useNodesState } from "reactflow";
 import { SignupFormNode } from "~/features/auth/signup-form-node";
 import { Node as NodeComponent } from "~/components/ui/node";
 import { UserPlusIcon } from "lucide-react";
 import { requireSignupSession } from "~/session.server";
 import { NoopNode } from "~/components/noop-node";
 import { AppLogo } from "~/components/app-logo";
-
-export const links: LinksFunction = () => [
-  { rel: "stylesheet", href: reactFlowStyles },
-];
+import { NodeView } from "~/components/node-view";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await requireSignupSession(request);
@@ -62,19 +51,12 @@ export default function SignupPage() {
   const [nodes, _, onNodesChange] = useNodesState(initialNodes);
 
   return (
-    <div className="h-[100dvh]">
-      <ReactFlow
-        nodeOrigin={[0.5, 0.5]}
+    <div className="h-dvh">
+      <NodeView
         nodeTypes={nodeTypes}
         nodes={nodes}
         onNodesChange={onNodesChange}
-        fitView
-        deleteKeyCode={null}
-      >
-        <Background />
-        <MiniMap />
-        <Controls />
-      </ReactFlow>
+      />
     </div>
   );
 }
