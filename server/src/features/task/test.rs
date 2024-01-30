@@ -2,9 +2,10 @@
 pub mod factory {
     use uuid::Uuid;
 
+    use crate::app::AppResult;
     use crate::{
+        app::Db,
         features::task::{Task, TaskStatus},
-        AppResult, Db,
     };
 
     impl Default for Task {

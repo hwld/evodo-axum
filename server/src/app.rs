@@ -7,13 +7,27 @@ use axum_login::{
     AuthManagerLayerBuilder,
 };
 use http::{header::CONTENT_TYPE, Method};
+use sqlx::{Pool, Sqlite};
 use tower_http::cors::CorsLayer;
 use tower_sessions_sqlx_store::SqliteStore;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 use utoipauto::utoipauto;
 
-use crate::{config::Env, features, AppState, Db};
+use crate::{config::Env, error::AppError, features};
+
+pub type Db = Pool<Sqlite>;
+
+#[derive(Debug, Clone)]
+pub struct AppState {
+    pub db: Db,
+}
+
+impl axum::extract::FromRef<AppState> for () {
+    fn from_ref(_: &AppState) {}
+}
+
+pub type AppResult<T> = anyhow::Result<T, AppError>;
 
 async fn build_inner(db: Db, router: Option<Router<AppState>>) -> Router {
     #[utoipauto]
@@ -77,9 +91,10 @@ pub mod tests {
             auth::{self, routers::signup::CreateUser},
             user::User,
         },
-        AppResult, Db,
     };
     use axum_test::TestServer;
+
+    use super::{AppResult, Db};
 
     pub struct AppTest {
         server: TestServer,

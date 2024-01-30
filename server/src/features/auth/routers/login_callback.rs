@@ -1,8 +1,9 @@
 use super::login::{AFTER_LOGIN_REDIRECT_KEY, CSRF_STATE_KEY, NONCE_KEY};
 use crate::{
+    app::AppResult,
     config::Env,
+    error::AppError,
     features::auth::{Auth, AuthError, Credentials},
-    AppResult,
 };
 use axum::{
     extract::{Query, Request},
@@ -34,14 +35,23 @@ pub async fn handler(
     }): Query<AuthzResp>,
 ) -> AppResult<impl IntoResponse> {
     let Ok(Some(old_state)) = session.get::<CsrfToken>(CSRF_STATE_KEY).await else {
-        return Ok(StatusCode::BAD_REQUEST.into_response());
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            Some("CsrfToken not found"),
+        ));
     };
     let Ok(Some(nonce)) = session.get::<Nonce>(NONCE_KEY).await else {
-        return Ok(StatusCode::BAD_REQUEST.into_response());
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            Some("None not found"),
+        ));
     };
     let Ok(Some(after_login_redirect)) = session.get::<String>(AFTER_LOGIN_REDIRECT_KEY).await
     else {
-        return Ok(StatusCode::BAD_REQUEST.into_response());
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            Some("After_login_redirect not found"),
+        ));
     };
 
     let creds = Credentials {
@@ -63,9 +73,9 @@ pub async fn handler(
                     .into_response(),
             );
         }
-        Ok(None) => return Ok(StatusCode::UNAUTHORIZED.into_response()),
+        Ok(None) => return Err(AppError::new(StatusCode::UNAUTHORIZED, None)),
         Err(_) => {
-            return Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response());
+            return Err(AppError::new(StatusCode::INTERNAL_SERVER_ERROR, None));
         }
     };
 

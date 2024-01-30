@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.79"
+anyhow = { version = "1.0.79", features = ["backtrace", "std"] }
 axum = "0.7"
 axum-login = "0.13.0"
 axum_garde = "0.17.0"

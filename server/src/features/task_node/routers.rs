@@ -4,7 +4,7 @@ use axum::{
 };
 use axum_login::login_required;
 
-use crate::{features::auth::Auth, AppState};
+use crate::{app::AppState, features::auth::Auth};
 
 pub mod create_task_node;
 pub mod get_task_nodes;

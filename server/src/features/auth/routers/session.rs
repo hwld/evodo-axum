@@ -1,7 +1,5 @@
-use crate::{
-    features::auth::{Auth, Session},
-    AppResult,
-};
+use crate::app::AppResult;
+use crate::features::auth::{Auth, Session};
 use axum::Json;
 use axum_login::AuthSession;
 use http::StatusCode;

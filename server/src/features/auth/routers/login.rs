@@ -7,7 +7,7 @@ use http::StatusCode;
 use serde::Deserialize;
 use utoipa::IntoParams;
 
-use crate::{features::auth::Auth, AppResult};
+use crate::{app::AppResult, error::AppError, features::auth::Auth};
 
 pub const CSRF_STATE_KEY: &str = "auth.state";
 pub const NONCE_KEY: &str = "auth.nonce";
@@ -33,7 +33,10 @@ pub async fn handler(
     // CLIENT_URLと合わせて使用するので`/`で始まっているかだけを確認する。
     let after_login_redirect = after_login_redirect.unwrap_or("/".into());
     if !after_login_redirect.starts_with('/') {
-        return Ok(StatusCode::BAD_REQUEST.into_response());
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            Some("Invalid after_login_redirect"),
+        ));
     }
 
     session.insert(CSRF_STATE_KEY, csrf_state.secret()).await?;

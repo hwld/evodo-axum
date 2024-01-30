@@ -1,11 +1,12 @@
 #[cfg(test)]
 pub mod routers {
+    use crate::app::AppResult;
     use crate::{
+        app::AppState,
         features::{
             auth::{routers::signup::CreateUser, Auth},
             user::User,
         },
-        AppResult, AppState,
     };
     use axum::{extract::State, routing::post, Json, Router};
     use axum_login::AuthSession;

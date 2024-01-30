@@ -1,8 +1,8 @@
+use crate::app::AppResult;
+use crate::features::auth::Auth;
 use axum::response::IntoResponse;
 use axum_login::AuthSession;
 use http::StatusCode;
-
-use crate::{features::auth::Auth, AppResult};
 
 #[tracing::instrument(err)]
 #[utoipa::path(post, tag = super::TAG, path = super::Paths::logout(), responses ((status = 200)))]

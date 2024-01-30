@@ -3,12 +3,14 @@ use axum_garde::WithValidation;
 use axum_login::AuthSession;
 use http::StatusCode;
 
+use crate::app::AppResult;
 use crate::{
+    app::AppState,
+    error::AppError,
     features::{
         auth::Auth,
         task::{CreateTask, Task},
     },
-    AppResult, AppState,
 };
 
 #[tracing::instrument(err)]
@@ -19,7 +21,7 @@ pub async fn handler(
     WithValidation(payload): WithValidation<Json<CreateTask>>,
 ) -> AppResult<impl IntoResponse> {
     let Some(user) = auth_session.user else {
-        return Ok(StatusCode::UNAUTHORIZED.into_response());
+        return Err(AppError::new(StatusCode::UNAUTHORIZED, None));
     };
 
     let uuid = uuid::Uuid::new_v4().to_string();
@@ -38,10 +40,10 @@ pub async fn handler(
 
 #[cfg(test)]
 mod tests {
+    use crate::app::AppResult;
     use crate::{
-        app::tests::AppTest,
+        app::{tests::AppTest, Db},
         features::task::{routers::Paths, CreateTask, Task},
-        AppResult, Db,
     };
 
     #[sqlx::test]

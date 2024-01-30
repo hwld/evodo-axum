@@ -6,12 +6,14 @@ use axum::{
 use axum_login::AuthSession;
 use http::StatusCode;
 
+use crate::app::AppResult;
 use crate::{
+    app::AppState,
+    error::AppError,
     features::{
         auth::Auth,
         task_node::{TaskNodeInfo, UpdateTaskNodeInfo},
     },
-    AppResult, AppState,
 };
 
 #[tracing::instrument(err)]
@@ -23,7 +25,7 @@ pub async fn handler(
     Json(payload): Json<UpdateTaskNodeInfo>,
 ) -> AppResult<impl IntoResponse> {
     let Some(user) = auth_session.user else {
-        return Ok(StatusCode::UNAUTHORIZED.into_response());
+        return Err(AppError::new(StatusCode::UNAUTHORIZED, None));
     };
 
     let task_node_info = sqlx::query_as!(
@@ -53,13 +55,13 @@ pub async fn handler(
 mod tests {
 
     use super::*;
+    use crate::app::AppResult;
     use crate::{
-        app::tests::AppTest,
+        app::{tests::AppTest, Db},
         features::{
             task::Task,
             task_node::{routers::Paths, test::factory as task_node_factory, TaskNode},
         },
-        AppResult, Db,
     };
 
     #[sqlx::test]

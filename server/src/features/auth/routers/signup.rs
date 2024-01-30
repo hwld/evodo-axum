@@ -1,7 +1,9 @@
 use super::login_callback::SIGNUP_USER_ID_KEY;
+use crate::app::AppResult;
 use crate::{
+    app::AppState,
+    error::AppError,
     features::{auth::Auth, user::User},
-    AppResult, AppState,
 };
 use axum::{extract::State, response::IntoResponse, Json};
 use axum_garde::WithValidation;
@@ -22,7 +24,7 @@ pub struct CreateUser {
     pub profile: String,
 }
 
-#[tracing::instrument(err)]
+#[tracing::instrument(err, skip(auth_session, session, db))]
 #[utoipa::path(post, tag = super::TAG, path = super::Paths::signup(), request_body = CreateUser, responses((status = 201, body = User)))]
 pub async fn handler(
     mut auth_session: AuthSession<Auth>,
@@ -31,7 +33,10 @@ pub async fn handler(
     WithValidation(payload): WithValidation<Json<CreateUser>>,
 ) -> AppResult<impl IntoResponse> {
     let Ok(Some(user_id)) = session.get::<String>(SIGNUP_USER_ID_KEY).await else {
-        return Ok(StatusCode::BAD_REQUEST.into_response());
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            Some("Signup session not found"),
+        ));
     };
 
     let user = sqlx::query_as!(

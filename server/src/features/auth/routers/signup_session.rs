@@ -4,7 +4,7 @@ use http::StatusCode;
 use serde::Serialize;
 use utoipa::ToSchema;
 
-use crate::AppResult;
+use crate::app::AppResult;
 
 use super::login_callback::SIGNUP_USER_ID_KEY;
 

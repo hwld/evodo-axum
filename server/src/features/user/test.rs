@@ -2,7 +2,7 @@
 pub mod factory {
     use uuid::Uuid;
 
-    use crate::{features::user::User, AppResult, Db};
+    use crate::{app::AppResult, app::Db, features::user::User};
 
     impl Default for User {
         fn default() -> Self {

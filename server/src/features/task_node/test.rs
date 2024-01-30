@@ -2,13 +2,14 @@
 pub mod factory {
     use uuid::Uuid;
 
+    use crate::app::Db;
     use crate::features::task::test::factory as task_factory;
     use crate::{
+        app::AppResult,
         features::{
             task::Task,
             task_node::{TaskNode, TaskNodeInfo},
         },
-        AppResult, Db,
     };
 
     impl Default for TaskNode {

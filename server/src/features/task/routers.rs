@@ -1,4 +1,4 @@
-use crate::{features::auth::Auth, AppState};
+use crate::{app::AppState, features::auth::Auth};
 use axum::{
     routing::{get, put},
     Router,

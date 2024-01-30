@@ -4,7 +4,7 @@ pub mod test;
 use self::routers::Paths;
 
 use super::user::User;
-use crate::{config::Env, Db};
+use crate::{app::Db, config::Env};
 use axum::async_trait;
 use axum_login::{AuthnBackend, UserId};
 use openidconnect::{

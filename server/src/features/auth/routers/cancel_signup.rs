@@ -2,7 +2,7 @@ use axum::response::IntoResponse;
 use axum_login::tower_sessions::Session;
 use http::StatusCode;
 
-use crate::AppResult;
+use crate::app::AppResult;
 
 use super::login_callback::SIGNUP_USER_ID_KEY;
 

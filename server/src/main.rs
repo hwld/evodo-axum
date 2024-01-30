@@ -1,48 +1,12 @@
-use axum::{http::StatusCode, response::IntoResponse};
-use sqlx::{Pool, Sqlite, SqlitePool};
+use sqlx::SqlitePool;
 use tracing::debug;
 
 use crate::config::Env;
 mod app;
 mod config;
+mod error;
 mod features;
 
-#[derive(Debug)]
-pub struct AppError(anyhow::Error);
-
-impl IntoResponse for AppError {
-    fn into_response(self) -> axum::response::Response {
-        (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error").into_response()
-    }
-}
-
-impl<E> From<E> for AppError
-where
-    E: Into<anyhow::Error>,
-{
-    fn from(err: E) -> Self {
-        Self(err.into())
-    }
-}
-
-impl std::fmt::Display for AppError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-pub type AppResult<T> = anyhow::Result<T, AppError>;
-
-type Db = Pool<Sqlite>;
-
-#[derive(Debug, Clone)]
-pub struct AppState {
-    db: Db,
-}
-
-impl axum::extract::FromRef<AppState> for () {
-    fn from_ref(_: &AppState) {}
-}
 #[tokio::main]
 async fn main() {
     Env::load();
