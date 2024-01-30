@@ -5,6 +5,7 @@ use self::routes::Paths;
 
 use super::user::User;
 use crate::{app::Db, config::Env};
+use anyhow::anyhow;
 use axum::async_trait;
 use axum_login::{AuthnBackend, UserId};
 use openidconnect::{
@@ -74,14 +75,16 @@ impl Auth {
     }
 }
 
-// TODO
 #[derive(Debug, thiserror::Error)]
 pub enum AuthError {
-    #[error("unknown auth error")]
-    Unknown(anyhow::Error),
+    #[error(transparent)]
+    Unknown(#[from] anyhow::Error),
 
-    #[error("new user")]
-    AuthenticationUserNotFound(UserId<Auth>),
+    // 新規登録の場合に返すエラー
+    // authenticateがResult<User, Error>を返すのでOkとして返せない。
+    // けど、authenticateがErrを返すとログに出力されちゃう・・・
+    #[error("User not found")]
+    UserNotFound(UserId<Auth>),
 }
 
 #[async_trait]
@@ -109,16 +112,16 @@ impl AuthnBackend for Auth {
         let id_token_claims = token_res
             .extra_fields()
             .id_token()
-            .expect("server did not return an ID token")
+            .ok_or_else(|| anyhow!("Server did not return an ID token"))?
             .claims(&token_verifier, &credentials.nonce)
-            .expect("Failed to validation");
+            .map_err(|e| AuthError::Unknown(e.into()))?;
 
         let user_id = id_token_claims.subject().to_string();
 
         let user = sqlx::query_as!(User, "SELECT * FROM users WHERE id = $1", user_id)
             .fetch_one(&self.db)
             .await
-            .map_err(|_| AuthError::AuthenticationUserNotFound(user_id))?;
+            .map_err(|_| AuthError::UserNotFound(user_id))?;
 
         Ok(Some(user))
     }

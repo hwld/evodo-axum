@@ -64,7 +64,7 @@ pub async fn handler(
     let user = match auth_session.authenticate(creds).await {
         Ok(Some(user)) => user,
         // 認証は通っているがユーザーが存在しない場合は新規登録フローに移行させる
-        Err(axum_login::Error::Backend(AuthError::AuthenticationUserNotFound(user_id))) => {
+        Err(axum_login::Error::Backend(AuthError::UserNotFound(user_id))) => {
             // クリーンな新規登録セッションを作る
             session.flush().await?;
             session.insert(SIGNUP_USER_ID_KEY, user_id).await?;

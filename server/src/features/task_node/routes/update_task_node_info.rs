@@ -16,7 +16,7 @@ use crate::{
     },
 };
 
-#[tracing::instrument(err)]
+#[tracing::instrument(err, skip_all)]
 #[utoipa::path(put, tag = super::TAG, path = super::Paths::oas_task_node_info(), responses((status = 200, body = TaskNodeInfo)))]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
