@@ -1,7 +1,7 @@
-pub mod routers;
+pub mod routes;
 pub mod test;
 
-use self::routers::Paths;
+use self::routes::Paths;
 
 use super::user::User;
 use crate::{app::Db, config::Env};
@@ -13,7 +13,7 @@ use openidconnect::{
     AuthenticationFlow, AuthorizationCode, ClientId, ClientSecret, CsrfToken, IssuerUrl, Nonce,
     RedirectUrl, Scope,
 };
-pub use routers::router;
+pub use routes::router;
 use serde::{Deserialize, Serialize};
 use url::Url;
 use utoipa::ToSchema;

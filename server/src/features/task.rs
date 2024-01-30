@@ -1,7 +1,7 @@
-pub mod routers;
+pub mod routes;
 pub mod test;
 use garde::Validate;
-pub use routers::router;
+pub use routes::router;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use strum::EnumString;

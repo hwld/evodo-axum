@@ -41,7 +41,7 @@ mod tests {
     use crate::app::Db;
     use crate::features::task::test::factory as task_factory;
     use crate::features::user::test::factory as user_factory;
-    use crate::{app::tests::AppTest, features::task::routers::Paths};
+    use crate::{app::tests::AppTest, features::task::routes::Paths};
 
     use super::*;
 

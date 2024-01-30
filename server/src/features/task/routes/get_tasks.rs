@@ -30,7 +30,7 @@ pub async fn handler(
 mod tests {
     use crate::app::tests::AppTest;
     use crate::app::Db;
-    use crate::features::task::routers::Paths;
+    use crate::features::task::routes::Paths;
     use crate::features::{
         task::test::factory as task_factory, user::test::factory as user_factory,
     };

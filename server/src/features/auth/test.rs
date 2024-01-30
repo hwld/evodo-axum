@@ -1,10 +1,10 @@
 #[cfg(test)]
-pub mod routers {
+pub mod routes {
     use crate::app::AppResult;
     use crate::{
         app::AppState,
         features::{
-            auth::{routers::signup::CreateUser, Auth},
+            auth::{routes::signup::CreateUser, Auth},
             user::User,
         },
     };

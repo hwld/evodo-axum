@@ -47,10 +47,10 @@ pub mod factory {
 }
 
 #[cfg(test)]
-pub mod routers {
+pub mod routes {
     use crate::features::task;
 
-    impl task::routers::Paths {
+    impl task::routes::Paths {
         pub fn one_task(id: &str) -> String {
             Self::tasks() + "/" + id
         }

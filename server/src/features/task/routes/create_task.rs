@@ -43,7 +43,7 @@ mod tests {
     use crate::app::AppResult;
     use crate::{
         app::{tests::AppTest, Db},
-        features::task::{routers::Paths, CreateTask, Task},
+        features::task::{routes::Paths, CreateTask, Task},
     };
 
     #[sqlx::test]

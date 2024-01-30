@@ -61,7 +61,7 @@ mod tests {
     use crate::{
         app::{tests::AppTest, Db},
         features::{
-            task::{routers::Paths, test::factory as task_factory, TaskStatus},
+            task::{routes::Paths, test::factory as task_factory, TaskStatus},
             user::test::factory as user_factory,
         },
     };

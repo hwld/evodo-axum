@@ -85,12 +85,10 @@ pub async fn build(db: Db) -> Router {
 
 #[cfg(test)]
 pub mod tests {
+    use crate::features::auth::routes::signup::CreateUser;
     use crate::{
         config::Env,
-        features::{
-            auth::{self, routers::signup::CreateUser},
-            user::User,
-        },
+        features::{auth, user::User},
     };
     use axum_test::TestServer;
 
@@ -103,7 +101,7 @@ pub mod tests {
         pub async fn new(db: &Db) -> AppResult<Self> {
             Env::load();
 
-            let router = super::build_inner(db.clone(), Some(auth::test::routers::router())).await;
+            let router = super::build_inner(db.clone(), Some(auth::test::routes::router())).await;
             let mut server = TestServer::new(router)?;
             server.do_save_cookies();
 
@@ -114,7 +112,7 @@ pub mod tests {
         pub async fn login(&self, create_user: Option<CreateUser>) -> AppResult<User> {
             let logged_in_user: User = self
                 .server
-                .post(&auth::test::routers::Paths::test_login())
+                .post(&auth::test::routes::Paths::test_login())
                 .json(&create_user.unwrap_or_default())
                 .await
                 .json();

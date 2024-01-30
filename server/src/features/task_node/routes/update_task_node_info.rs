@@ -60,7 +60,7 @@ mod tests {
         app::{tests::AppTest, Db},
         features::{
             task::Task,
-            task_node::{routers::Paths, test::factory as task_node_factory, TaskNode},
+            task_node::{routes::Paths, test::factory as task_node_factory, TaskNode},
         },
     };
 
