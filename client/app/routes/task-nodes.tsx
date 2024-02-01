@@ -1,15 +1,21 @@
 import { LoaderFunctionArgs, json } from "@remix-run/node";
 import {
+  Connection,
+  Edge,
   Node,
+  OnEdgesChange,
   OnNodesChange,
   Panel,
+  addEdge,
+  applyEdgeChanges,
   applyNodeChanges,
+  updateEdge,
   useEdgesState,
 } from "reactflow";
 import { TaskNodeForm } from "~/features/task-node/task-node-form";
 import { useLoaderData } from "@remix-run/react";
 import { TaskNode, TaskNodeData } from "~/features/task-node/task-node";
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useUpdateTaskNode } from "~/features/task-node/use-update-task-node";
 import { requireUserSession } from "~/session.server";
 import { AppControl } from "~/components/app-control/app-control";
@@ -29,6 +35,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 const nodeTypes = { task: TaskNode } as const;
 
 export default function TaskNodesPage() {
+  const edgeUpdateSuccessful = useRef(true);
   const updatePosition = useUpdateTaskNode();
 
   const { taskNodes, session } = useLoaderData<typeof loader>();
@@ -37,21 +44,68 @@ export default function TaskNodesPage() {
       return {
         type: "task",
         id: node_info.id,
-        data: { title: task.title, taskId: task.id, status: task.status },
+        data: {
+          title: task.title,
+          taskId: task.id,
+          status: task.status,
+          // TODO バックエンドから持ってくる
+          ancestorNodeIds: [],
+        },
         position: { x: node_info.x, y: node_info.y },
       };
     })
   );
-  const [edges, _setEdges, onEdgesChange] = useEdgesState([]);
+  const [edges, setEdges] = useEdgesState([]);
 
-  const handleAddTaskNode = (node: Node<TaskNodeData>) => {
+  const handleAddTaskNode = useCallback((node: Node<TaskNodeData>) => {
     setNodes((nodes) => [...nodes, { ...node, type: "task" }]);
-  };
+  }, []);
 
-  const handleNodesChange: OnNodesChange = (changes) => {
-    updatePosition(changes);
-    setNodes((nodes) => applyNodeChanges(changes, nodes));
-  };
+  const handleNodesChange: OnNodesChange = useCallback(
+    (changes) => {
+      updatePosition(changes);
+      setNodes((nodes) => applyNodeChanges(changes, nodes));
+    },
+    [updatePosition]
+  );
+
+  const handleEdgeUpdateStart = useCallback(() => {
+    edgeUpdateSuccessful.current = false;
+  }, []);
+
+  const handleEdgeUpdate = useCallback(
+    (oldEdge: Edge, newConnection: Connection) => {
+      // TODO: newConnectionが循環していないかを確認する
+      edgeUpdateSuccessful.current = true;
+      setEdges((els) => updateEdge(oldEdge, newConnection, els));
+    },
+    [setEdges]
+  );
+
+  const handleEdgeUpdateEnd = useCallback(
+    (_: unknown, edge: Edge) => {
+      if (!edgeUpdateSuccessful.current) {
+        setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+      }
+      edgeUpdateSuccessful.current = true;
+    },
+    [setEdges]
+  );
+
+  const handleEdgesChange: OnEdgesChange = useCallback(
+    (changes) => {
+      setEdges((old) => applyEdgeChanges(changes, old));
+    },
+    [setEdges]
+  );
+
+  const handleConnect = useCallback(
+    (connection: Connection) => {
+      // TODO: connectionが循環していないかを確認する
+      setEdges((old) => addEdge(connection, old));
+    },
+    [setEdges]
+  );
 
   return (
     <SessionProvider session={session}>
@@ -61,7 +115,11 @@ export default function TaskNodesPage() {
           nodes={nodes}
           edges={edges}
           onNodesChange={handleNodesChange}
-          onEdgesChange={onEdgesChange}
+          onEdgesChange={handleEdgesChange}
+          onEdgeUpdateStart={handleEdgeUpdateStart}
+          onEdgeUpdate={handleEdgeUpdate}
+          onEdgeUpdateEnd={handleEdgeUpdateEnd}
+          onConnect={handleConnect}
         >
           <Panel position="top-center">
             <AppControl />

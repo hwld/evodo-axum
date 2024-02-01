@@ -1,5 +1,5 @@
 import { CheckCircle2Icon, CircleDashedIcon, XIcon } from "lucide-react";
-import { NodeProps, useReactFlow } from "reactflow";
+import { Handle, NodeProps, Position, useReactFlow } from "reactflow";
 import { useDeleteTask } from "./use-delete-task-node";
 import { useUpdateTask } from "../task/use-update-task";
 import { Node } from "~/components/ui/node";
@@ -12,6 +12,10 @@ export type TaskNodeData = {
   title: string;
   taskId: string;
   status: Task["status"];
+  /**
+   * すべての祖先NodeIdのリスト
+   */
+  ancestorNodeIds: string[];
 };
 
 type Props = NodeProps<TaskNodeData>;
@@ -87,6 +91,23 @@ export const TaskNode: React.FC<Props> = ({ data, id: nodeId }) => {
       >
         <XIcon size={20} />
       </button>
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!-left-5 !size-4 !rounded-sm !bg-transparent !border !border-neutral-300 shadow"
+      />
+      <Handle
+        type="source"
+        id="sub"
+        position={Position.Right}
+        className="!-right-5 !top-0 !translate-y-0 !size-4 !rounded-sm !bg-transparent !border !border-neutral-300 shadow"
+      />
+      <Handle
+        type="source"
+        id="block"
+        position={Position.Right}
+        className="!-right-5 !bottom-0 !top-auto !translate-y-0 !size-4 !rounded-sm !bg-transparent !border !border-neutral-300 shadow"
+      />
     </Node>
   );
 };
