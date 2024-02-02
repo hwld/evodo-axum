@@ -1,9 +1,10 @@
 use crate::{app::AppState, features::auth::Auth};
 use axum::{
-    routing::{get, put},
+    routing::{get, post, put},
     Router,
 };
 use axum_login::login_required;
+pub mod create_subtask;
 pub mod create_task;
 pub mod delete_task;
 pub mod get_tasks;
@@ -22,6 +23,18 @@ impl Paths {
     pub fn oas_task() -> String {
         Self::tasks() + "/{id}"
     }
+    pub fn subtasks() -> String {
+        "/subtasks".into()
+    }
+    pub fn create_subtask() -> String {
+        Self::subtasks() + "/create"
+    }
+    pub fn update_subtask() -> String {
+        Self::subtasks() + "/update"
+    }
+    pub fn delete_subatsk() -> String {
+        Self::subtasks() + "/delete"
+    }
 }
 
 pub fn router() -> Router<AppState> {
@@ -34,5 +47,6 @@ pub fn router() -> Router<AppState> {
             &Paths::task(),
             put(update_task::handler).delete(delete_task::handler),
         )
+        .route(&Paths::create_subtask(), post(create_subtask::handler))
         .route_layer(login_required!(Auth))
 }

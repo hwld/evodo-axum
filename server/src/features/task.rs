@@ -45,3 +45,23 @@ pub struct UpdateTask {
     #[garde(skip)]
     pub status: TaskStatus,
 }
+
+#[derive(Serialize, Deserialize, ToSchema, Debug)]
+pub struct CreateSubtask {
+    pub parent_task_id: String,
+    pub subtask_id: String,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Debug)]
+pub struct UpdateSubtask {
+    pub old_parent_task_id: String,
+    pub old_sub_task_id: String,
+    pub new_parent_task_id: String,
+    pub new_sub_task_id: String,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Debug)]
+pub struct DeleteSubtask {
+    pub parent_task_id: String,
+    pub sub_task_id: String,
+}

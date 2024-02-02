@@ -23,6 +23,7 @@ pub async fn handler(
     };
 
     let mut tx = db.begin().await?;
+    // TODO: acquireをここで宣言して、以降のクエリで使い回す
 
     let task_id = uuid::Uuid::new_v4().to_string();
     let task_input = &payload.task;
