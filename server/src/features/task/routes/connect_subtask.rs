@@ -1,16 +1,18 @@
 use axum::{extract::State, response::IntoResponse, Json};
 use axum_login::AuthSession;
 use http::StatusCode;
-use sqlx::Acquire;
 
 use crate::{
     app::{AppResult, AppState},
     error::AppError,
-    features::{auth::Auth, task::ConnectSubtask},
+    features::{
+        auth::Auth,
+        task::{db::detect_circular_connection, ConnectSubtask},
+    },
 };
 
 #[tracing::instrument(err)]
-#[utoipa::path(post, path = super::TaskPaths::connect_subtask(), responses((status = 200)))]
+#[utoipa::path(post, tag = super::TAG, path = super::TaskPaths::connect_subtask(), responses((status = 200)))]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     State(AppState { db }): State<AppState>,
@@ -21,7 +23,6 @@ pub async fn handler(
     };
 
     let mut tx = db.begin().await?;
-    let conn = tx.acquire().await?;
 
     // ログインユーザーが指定されたタスクを持っているかを確認する
     let tasks = sqlx::query!(
@@ -30,7 +31,7 @@ pub async fn handler(
         payload.subtask_id,
         user.id,
     )
-    .fetch_all(&mut *conn)
+    .fetch_all(&mut *tx)
     .await?;
 
     // - 他人のユーザーのタスクではないか
@@ -42,31 +43,16 @@ pub async fn handler(
 
     // タスク同士が循環していないかを確認する。
     // payload.parent_task_idの祖先に、payload.subtask_idを持つtaskが存在しないことを確認する。
-    let result = sqlx::query!(
-        r#"
-        WITH RECURSIVE ancestors AS (
-            SELECT subtask_id, parent_task_id
-            FROM subtask_connections
-            WHERE subtask_id = $1
-
-            UNION
-
-            SELECT s.subtask_id, s.parent_task_id
-            FROM subtask_connections s
-            JOIN ancestors a ON s.subtask_id = a.parent_task_id
-        )
-
-        SELECT DISTINCT parent_task_id
-        FROM ancestors
-        WHERE parent_task_id = $2
-        "#,
-        payload.parent_task_id,
-        payload.subtask_id
+    let detected = detect_circular_connection(
+        &db,
+        ConnectSubtask {
+            parent_task_id: payload.parent_task_id.clone(),
+            subtask_id: payload.subtask_id.clone(),
+        },
     )
-    .fetch_all(&mut *conn)
     .await?;
 
-    if !result.is_empty() {
+    if detected {
         return Err(AppError::new(
             StatusCode::BAD_REQUEST,
             Some("タスクの循環は許可されていません。"),
@@ -79,7 +65,7 @@ pub async fn handler(
         payload.subtask_id,
         user.id,
     )
-    .execute(&mut *conn)
+    .execute(&mut *tx)
     .await?;
 
     tx.commit().await?;

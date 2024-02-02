@@ -3,7 +3,6 @@ use axum::{extract::State, Json};
 use axum_garde::WithValidation;
 use axum_login::AuthSession;
 use http::StatusCode;
-use sqlx::Acquire;
 
 use crate::app::{AppResult, AppState};
 use crate::error::AppError;
@@ -23,7 +22,6 @@ pub async fn handler(
     };
 
     let mut tx = db.begin().await?;
-    let conn = tx.acquire().await?;
 
     let task_id = uuid::Uuid::new_v4().to_string();
     let task_input = &payload.task;
@@ -34,7 +32,7 @@ pub async fn handler(
         user.id,
         task_input.title,
     )
-    .fetch_one(&mut *conn)
+    .fetch_one(&mut *tx)
     .await?;
 
     let node_info_id = uuid::Uuid::new_v4().to_string();
@@ -47,7 +45,7 @@ pub async fn handler(
         payload.x,
         payload.y
     )
-    .fetch_one(&mut *conn)
+    .fetch_one(&mut *tx)
     .await?;
 
     tx.commit().await?;
