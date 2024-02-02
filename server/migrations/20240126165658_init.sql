@@ -28,9 +28,7 @@ CREATE TABLE subtask_connections (
 );
 
 CREATE TABLE `task_node_info` (
-    -- フロントエンド側で一意なIDを生成したいので、task_idではなく独自のidを主キーにする
-    `id` text PRIMARY KEY NOT NULL,
-    `task_id` text UNIQUE NOT NULL,
+    `task_id` text PRIMARY KEY NOT NULL,
     `x` real NOT NULL,
     `y` real NOT NULL,
     `user_id` text NOT NULL,

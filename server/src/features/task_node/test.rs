@@ -1,6 +1,5 @@
 #[cfg(test)]
 pub mod task_node_factory {
-    use uuid::Uuid;
 
     use crate::app::Db;
     use crate::features::task::test::task_factory;
@@ -33,7 +32,6 @@ pub mod task_node_factory {
     impl Default for TaskNodeInfo {
         fn default() -> Self {
             TaskNodeInfo {
-                id: Uuid::new_v4().into(),
                 task_id: "task_id".into(),
                 user_id: "user_id".into(),
                 x: 0.0,
@@ -51,7 +49,6 @@ pub mod task_node_factory {
         let node_info = insert_task_node_info(
             &mut conn,
             InsertTaskNodeInfoArgs {
-                id: &task_node.node_info.id,
                 task_id: &task.id,
                 user_id: &task_node.node_info.user_id,
                 x: task_node.node_info.x,

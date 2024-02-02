@@ -37,11 +37,9 @@ pub async fn handler(
     )
     .await?;
 
-    let node_info_id = uuid::Uuid::new_v4().to_string();
     let node_info = insert_task_node_info(
         &mut tx,
         InsertTaskNodeInfoArgs {
-            id: &node_info_id,
             task_id: &task.id,
             user_id: &user.id,
             x: payload.x,
@@ -104,7 +102,7 @@ mod tests {
         let node_info = find_task_node_info(
             &mut conn,
             FindTaskNodeInfo {
-                id: &task_node.node_info.id,
+                task_id: &task_node.task.id,
                 user_id: &user.id,
             },
         )

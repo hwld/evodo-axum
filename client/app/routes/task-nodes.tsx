@@ -43,7 +43,7 @@ export default function TaskNodesPage() {
     taskNodes.map(({ task, node_info }) => {
       return {
         type: "task",
-        id: node_info.id,
+        id: task.id,
         data: {
           title: task.title,
           taskId: task.id,

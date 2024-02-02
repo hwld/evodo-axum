@@ -29,7 +29,8 @@ const ReconnectSubtask = z.object({
 });
 const UpdateTaskNodeInfo = z.object({ x: z.number(), y: z.number() });
 const TaskNodeInfo = z.object({
-  id: z.string(),
+  ancestor_ids: z.array(z.string()),
+  subnode_ids: z.array(z.string()),
   task_id: z.string(),
   user_id: z.string(),
   x: z.number(),

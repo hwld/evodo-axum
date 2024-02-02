@@ -59,7 +59,6 @@ pub async fn handler(
                 updated_at: r.updated_at,
             },
             node_info: TaskNodeInfo {
-                id: r.id,
                 task_id: r.task_id,
                 user_id: r.user_id,
                 // TODO:

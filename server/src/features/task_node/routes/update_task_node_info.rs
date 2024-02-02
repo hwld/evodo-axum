@@ -33,7 +33,7 @@ pub async fn handler(
     let task_node_info = update_task_node_info(
         &mut tx,
         UpdateTaskNodeInfoArgs {
-            id: &id,
+            task_id: &id,
             user_id: &user.id,
             x: payload.x,
             y: payload.y,
@@ -89,7 +89,7 @@ mod tests {
         let new_y = -100.100;
         let res = test
             .server()
-            .put(&TaskNodePaths::one_task_node_info(&node_info.id))
+            .put(&TaskNodePaths::one_task_node_info(&node_info.task_id))
             .json(&UpdateTaskNodeInfo { x: new_x, y: new_y })
             .await;
         res.assert_status_ok();
@@ -98,7 +98,7 @@ mod tests {
         let updated = find_task_node_info(
             &mut conn,
             FindTaskNodeInfo {
-                id: &node_info.id,
+                task_id: &node_info.task_id,
                 user_id: &user.id,
             },
         )

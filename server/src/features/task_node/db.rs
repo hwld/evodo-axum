@@ -3,7 +3,6 @@ use crate::app::{AppResult, Connection};
 use super::TaskNodeInfo;
 
 pub struct InsertTaskNodeInfoArgs<'a> {
-    pub id: &'a str,
     pub task_id: &'a str,
     pub user_id: &'a str,
     pub x: f64,
@@ -12,7 +11,6 @@ pub struct InsertTaskNodeInfoArgs<'a> {
 pub async fn insert_task_node_info<'a>(
     db: &mut Connection,
     InsertTaskNodeInfoArgs {
-        id,
         task_id,
         user_id,
         x,
@@ -20,8 +18,7 @@ pub async fn insert_task_node_info<'a>(
     }: InsertTaskNodeInfoArgs<'a>,
 ) -> AppResult<TaskNodeInfo> {
     let result = sqlx::query!(
-        r#" INSERT INTO task_node_info(id, task_id, user_id, x, y) VALUES($1, $2, $3, $4, $5) RETURNING id"#,
-        id,
+        r#" INSERT INTO task_node_info(task_id, user_id, x, y) VALUES($1, $2, $3, $4) RETURNING task_id;"#,
         task_id,
         user_id,
         x,
@@ -31,7 +28,7 @@ pub async fn insert_task_node_info<'a>(
     let task_node_info = find_task_node_info(
         db,
         FindTaskNodeInfo {
-            id: &result.id,
+            task_id: &result.task_id,
             user_id,
         },
     )
@@ -41,14 +38,19 @@ pub async fn insert_task_node_info<'a>(
 }
 
 pub struct UpdateTaskNodeInfoArgs<'a> {
-    pub id: &'a str,
+    pub task_id: &'a str,
     pub user_id: &'a str,
     pub x: f64,
     pub y: f64,
 }
 pub async fn update_task_node_info<'a>(
     db: &mut Connection,
-    UpdateTaskNodeInfoArgs { id, user_id, x, y }: UpdateTaskNodeInfoArgs<'a>,
+    UpdateTaskNodeInfoArgs {
+        task_id,
+        user_id,
+        x,
+        y,
+    }: UpdateTaskNodeInfoArgs<'a>,
 ) -> AppResult<TaskNodeInfo> {
     let result = sqlx::query!(
         r#"
@@ -58,13 +60,13 @@ pub async fn update_task_node_info<'a>(
             x = $1,
             y = $2
         WHERE
-            id = $3 AND user_id = $4
+            task_id = $3 AND user_id = $4
         RETURNING 
-            id;
+            task_id;
         "#,
         x,
         y,
-        id,
+        task_id,
         user_id
     )
     .fetch_one(&mut *db)
@@ -73,7 +75,7 @@ pub async fn update_task_node_info<'a>(
     let task_node_info = find_task_node_info(
         &mut *db,
         FindTaskNodeInfo {
-            id: &result.id,
+            task_id: &result.task_id,
             user_id,
         },
     )
@@ -83,23 +85,22 @@ pub async fn update_task_node_info<'a>(
 }
 
 pub struct FindTaskNodeInfo<'a> {
-    pub id: &'a str,
+    pub task_id: &'a str,
     pub user_id: &'a str,
 }
 pub async fn find_task_node_info<'a>(
     db: &mut Connection,
-    FindTaskNodeInfo { id, user_id }: FindTaskNodeInfo<'a>,
+    FindTaskNodeInfo { task_id, user_id }: FindTaskNodeInfo<'a>,
 ) -> AppResult<TaskNodeInfo> {
     let result = sqlx::query!(
-        r#"SELECT * FROM task_node_info WHERE id = $1 AND user_id = $2"#,
-        id,
+        r#"SELECT * FROM task_node_info WHERE task_id = $1 AND user_id = $2"#,
+        task_id,
         user_id
     )
     .fetch_one(&mut *db)
     .await?;
 
     let task_node_info = TaskNodeInfo {
-        id: result.id,
         task_id: result.task_id,
         user_id: result.user_id,
         // TODO

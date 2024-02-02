@@ -16,10 +16,10 @@ pub struct TaskNode {
 
 #[derive(Serialize, Deserialize, ToSchema, Debug)]
 pub struct TaskNodeInfo {
-    pub id: String,
     pub task_id: String,
     pub user_id: String,
     // サブノードのid
+    // TODO: これはTask::subtask_idsで代用できる
     pub subnode_ids: Vec<String>,
     /// すべての祖先のNodeId
     pub ancestor_ids: Vec<String>,
