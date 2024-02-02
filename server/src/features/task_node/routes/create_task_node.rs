@@ -23,7 +23,7 @@ pub async fn handler(
     };
 
     let mut tx = db.begin().await?;
-    // TODO: acquireをここで宣言して、以降のクエリで使い回す
+    let conn = tx.acquire().await?;
 
     let task_id = uuid::Uuid::new_v4().to_string();
     let task_input = &payload.task;
@@ -34,7 +34,7 @@ pub async fn handler(
         user.id,
         task_input.title,
     )
-    .fetch_one(tx.acquire().await?)
+    .fetch_one(&mut *conn)
     .await?;
 
     let node_info_id = uuid::Uuid::new_v4().to_string();
@@ -47,7 +47,7 @@ pub async fn handler(
         payload.x,
         payload.y
     )
-    .fetch_one(tx.acquire().await?)
+    .fetch_one(&mut *conn)
     .await?;
 
     tx.commit().await?;
