@@ -4,13 +4,11 @@ use axum_login::AuthSession;
 use http::StatusCode;
 
 use crate::app::AppResult;
+use crate::features::task::db::{insert_task, InsertTaskArgs};
 use crate::{
     app::AppState,
     error::AppError,
-    features::{
-        auth::Auth,
-        task::{CreateTask, Task},
-    },
+    features::{auth::Auth, task::CreateTask},
 };
 
 #[tracing::instrument(err)]
@@ -24,16 +22,21 @@ pub async fn handler(
         return Err(AppError::unauthorized());
     };
 
+    let mut tx = db.begin().await?;
+
     let uuid = uuid::Uuid::new_v4().to_string();
-    let task = sqlx::query_as!(
-        Task,
-        r#" INSERT INTO tasks(id, title, user_id) VALUES($1, $2, $3) RETURNING *"#,
-        uuid,
-        payload.title,
-        user.id,
+    let task = insert_task(
+        &mut tx,
+        InsertTaskArgs {
+            id: &uuid,
+            title: &payload.title,
+            user_id: &user.id,
+            status: &Default::default(),
+        },
     )
-    .fetch_one(&db)
     .await?;
+
+    tx.commit().await?;
 
     Ok((StatusCode::CREATED, Json(task)).into_response())
 }
@@ -41,6 +44,7 @@ pub async fn handler(
 #[cfg(test)]
 mod tests {
     use crate::app::AppResult;
+    use crate::features::task::db::{find_task, FindTaskArgs};
     use crate::{
         app::{tests::AppTest, Db},
         features::task::{routes::TaskPaths, CreateTask, Task},
@@ -49,7 +53,7 @@ mod tests {
     #[sqlx::test]
     async fn タスクを作成できる(db: Db) -> AppResult<()> {
         let test = AppTest::new(&db).await?;
-        test.login(None).await?;
+        let user = test.login(None).await?;
 
         let title = "title";
         let task: Task = test
@@ -61,11 +65,16 @@ mod tests {
             .await
             .json();
 
-        let created = sqlx::query_as!(Task, "SELECT * FROM tasks where id = $1", task.id)
-            .fetch_all(&db)
-            .await?;
-        assert_eq!(created.len(), 1);
-        assert_eq!(created[0].title, title);
+        let mut conn = db.acquire().await?;
+        let created = find_task(
+            &mut conn,
+            FindTaskArgs {
+                task_id: &task.id,
+                user_id: &user.id,
+            },
+        )
+        .await?;
+        assert_eq!(created.title, title);
 
         Ok(())
     }

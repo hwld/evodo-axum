@@ -7,7 +7,7 @@ use http::StatusCode;
 use crate::app::{AppResult, AppState};
 use crate::error::AppError;
 use crate::features::auth::Auth;
-use crate::features::task::Task;
+use crate::features::task::db::{insert_task, InsertTaskArgs};
 use crate::features::task_node::{CreateTaskNode, TaskNode, TaskNodeInfo};
 
 #[tracing::instrument(err)]
@@ -25,14 +25,15 @@ pub async fn handler(
 
     let task_id = uuid::Uuid::new_v4().to_string();
     let task_input = &payload.task;
-    let task = sqlx::query_as!(
-        Task,
-        r#" INSERT INTO tasks(id, user_id, title) VALUES($1, $2, $3) RETURNING * "#,
-        task_id,
-        user.id,
-        task_input.title,
+    let task = insert_task(
+        &mut tx,
+        InsertTaskArgs {
+            id: &task_id,
+            title: &task_input.title,
+            user_id: &user.id,
+            status: &Default::default(),
+        },
     )
-    .fetch_one(&mut *tx)
     .await?;
 
     let node_info_id = uuid::Uuid::new_v4().to_string();
@@ -57,6 +58,7 @@ pub async fn handler(
 mod tests {
     use super::*;
     use crate::app::AppResult;
+    use crate::features::task::db::{find_task, FindTaskArgs};
     use crate::{
         app::{tests::AppTest, Db},
         features::{task::CreateTask, task_node::routes::TaskNodePaths},
@@ -67,7 +69,7 @@ mod tests {
         db: Db,
     ) -> AppResult<()> {
         let test = AppTest::new(&db).await?;
-        test.login(None).await?;
+        let user = test.login(None).await?;
 
         let task_title = "title";
         let node_x = 0.0;
@@ -86,9 +88,15 @@ mod tests {
             .await
             .json();
 
-        let task = sqlx::query_as!(Task, "SELECT * FROM tasks WHERE id = $1", task_node.task.id)
-            .fetch_one(&db)
-            .await?;
+        let mut conn = db.acquire().await?;
+        let task = find_task(
+            &mut conn,
+            FindTaskArgs {
+                task_id: &task_node.task.id,
+                user_id: &user.id,
+            },
+        )
+        .await?;
         assert_eq!(task.title, task_title);
 
         let node_info = sqlx::query_as!(

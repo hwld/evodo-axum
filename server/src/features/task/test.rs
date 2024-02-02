@@ -3,18 +3,17 @@ pub mod task_factory {
     use uuid::Uuid;
 
     use crate::app::AppResult;
-    use crate::{
-        app::Db,
-        features::task::{Task, TaskStatus},
-    };
+    use crate::features::task::db::{insert_task, InsertTaskArgs};
+    use crate::{app::Db, features::task::Task};
 
     impl Default for Task {
         fn default() -> Self {
             Task {
                 id: Uuid::new_v4().into(),
-                status: TaskStatus::Todo,
+                status: Default::default(),
                 user_id: "user_id".into(),
                 title: "title".into(),
+                subtask_ids: Vec::new(),
                 created_at: "".into(),
                 updated_at: "".into(),
             }
@@ -22,16 +21,16 @@ pub mod task_factory {
     }
 
     pub async fn create(db: &Db, task: Task) -> AppResult<Task> {
-        let created = sqlx::query_as!(
-            Task,
-            // user_idが存在しないときにはエラーになる
-            "INSERT INTO tasks(id, status, title, user_id) values($1, $2, $3, $4) RETURNING *;",
-            task.id,
-            task.status,
-            task.title,
-            task.user_id,
+        let mut conn = db.acquire().await?;
+        let created = insert_task(
+            &mut conn,
+            InsertTaskArgs {
+                id: &task.id,
+                title: &task.title,
+                user_id: &task.user_id,
+                status: &task.status,
+            },
         )
-        .fetch_one(db)
         .await?;
 
         Ok(created)

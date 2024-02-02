@@ -6,15 +6,17 @@ use axum::{
 use axum_login::AuthSession;
 use http::StatusCode;
 
-use crate::app::AppResult;
 use crate::{
-    app::AppState,
-    error::AppError,
-    features::{auth::Auth, task::Task},
+    app::AppResult,
+    features::task::{
+        db::{delete_task, DeleteTaskArgs},
+        DeleteTaskResponse,
+    },
 };
+use crate::{app::AppState, error::AppError, features::auth::Auth};
 
 #[tracing::instrument(err)]
-#[utoipa::path(delete, tag = super::TAG, path = super::TaskPaths::task_open_api(), responses((status = 200, body = Task)))]
+#[utoipa::path(delete, tag = super::TAG, path = super::TaskPaths::task_open_api(), responses((status = 200, body = DeleteTaskResponse)))]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     Path(id): Path<String>,
@@ -24,16 +26,26 @@ pub async fn handler(
         return Err(AppError::unauthorized());
     };
 
-    let task = sqlx::query_as!(
-        Task,
-        r#"DELETE FROM tasks WHERE id = $1 AND user_id = $2 RETURNING *;"#,
-        id,
-        user.id
+    let mut tx = db.begin().await?;
+
+    let deleted_id = delete_task(
+        &mut tx,
+        DeleteTaskArgs {
+            id: &id,
+            user_id: &user.id,
+        },
     )
-    .fetch_one(&db)
     .await?;
 
-    Ok((StatusCode::OK, Json(task)).into_response())
+    tx.commit().await?;
+
+    Ok((
+        StatusCode::OK,
+        Json(DeleteTaskResponse {
+            task_id: deleted_id,
+        }),
+    )
+        .into_response())
 }
 
 #[cfg(test)]

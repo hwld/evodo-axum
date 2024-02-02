@@ -14,14 +14,16 @@ pub struct Task {
     pub status: TaskStatus,
     pub title: String,
     pub user_id: String,
+    pub subtask_ids: Vec<String>,
     pub created_at: String,
     pub updated_at: String,
 }
 
 #[derive(
-    Serialize, Deserialize, ToSchema, EnumString, sqlx::Type, Debug, PartialEq, Clone, Copy,
+    Serialize, Deserialize, ToSchema, EnumString, sqlx::Type, Debug, PartialEq, Clone, Copy, Default,
 )]
 pub enum TaskStatus {
+    #[default]
     Todo,
     Done,
 }
@@ -45,6 +47,11 @@ pub struct UpdateTask {
 
     #[garde(skip)]
     pub status: TaskStatus,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Debug)]
+pub struct DeleteTaskResponse {
+    pub task_id: String,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Debug, Clone)]

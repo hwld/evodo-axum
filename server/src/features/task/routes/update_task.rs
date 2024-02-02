@@ -7,14 +7,14 @@ use axum_garde::WithValidation;
 use axum_login::AuthSession;
 use http::StatusCode;
 
-use crate::app::AppResult;
+use crate::{
+    app::AppResult,
+    features::task::db::{update_task, UpdateTaskArgs},
+};
 use crate::{
     app::AppState,
     error::AppError,
-    features::{
-        auth::Auth,
-        task::{Task, UpdateTask},
-    },
+    features::{auth::Auth, task::UpdateTask},
 };
 
 #[tracing::instrument(err)]
@@ -29,26 +29,20 @@ pub async fn handler(
         return Err(AppError::unauthorized());
     };
 
-    let task = sqlx::query_as!(
-        Task,
-        r#"
-            UPDATE
-                tasks 
-            SET
-                status = $1,
-                title = $2,
-                updated_at = (strftime('%Y/%m/%d %H:%M:%S', CURRENT_TIMESTAMP, 'localtime'))
-            WHERE
-                id = $3 AND user_id = $4
-            RETURNING *;
-        "#,
-        payload.status,
-        payload.title,
-        id,
-        user.id
+    let mut tx = db.begin().await?;
+
+    let task = update_task(
+        &mut tx,
+        UpdateTaskArgs {
+            id: &id,
+            title: &payload.title,
+            status: &payload.status,
+            user_id: &user.id,
+        },
     )
-    .fetch_one(&db)
     .await?;
+
+    tx.commit().await?;
 
     Ok((StatusCode::OK, Json(task)).into_response())
 }
@@ -58,6 +52,8 @@ mod tests {
 
     use super::*;
     use crate::app::AppResult;
+    use crate::features::task::db::{find_task, FindTaskArgs};
+    use crate::features::task::Task;
     use crate::{
         app::{tests::AppTest, Db},
         features::{
@@ -74,7 +70,7 @@ mod tests {
         let task = task_factory::create(
             &db,
             Task {
-                user_id: user.id,
+                user_id: user.id.clone(),
                 title: "old".into(),
                 status: TaskStatus::Todo,
                 ..Default::default()
@@ -94,9 +90,15 @@ mod tests {
             .await;
         res.assert_status_ok();
 
-        let updated = sqlx::query_as!(Task, "SELECT * FROM tasks WHERE id = $1", task.id)
-            .fetch_one(&db)
-            .await?;
+        let mut conn = db.acquire().await?;
+        let updated = find_task(
+            &mut conn,
+            FindTaskArgs {
+                task_id: &task.id,
+                user_id: &user.id,
+            },
+        )
+        .await?;
 
         assert_eq!(updated.title, new_title);
         assert_eq!(updated.status, new_status);
@@ -113,7 +115,7 @@ mod tests {
         let old_task = task_factory::create(
             &db,
             Task {
-                user_id: user.id,
+                user_id: user.id.clone(),
                 title: old_title.into(),
                 ..Default::default()
             },
@@ -130,9 +132,15 @@ mod tests {
             .await;
         res.assert_status_not_ok();
 
-        let task = sqlx::query_as!(Task, "SELECT * FROM tasks WHERE id = $1", old_task.id)
-            .fetch_one(&db)
-            .await?;
+        let mut conn = db.acquire().await?;
+        let task = find_task(
+            &mut conn,
+            FindTaskArgs {
+                task_id: &old_task.id,
+                user_id: &user.id,
+            },
+        )
+        .await?;
         assert_eq!(task.title, old_title);
 
         Ok(())
@@ -148,7 +156,7 @@ mod tests {
             Task {
                 title: "old_title".into(),
                 status: TaskStatus::Todo,
-                user_id: other_user.id,
+                user_id: other_user.id.clone(),
                 ..Default::default()
             },
         )
@@ -168,12 +176,14 @@ mod tests {
             .await;
         res.assert_status_not_ok();
 
-        let task = sqlx::query_as!(
-            Task,
-            "SELECT * FROM tasks WHERE id = $1",
-            other_user_task.id
+        let mut conn = db.acquire().await?;
+        let task = find_task(
+            &mut conn,
+            FindTaskArgs {
+                task_id: &other_user_task.id,
+                user_id: &other_user.id,
+            },
         )
-        .fetch_one(&db)
         .await?;
         assert_eq!(task.title, other_user_task.title);
         assert_eq!(task.status, other_user_task.status);

@@ -3,11 +3,8 @@ use axum_login::AuthSession;
 use http::StatusCode;
 
 use crate::app::AppResult;
-use crate::{
-    app::AppState,
-    error::AppError,
-    features::{auth::Auth, task::Task},
-};
+use crate::features::task::db::find_tasks;
+use crate::{app::AppState, error::AppError, features::auth::Auth};
 
 #[tracing::instrument(err)]
 #[utoipa::path(get, tag = super::TAG, path = super::TaskPaths::tasks(), responses((status = 200, body = [Task])))]
@@ -19,9 +16,11 @@ pub async fn handler(
         return Err(AppError::unauthorized());
     };
 
-    let tasks = sqlx::query_as!(Task, r#"SELECT * FROM tasks WHERE user_id = $1;"#, user.id)
-        .fetch_all(&db)
-        .await?;
+    let mut tx = db.begin().await?;
+
+    let tasks = find_tasks(&mut tx, &user.id).await?;
+
+    tx.commit().await?;
 
     Ok((StatusCode::OK, Json(tasks)).into_response())
 }
@@ -31,6 +30,7 @@ mod tests {
     use crate::app::tests::AppTest;
     use crate::app::Db;
     use crate::features::task::routes::TaskPaths;
+    use crate::features::task::Task;
     use crate::features::{task::test::task_factory, user::test::user_factory};
 
     use super::*;

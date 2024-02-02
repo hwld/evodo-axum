@@ -53,6 +53,8 @@ pub async fn handler(
                 title: r.title,
                 status: r.status.into(),
                 user_id: r.user_id.clone(),
+                // TODO: 一旦空にするが、後でちゃんとsubtask_idsを入れる
+                subtask_ids: Vec::new(),
                 created_at: r.created_at,
                 updated_at: r.updated_at,
             },
