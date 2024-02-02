@@ -9,6 +9,7 @@ use crate::{
     features::{auth::Auth, task::CreateSubtask},
 };
 
+// TODO: create_subtaskではなく、connect_subtaskにする。
 #[tracing::instrument(err)]
 #[utoipa::path(post, path = super::TaskPaths::create_subtask(), responses((status = 200)))]
 pub async fn handler(
@@ -40,6 +41,39 @@ pub async fn handler(
         return Err(AppError::new(StatusCode::NOT_FOUND, None));
     }
 
+    // タスク同士が循環していないかを確認する。
+    // payload.parent_task_idの祖先に、payload.subtask_idを持つtaskが存在しないことを確認する。
+    let result = sqlx::query!(
+        r#"
+        WITH RECURSIVE ancestors AS (
+            SELECT subtask_id, parent_task_id
+            FROM subtasks
+            WHERE subtask_id = $1
+
+            UNION
+
+            SELECT s.subtask_id, s.parent_task_id
+            FROM subtasks s
+            JOIN ancestors a ON s.subtask_id = a.parent_task_id
+        )
+
+        SELECT DISTINCT parent_task_id
+        FROM ancestors
+        WHERE parent_task_id = $2
+        "#,
+        payload.parent_task_id,
+        payload.subtask_id
+    )
+    .fetch_all(&mut *conn)
+    .await?;
+
+    if !result.is_empty() {
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            Some("タスクの循環は許可されていません。"),
+        ));
+    }
+
     sqlx::query!(
         "INSERT INTO subtasks(parent_task_id, subtask_id) VALUES($1, $2);",
         payload.parent_task_id,
@@ -57,7 +91,7 @@ pub async fn handler(
 mod tests {
     use crate::app::{tests::AppTest, AppResult, Db};
     use crate::features::task::routes::TaskPaths;
-    use crate::features::task::test::task_factory;
+    use crate::features::task::test::task_factory::{self};
     use crate::features::task::CreateSubtask;
     use crate::features::user::test::user_factory;
 
@@ -109,7 +143,72 @@ mod tests {
             .fetch_all(&db)
             .await?;
 
-        assert_eq!(0, subtasks.len());
+        assert!(subtasks.is_empty());
+
+        Ok(())
+    }
+
+    #[sqlx::test]
+    async fn サブタスク関係を相互に持たせることはできない(
+        db: Db,
+    ) -> AppResult<()> {
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
+
+        let task1 = task_factory::create_with_user(&db, &user.id).await?;
+        let task2 = task_factory::create_subatsk(&db, &user.id, &task1.id).await?;
+
+        let res = test
+            .server()
+            .post(&TaskPaths::create_subtask())
+            .json(&CreateSubtask {
+                parent_task_id: task2.id.clone(),
+                subtask_id: task1.id.clone(),
+            })
+            .await;
+        res.assert_status_not_ok();
+
+        let subtasks = sqlx::query!(
+            "SELECT * FROM subtasks WHERE parent_task_id = $1 AND subtask_id = $2;",
+            task2.id,
+            task1.id
+        )
+        .fetch_all(&db)
+        .await?;
+        assert!(subtasks.is_empty());
+
+        Ok(())
+    }
+
+    #[sqlx::test]
+    async fn タスクを循環させることはできない(db: Db) -> AppResult<()> {
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
+
+        let task1 = task_factory::create_with_user(&db, &user.id).await?;
+        let task2 = task_factory::create_subatsk(&db, &user.id, &task1.id).await?;
+        let task3 = task_factory::create_subatsk(&db, &user.id, &task2.id).await?;
+        let task4 = task_factory::create_subatsk(&db, &user.id, &task3.id).await?;
+        let task5 = task_factory::create_subatsk(&db, &user.id, &task4.id).await?;
+
+        let res = test
+            .server()
+            .post(&TaskPaths::create_subtask())
+            .json(&CreateSubtask {
+                parent_task_id: task5.id.clone(),
+                subtask_id: task2.id.clone(),
+            })
+            .await;
+        res.assert_status_not_ok();
+
+        let subtasks = sqlx::query!(
+            "SELECT * FROM subtasks WHERE parent_task_id = $1 AND subtask_id = $2",
+            task5.id,
+            task2.id
+        )
+        .fetch_all(&db)
+        .await?;
+        assert!(subtasks.is_empty());
 
         Ok(())
     }

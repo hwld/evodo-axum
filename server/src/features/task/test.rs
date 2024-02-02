@@ -44,6 +44,24 @@ pub mod task_factory {
         };
         create(db, task).await
     }
+
+    pub async fn create_subatsk(db: &Db, user_id: &str, task_id: &str) -> AppResult<Task> {
+        let subtask = Task {
+            user_id: user_id.into(),
+            ..Default::default()
+        };
+        create(db, subtask.clone()).await?;
+
+        sqlx::query!(
+            "INSERT INTO subtasks(parent_task_id, subtask_id) VALUES($1, $2);",
+            task_id,
+            subtask.id
+        )
+        .execute(db)
+        .await?;
+
+        Ok(subtask)
+    }
 }
 
 #[cfg(test)]

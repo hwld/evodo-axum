@@ -81,7 +81,7 @@ mod tests {
             .await;
 
         let tasks = sqlx::query!("SELECT * FROM tasks;").fetch_all(&db).await?;
-        assert_eq!(tasks.len(), 0);
+        assert!(tasks.is_empty());
         Ok(())
     }
 }

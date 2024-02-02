@@ -76,6 +76,7 @@ export default function TaskNodesPage() {
   const handleEdgeUpdate = useCallback(
     (oldEdge: Edge, newConnection: Connection) => {
       // TODO: newConnectionが循環していないかを確認する
+      // TODO: 存在するconnectionかを確認する
       edgeUpdateSuccessful.current = true;
       setEdges((els) => updateEdge(oldEdge, newConnection, els));
     },
