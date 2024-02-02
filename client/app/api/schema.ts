@@ -206,6 +206,12 @@ const endpoints = makeApi([
   },
   {
     method: "get",
+    path: "/task-nodes/:id",
+    requestFormat: "json",
+    response: TaskNode,
+  },
+  {
+    method: "get",
     path: "/tasks",
     requestFormat: "json",
     response: z.array(Task),

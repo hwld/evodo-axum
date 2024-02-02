@@ -7,6 +7,7 @@ use axum_login::login_required;
 use crate::{app::AppState, features::auth::Auth};
 
 pub mod create_task_node;
+pub mod get_task_node;
 pub mod get_task_nodes;
 pub mod update_task_node_info;
 
@@ -17,12 +18,23 @@ impl TaskNodePaths {
     pub fn task_nodes() -> String {
         "/task-nodes".into()
     }
+
+    pub fn task_node() -> String {
+        Self::task_nodes() + "/:id"
+    }
+
+    pub fn task_node_open_api() -> String {
+        Self::task_nodes() + "/{id}"
+    }
+
     pub fn task_node_info_list() -> String {
         "/task-node-info".into()
     }
+
     pub fn task_node_info() -> String {
         Self::task_node_info_list() + "/:id"
     }
+
     pub fn task_node_info_open_api() -> String {
         Self::task_node_info_list() + "/{id}"
     }
@@ -38,5 +50,6 @@ pub fn router() -> Router<AppState> {
             &TaskNodePaths::task_node_info(),
             put(update_task_node_info::handler),
         )
+        .route(&TaskNodePaths::task_node(), get(get_task_node::handler))
         .route_layer(login_required!(Auth))
 }

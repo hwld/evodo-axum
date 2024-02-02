@@ -7,9 +7,8 @@ use http::StatusCode;
 use crate::app::{AppResult, AppState};
 use crate::error::AppError;
 use crate::features::auth::Auth;
-use crate::features::task::db::{insert_task, InsertTaskArgs};
-use crate::features::task_node::db::{insert_task_node_info, InsertTaskNodeInfoArgs};
-use crate::features::task_node::{CreateTaskNode, TaskNode};
+use crate::features::task_node::db::{insert_task_node, InsertTaskNodeArgs};
+use crate::features::task_node::CreateTaskNode;
 
 #[tracing::instrument(err)]
 #[utoipa::path(post, tag = super::TAG, path = super::TaskNodePaths::task_nodes(), request_body = CreateTaskNode, responses((status = 201, body = TaskNode)))]
@@ -25,22 +24,12 @@ pub async fn handler(
     let mut tx = db.begin().await?;
 
     let task_id = uuid::Uuid::new_v4().to_string();
-    let task_input = &payload.task;
-    let task = insert_task(
+    let task_node = insert_task_node(
         &mut tx,
-        InsertTaskArgs {
-            id: &task_id,
-            title: &task_input.title,
-            user_id: &user.id,
+        InsertTaskNodeArgs {
+            task_id: &task_id,
+            title: &payload.task.title,
             status: &Default::default(),
-        },
-    )
-    .await?;
-
-    let node_info = insert_task_node_info(
-        &mut tx,
-        InsertTaskNodeInfoArgs {
-            task_id: &task.id,
             user_id: &user.id,
             x: payload.x,
             y: payload.y,
@@ -50,15 +39,15 @@ pub async fn handler(
 
     tx.commit().await?;
 
-    Ok((StatusCode::OK, Json(TaskNode { task, node_info })).into_response())
+    Ok((StatusCode::OK, Json(task_node)).into_response())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::app::AppResult;
-    use crate::features::task::db::{find_task, FindTaskArgs};
-    use crate::features::task_node::db::{find_task_node_info, FindTaskNodeInfo};
+    use crate::features::task_node::db::{find_task_node, FindTaskNodeArgs};
+    use crate::features::task_node::TaskNode;
     use crate::{
         app::{tests::AppTest, Db},
         features::{task::CreateTask, task_node::routes::TaskNodePaths},
@@ -89,26 +78,17 @@ mod tests {
             .json();
 
         let mut conn = db.acquire().await?;
-        let task = find_task(
+        let created = find_task_node(
             &mut conn,
-            FindTaskArgs {
+            FindTaskNodeArgs {
                 task_id: &task_node.task.id,
                 user_id: &user.id,
             },
         )
         .await?;
-        assert_eq!(task.title, task_title);
-
-        let node_info = find_task_node_info(
-            &mut conn,
-            FindTaskNodeInfo {
-                task_id: &task_node.task.id,
-                user_id: &user.id,
-            },
-        )
-        .await?;
-        assert_eq!(node_info.x, node_x);
-        assert_eq!(node_info.y, node_y);
+        assert_eq!(created.task.title, task_title);
+        assert_eq!(created.node_info.x, node_x);
+        assert_eq!(created.node_info.y, node_y);
 
         Ok(())
     }

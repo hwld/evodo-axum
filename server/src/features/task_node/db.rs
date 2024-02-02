@@ -1,6 +1,70 @@
-use crate::app::{AppResult, Connection};
+use crate::{
+    app::{AppResult, Connection},
+    features::task::{
+        db::{find_task, insert_task, FindTaskArgs, InsertTaskArgs},
+        TaskStatus,
+    },
+};
 
-use super::TaskNodeInfo;
+use super::{TaskNode, TaskNodeInfo};
+
+pub struct InsertTaskNodeArgs<'a> {
+    pub task_id: &'a str,
+    pub title: &'a str,
+    pub status: &'a TaskStatus,
+    pub user_id: &'a str,
+    pub x: f64,
+    pub y: f64,
+}
+pub async fn insert_task_node<'a>(
+    db: &mut Connection,
+    InsertTaskNodeArgs {
+        task_id,
+        title,
+        status,
+        user_id,
+        x,
+        y,
+    }: InsertTaskNodeArgs<'a>,
+) -> AppResult<TaskNode> {
+    let task = insert_task(
+        db,
+        InsertTaskArgs {
+            id: task_id,
+            title,
+            user_id,
+            status,
+        },
+    )
+    .await?;
+
+    let node_info = insert_task_node_info(
+        db,
+        InsertTaskNodeInfoArgs {
+            task_id,
+            user_id,
+            x,
+            y,
+        },
+    )
+    .await?;
+
+    Ok(TaskNode { task, node_info })
+}
+
+pub struct FindTaskNodeArgs<'a> {
+    pub task_id: &'a str,
+    pub user_id: &'a str,
+}
+pub async fn find_task_node<'a>(
+    db: &mut Connection,
+    FindTaskNodeArgs { task_id, user_id }: FindTaskNodeArgs<'a>,
+) -> AppResult<TaskNode> {
+    let task = find_task(db, FindTaskArgs { task_id, user_id }).await?;
+    let node_info = find_task_node_info(db, FindTaskNodeInfo { task_id, user_id }).await?;
+
+    Ok(TaskNode { task, node_info })
+}
 
 pub struct InsertTaskNodeInfoArgs<'a> {
     pub task_id: &'a str,
