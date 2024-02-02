@@ -1,6 +1,6 @@
 use crate::{app::AppState, features::auth::Auth};
 use axum::{
-    routing::{get, post, put},
+    routing::{delete, get, post, put},
     Router,
 };
 use axum_login::login_required;
@@ -57,6 +57,10 @@ pub fn router() -> Router<AppState> {
         .route(
             &TaskPaths::connect_subtask(),
             post(connect_subtask::handler),
+        )
+        .route(
+            &TaskPaths::disconnect_subtask(),
+            delete(disconnect_subtask::handle),
         )
         .route_layer(login_required!(Auth))
 }
