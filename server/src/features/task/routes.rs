@@ -4,7 +4,7 @@ use axum::{
     Router,
 };
 use axum_login::login_required;
-pub mod create_subtask;
+pub mod connect_subtask;
 pub mod create_task;
 pub mod delete_task;
 pub mod get_tasks;
@@ -26,8 +26,8 @@ impl TaskPaths {
     pub fn subtasks() -> String {
         "/subtasks".into()
     }
-    pub fn create_subtask() -> String {
-        Self::subtasks() + "/create"
+    pub fn connect_subtask() -> String {
+        Self::subtasks() + "/connect"
     }
     pub fn update_subtask() -> String {
         Self::subtasks() + "/update"
@@ -47,6 +47,9 @@ pub fn router() -> Router<AppState> {
             &TaskPaths::task(),
             put(update_task::handler).delete(delete_task::handler),
         )
-        .route(&TaskPaths::create_subtask(), post(create_subtask::handler))
+        .route(
+            &TaskPaths::connect_subtask(),
+            post(connect_subtask::handler),
+        )
         .route_layer(login_required!(Auth))
 }

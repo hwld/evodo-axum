@@ -11,7 +11,7 @@ use crate::{
 
 // TODO: create_subtaskではなく、connect_subtaskにする。
 #[tracing::instrument(err)]
-#[utoipa::path(post, path = super::TaskPaths::create_subtask(), responses((status = 200)))]
+#[utoipa::path(post, path = super::TaskPaths::connect_subtask(), responses((status = 200)))]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     State(AppState { db }): State<AppState>,
@@ -104,7 +104,7 @@ mod tests {
         let subtask = task_factory::create_with_user(&db, &user.id).await?;
 
         test.server()
-            .post(&TaskPaths::create_subtask())
+            .post(&TaskPaths::connect_subtask())
             .json(&CreateSubtask {
                 parent_task_id: parent_task.id.clone(),
                 subtask_id: subtask.id.clone(),
@@ -132,7 +132,7 @@ mod tests {
 
         test.login(None).await?;
         test.server()
-            .post(&TaskPaths::create_subtask())
+            .post(&TaskPaths::connect_subtask())
             .json(&CreateSubtask {
                 parent_task_id: other_user_task1.id,
                 subtask_id: other_user_task2.id,
@@ -160,7 +160,7 @@ mod tests {
 
         let res = test
             .server()
-            .post(&TaskPaths::create_subtask())
+            .post(&TaskPaths::connect_subtask())
             .json(&CreateSubtask {
                 parent_task_id: task2.id.clone(),
                 subtask_id: task1.id.clone(),
@@ -193,7 +193,7 @@ mod tests {
 
         let res = test
             .server()
-            .post(&TaskPaths::create_subtask())
+            .post(&TaskPaths::connect_subtask())
             .json(&CreateSubtask {
                 parent_task_id: task5.id.clone(),
                 subtask_id: task2.id.clone(),
