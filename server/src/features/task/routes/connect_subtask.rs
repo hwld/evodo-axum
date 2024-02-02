@@ -6,7 +6,7 @@ use sqlx::Acquire;
 use crate::{
     app::{AppResult, AppState},
     error::AppError,
-    features::{auth::Auth, task::CreateSubtask},
+    features::{auth::Auth, task::ConnectSubtask},
 };
 
 #[tracing::instrument(err)]
@@ -14,7 +14,7 @@ use crate::{
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     State(AppState { db }): State<AppState>,
-    Json(payload): Json<CreateSubtask>,
+    Json(payload): Json<ConnectSubtask>,
 ) -> AppResult<impl IntoResponse> {
     let Some(user) = auth_session.user else {
         return Err(AppError::unauthorized());
@@ -46,13 +46,13 @@ pub async fn handler(
         r#"
         WITH RECURSIVE ancestors AS (
             SELECT subtask_id, parent_task_id
-            FROM subtasks
+            FROM subtask_connections
             WHERE subtask_id = $1
 
             UNION
 
             SELECT s.subtask_id, s.parent_task_id
-            FROM subtasks s
+            FROM subtask_connections s
             JOIN ancestors a ON s.subtask_id = a.parent_task_id
         )
 
@@ -74,9 +74,10 @@ pub async fn handler(
     }
 
     sqlx::query!(
-        "INSERT INTO subtasks(parent_task_id, subtask_id) VALUES($1, $2);",
+        "INSERT INTO subtask_connections(parent_task_id, subtask_id, user_id) VALUES($1, $2, $3);",
         payload.parent_task_id,
-        payload.subtask_id
+        payload.subtask_id,
+        user.id,
     )
     .execute(&mut *conn)
     .await?;
@@ -91,7 +92,7 @@ mod tests {
     use crate::app::{tests::AppTest, AppResult, Db};
     use crate::features::task::routes::TaskPaths;
     use crate::features::task::test::task_factory::{self};
-    use crate::features::task::CreateSubtask;
+    use crate::features::task::ConnectSubtask;
     use crate::features::user::test::user_factory;
 
     #[sqlx::test]
@@ -104,13 +105,13 @@ mod tests {
 
         test.server()
             .post(&TaskPaths::connect_subtask())
-            .json(&CreateSubtask {
+            .json(&ConnectSubtask {
                 parent_task_id: parent_task.id.clone(),
                 subtask_id: subtask.id.clone(),
             })
             .await;
         let fetched_subtask = sqlx::query!(
-            "SELECT * FROM subtasks WHERE parent_task_id = $1;",
+            "SELECT * FROM subtask_connections WHERE parent_task_id = $1;",
             parent_task.id
         )
         .fetch_one(&db)
@@ -132,13 +133,13 @@ mod tests {
         test.login(None).await?;
         test.server()
             .post(&TaskPaths::connect_subtask())
-            .json(&CreateSubtask {
+            .json(&ConnectSubtask {
                 parent_task_id: other_user_task1.id,
                 subtask_id: other_user_task2.id,
             })
             .await;
 
-        let subtasks = sqlx::query!("SELECT * FROM subtasks;")
+        let subtasks = sqlx::query!("SELECT * FROM subtask_connections;")
             .fetch_all(&db)
             .await?;
 
@@ -160,7 +161,7 @@ mod tests {
         let res = test
             .server()
             .post(&TaskPaths::connect_subtask())
-            .json(&CreateSubtask {
+            .json(&ConnectSubtask {
                 parent_task_id: task2.id.clone(),
                 subtask_id: task1.id.clone(),
             })
@@ -168,7 +169,7 @@ mod tests {
         res.assert_status_not_ok();
 
         let subtasks = sqlx::query!(
-            "SELECT * FROM subtasks WHERE parent_task_id = $1 AND subtask_id = $2;",
+            "SELECT * FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2;",
             task2.id,
             task1.id
         )
@@ -193,7 +194,7 @@ mod tests {
         let res = test
             .server()
             .post(&TaskPaths::connect_subtask())
-            .json(&CreateSubtask {
+            .json(&ConnectSubtask {
                 parent_task_id: task5.id.clone(),
                 subtask_id: task2.id.clone(),
             })
@@ -201,7 +202,7 @@ mod tests {
         res.assert_status_not_ok();
 
         let subtasks = sqlx::query!(
-            "SELECT * FROM subtasks WHERE parent_task_id = $1 AND subtask_id = $2",
+            "SELECT * FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2",
             task5.id,
             task2.id
         )

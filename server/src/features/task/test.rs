@@ -53,9 +53,10 @@ pub mod task_factory {
         create(db, subtask.clone()).await?;
 
         sqlx::query!(
-            "INSERT INTO subtasks(parent_task_id, subtask_id) VALUES($1, $2);",
+            "INSERT INTO subtask_connections(parent_task_id, subtask_id, user_id) VALUES($1, $2, $3);",
             task_id,
-            subtask.id
+            subtask.id,
+            user_id,
         )
         .execute(db)
         .await?;

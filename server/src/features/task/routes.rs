@@ -7,6 +7,7 @@ use axum_login::login_required;
 pub mod connect_subtask;
 pub mod create_task;
 pub mod delete_task;
+pub mod disconnect_subtask;
 pub mod get_tasks;
 pub mod update_task;
 
@@ -17,23 +18,29 @@ impl TaskPaths {
     pub fn tasks() -> String {
         "/tasks".into()
     }
+
     pub fn task() -> String {
         Self::tasks() + "/:id"
     }
+
     pub fn task_open_api() -> String {
         Self::tasks() + "/{id}"
     }
-    pub fn subtasks() -> String {
-        "/subtasks".into()
+
+    pub fn subtask() -> String {
+        "/subtask".into()
     }
+
     pub fn connect_subtask() -> String {
-        Self::subtasks() + "/connect"
+        Self::subtask() + "/connect"
     }
+
     pub fn update_subtask() -> String {
-        Self::subtasks() + "/update"
+        Self::subtask() + "/update"
     }
-    pub fn delete_subatsk() -> String {
-        Self::subtasks() + "/delete"
+
+    pub fn disconnect_subtask() -> String {
+        Self::subtask() + "/disconnect"
     }
 }
 
