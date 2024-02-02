@@ -84,13 +84,15 @@ mod tests {
         let new_title = "new_title";
         let new_status = TaskStatus::Done;
 
-        test.server()
+        let res = test
+            .server()
             .put(&TaskPaths::one_task(&task.id))
             .json(&UpdateTask {
                 title: new_title.into(),
                 status: new_status,
             })
             .await;
+        res.assert_status_ok();
 
         let updated = sqlx::query_as!(Task, "SELECT * FROM tasks WHERE id = $1", task.id)
             .fetch_one(&db)
@@ -156,13 +158,15 @@ mod tests {
         let new_status = TaskStatus::Done;
 
         test.login(None).await?;
-        test.server()
+        let res = test
+            .server()
             .post(&TaskPaths::one_task(&other_user_task.id))
             .json(&UpdateTask {
                 title: new_title.into(),
                 status: new_status,
             })
             .await;
+        res.assert_status_not_ok();
 
         let task = sqlx::query_as!(
             Task,

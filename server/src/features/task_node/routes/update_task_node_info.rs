@@ -90,10 +90,12 @@ mod tests {
 
         let new_x = 1.1;
         let new_y = -100.100;
-        test.server()
+        let res = test
+            .server()
             .put(&TaskNodePaths::one_task_node_info(&node_info.id))
             .json(&UpdateTaskNodeInfo { x: new_x, y: new_y })
             .await;
+        res.assert_status_ok();
 
         let updated = sqlx::query_as!(
             TaskNodeInfo,

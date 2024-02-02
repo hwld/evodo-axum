@@ -80,8 +80,8 @@ mod tests {
         let parent_task = task_factory::create_with_user(&db, &user.id).await?;
         let subtask = task_factory::create_with_user(&db, &user.id).await?;
 
-        // TODO: responseを受け取って、ステータスコードを検証する。他のテストも同様
-        test.server()
+        let res = test
+            .server()
             .post(&TaskPaths::connect_subtask())
             .json(&ConnectSubtask {
                 parent_task_id: parent_task.id.clone(),
@@ -94,6 +94,7 @@ mod tests {
         )
         .fetch_one(&db)
         .await?;
+        res.assert_status_ok();
 
         assert_eq!(subtask.id, fetched_subtask.subtask_id);
 
@@ -109,13 +110,15 @@ mod tests {
         let other_user_task2 = task_factory::create_with_user(&db, &other_user.id).await?;
 
         test.login(None).await?;
-        test.server()
+        let res = test
+            .server()
             .post(&TaskPaths::connect_subtask())
             .json(&ConnectSubtask {
                 parent_task_id: other_user_task1.id,
                 subtask_id: other_user_task2.id,
             })
             .await;
+        res.assert_status_not_ok();
 
         let subtasks = sqlx::query!("SELECT * FROM subtask_connections;")
             .fetch_all(&db)

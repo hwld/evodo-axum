@@ -53,9 +53,11 @@ mod tests {
         task_factory::create_with_user(&db, &user.id).await?;
         let created_task = task_factory::create_with_user(&db, &user.id).await?;
 
-        test.server()
+        let res = test
+            .server()
             .delete(&TaskPaths::one_task(&created_task.id))
             .await;
+        res.assert_status_ok();
 
         let tasks = sqlx::query!("SELECT * FROM tasks;").fetch_all(&db).await?;
         assert_eq!(tasks.len(), 1);

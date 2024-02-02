@@ -75,10 +75,12 @@ mod tests {
         let test = AppTest::new(&db).await?;
         test.login(None).await?;
 
-        test.server()
+        let res = test
+            .server()
             .post(&TaskPaths::tasks())
             .json(&CreateTask { title: "".into() })
             .await;
+        res.assert_status_not_ok();
 
         let tasks = sqlx::query!("SELECT * FROM tasks;").fetch_all(&db).await?;
         assert!(tasks.is_empty());
