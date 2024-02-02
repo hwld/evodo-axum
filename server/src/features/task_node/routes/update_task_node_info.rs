@@ -6,14 +6,14 @@ use axum::{
 use axum_login::AuthSession;
 use http::StatusCode;
 
-use crate::app::AppResult;
+use crate::{
+    app::AppResult,
+    features::task_node::db::{update_task_node_info, UpdateTaskNodeInfoArgs},
+};
 use crate::{
     app::AppState,
     error::AppError,
-    features::{
-        auth::Auth,
-        task_node::{TaskNodeInfo, UpdateTaskNodeInfo},
-    },
+    features::{auth::Auth, task_node::UpdateTaskNodeInfo},
 };
 
 #[tracing::instrument(err, skip_all)]
@@ -28,25 +28,20 @@ pub async fn handler(
         return Err(AppError::unauthorized());
     };
 
-    let task_node_info = sqlx::query_as!(
-        TaskNodeInfo,
-        r#"
-        UPDATE
-            task_node_info
-        SET
-            x = $1,
-            y = $2
-        WHERE
-            id = $3 AND user_id = $4
-        RETURNING *;
-        "#,
-        payload.x,
-        payload.y,
-        id,
-        user.id,
+    let mut tx = db.begin().await?;
+
+    let task_node_info = update_task_node_info(
+        &mut tx,
+        UpdateTaskNodeInfoArgs {
+            id: &id,
+            user_id: &user.id,
+            x: payload.x,
+            y: payload.y,
+        },
     )
-    .fetch_one(&db)
     .await?;
+
+    tx.commit().await?;
 
     Ok((StatusCode::OK, Json(task_node_info)).into_response())
 }
@@ -56,6 +51,8 @@ mod tests {
 
     use super::*;
     use crate::app::AppResult;
+    use crate::features::task_node::db::{find_task_node_info, FindTaskNodeInfo};
+    use crate::features::task_node::TaskNodeInfo;
     use crate::{
         app::{tests::AppTest, Db},
         features::{
@@ -97,12 +94,14 @@ mod tests {
             .await;
         res.assert_status_ok();
 
-        let updated = sqlx::query_as!(
-            TaskNodeInfo,
-            "SELECT * FROM task_node_info WHERE id = $1",
-            node_info.id
+        let mut conn = db.acquire().await?;
+        let updated = find_task_node_info(
+            &mut conn,
+            FindTaskNodeInfo {
+                id: &node_info.id,
+                user_id: &user.id,
+            },
         )
-        .fetch_one(&db)
         .await?;
 
         assert_eq!(updated.x, new_x);

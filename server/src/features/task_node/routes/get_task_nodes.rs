@@ -62,6 +62,9 @@ pub async fn handler(
                 id: r.id,
                 task_id: r.task_id,
                 user_id: r.user_id,
+                // TODO:
+                subnode_ids: vec![],
+                ancestor_ids: vec![],
                 x: r.x,
                 y: r.y,
             },

@@ -1,3 +1,4 @@
+pub mod db;
 pub mod routes;
 pub mod test;
 use garde::Validate;
@@ -18,6 +19,10 @@ pub struct TaskNodeInfo {
     pub id: String,
     pub task_id: String,
     pub user_id: String,
+    // サブノードのid
+    pub subnode_ids: Vec<String>,
+    /// すべての祖先のNodeId
+    pub ancestor_ids: Vec<String>,
     pub x: f64,
     pub y: f64,
 }

@@ -8,7 +8,8 @@ use crate::app::{AppResult, AppState};
 use crate::error::AppError;
 use crate::features::auth::Auth;
 use crate::features::task::db::{insert_task, InsertTaskArgs};
-use crate::features::task_node::{CreateTaskNode, TaskNode, TaskNodeInfo};
+use crate::features::task_node::db::{insert_task_node_info, InsertTaskNodeInfoArgs};
+use crate::features::task_node::{CreateTaskNode, TaskNode};
 
 #[tracing::instrument(err)]
 #[utoipa::path(post, tag = super::TAG, path = super::TaskNodePaths::task_nodes(), request_body = CreateTaskNode, responses((status = 201, body = TaskNode)))]
@@ -37,16 +38,16 @@ pub async fn handler(
     .await?;
 
     let node_info_id = uuid::Uuid::new_v4().to_string();
-    let node_info = sqlx::query_as!(
-        TaskNodeInfo,
-        r#" INSERT INTO task_node_info(id, task_id, user_id, x, y) VALUES($1, $2, $3, $4, $5) RETURNING * "#,
-        node_info_id,
-        task.id,
-        user.id,
-        payload.x,
-        payload.y
+    let node_info = insert_task_node_info(
+        &mut tx,
+        InsertTaskNodeInfoArgs {
+            id: &node_info_id,
+            task_id: &task.id,
+            user_id: &user.id,
+            x: payload.x,
+            y: payload.y,
+        },
     )
-    .fetch_one(&mut *tx)
     .await?;
 
     tx.commit().await?;
@@ -59,6 +60,7 @@ mod tests {
     use super::*;
     use crate::app::AppResult;
     use crate::features::task::db::{find_task, FindTaskArgs};
+    use crate::features::task_node::db::{find_task_node_info, FindTaskNodeInfo};
     use crate::{
         app::{tests::AppTest, Db},
         features::{task::CreateTask, task_node::routes::TaskNodePaths},
@@ -99,12 +101,13 @@ mod tests {
         .await?;
         assert_eq!(task.title, task_title);
 
-        let node_info = sqlx::query_as!(
-            TaskNodeInfo,
-            "SELECT * FROM task_node_info WHERE id = $1",
-            task_node.node_info.id
+        let node_info = find_task_node_info(
+            &mut conn,
+            FindTaskNodeInfo {
+                id: &task_node.node_info.id,
+                user_id: &user.id,
+            },
         )
-        .fetch_one(&db)
         .await?;
         assert_eq!(node_info.x, node_x);
         assert_eq!(node_info.y, node_y);

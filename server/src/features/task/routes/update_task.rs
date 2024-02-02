@@ -63,6 +63,7 @@ mod tests {
     };
 
     #[sqlx::test]
+    // TODO: DbをConnectionにできないかを考える
     async fn タスクを更新できる(db: Db) -> AppResult<()> {
         let test = AppTest::new(&db).await?;
         let user = test.login(None).await?;
