@@ -1,9 +1,9 @@
 #[cfg(test)]
-pub mod factory {
+pub mod task_node_factory {
     use uuid::Uuid;
 
     use crate::app::Db;
-    use crate::features::task::test::factory as task_factory;
+    use crate::features::task::test::task_factory;
     use crate::{
         app::AppResult,
         features::{
@@ -80,7 +80,7 @@ pub mod factory {
 pub mod routes {
     use crate::features::task_node;
 
-    impl task_node::routes::Paths {
+    impl task_node::routes::TaskNodePaths {
         pub fn one_task_node_info(id: &str) -> String {
             Self::task_node_info_list() + "/" + id
         }

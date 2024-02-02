@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[tracing::instrument(err)]
-#[utoipa::path(get, tag = super::TAG, path = super::Paths::tasks(), responses((status = 200, body = [Task])))]
+#[utoipa::path(get, tag = super::TAG, path = super::TaskPaths::tasks(), responses((status = 200, body = [Task])))]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     State(AppState { db }): State<AppState>,
@@ -30,10 +30,8 @@ pub async fn handler(
 mod tests {
     use crate::app::tests::AppTest;
     use crate::app::Db;
-    use crate::features::task::routes::Paths;
-    use crate::features::{
-        task::test::factory as task_factory, user::test::factory as user_factory,
-    };
+    use crate::features::task::routes::TaskPaths;
+    use crate::features::{task::test::task_factory, user::test::user_factory};
 
     use super::*;
 
@@ -51,7 +49,7 @@ mod tests {
             task_factory::create_with_user(&db, &user.id),
         )?;
 
-        let tasks: Vec<Task> = test.server().get(&Paths::tasks()).await.json();
+        let tasks: Vec<Task> = test.server().get(&TaskPaths::tasks()).await.json();
         assert_eq!(tasks.len(), 3);
 
         Ok(())

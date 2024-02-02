@@ -18,7 +18,7 @@ use crate::{
 };
 
 #[tracing::instrument(err)]
-#[utoipa::path(put, tag = super::TAG, path = super::Paths::oas_task(), request_body = UpdateTask, responses((status = 200, body = Task)))]
+#[utoipa::path(put, tag = super::TAG, path = super::TaskPaths::oas_task(), request_body = UpdateTask, responses((status = 200, body = Task)))]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     Path(id): Path<String>,
@@ -61,8 +61,8 @@ mod tests {
     use crate::{
         app::{tests::AppTest, Db},
         features::{
-            task::{routes::Paths, test::factory as task_factory, TaskStatus},
-            user::test::factory as user_factory,
+            task::{routes::TaskPaths, test::task_factory, TaskStatus},
+            user::test::user_factory,
         },
     };
 
@@ -85,7 +85,7 @@ mod tests {
         let new_status = TaskStatus::Done;
 
         test.server()
-            .put(&Paths::one_task(&task.id))
+            .put(&TaskPaths::one_task(&task.id))
             .json(&UpdateTask {
                 title: new_title.into(),
                 status: new_status,
@@ -120,7 +120,7 @@ mod tests {
 
         let res = test
             .server()
-            .put(&Paths::one_task(&old_task.id))
+            .put(&TaskPaths::one_task(&old_task.id))
             .json(&UpdateTask {
                 title: "".into(),
                 status: TaskStatus::Todo,
@@ -157,7 +157,7 @@ mod tests {
 
         test.login(None).await?;
         test.server()
-            .post(&Paths::one_task(&other_user_task.id))
+            .post(&TaskPaths::one_task(&other_user_task.id))
             .json(&UpdateTask {
                 title: new_title.into(),
                 status: new_status,

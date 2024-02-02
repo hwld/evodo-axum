@@ -1,7 +1,7 @@
 pub mod routes;
 pub mod test;
 
-use self::routes::Paths;
+use self::routes::AuthPaths;
 
 use super::user::User;
 use crate::{app::Db, config::Env};
@@ -56,8 +56,12 @@ impl Auth {
             Some(google_client_secret),
         )
         .set_redirect_uri(
-            RedirectUrl::new(format!("{}{}", Env::base_url(), Paths::login_callback()))
-                .expect("Invalid redirect URL"),
+            RedirectUrl::new(format!(
+                "{}{}",
+                Env::base_url(),
+                AuthPaths::login_callback()
+            ))
+            .expect("Invalid redirect URL"),
         );
 
         Auth { db, client }

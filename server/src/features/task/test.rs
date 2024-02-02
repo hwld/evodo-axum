@@ -1,6 +1,5 @@
-// TODO: task_factoryにして、他のfactoryモジュールの名前も同様にする
 #[cfg(test)]
-pub mod factory {
+pub mod task_factory {
     use uuid::Uuid;
 
     use crate::app::AppResult;
@@ -51,7 +50,7 @@ pub mod factory {
 pub mod routes {
     use crate::features::task;
 
-    impl task::routes::Paths {
+    impl task::routes::TaskPaths {
         pub fn one_task(id: &str) -> String {
             Self::tasks() + "/" + id
         }

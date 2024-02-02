@@ -25,7 +25,7 @@ pub struct CreateUser {
 }
 
 #[tracing::instrument(err, skip(auth_session, session, db))]
-#[utoipa::path(post, tag = super::TAG, path = super::Paths::signup(), request_body = CreateUser, responses((status = 201, body = User)))]
+#[utoipa::path(post, tag = super::TAG, path = super::AuthPaths::signup(), request_body = CreateUser, responses((status = 201, body = User)))]
 pub async fn handler(
     mut auth_session: AuthSession<Auth>,
     session: Session,

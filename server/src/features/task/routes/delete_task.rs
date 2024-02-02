@@ -14,7 +14,7 @@ use crate::{
 };
 
 #[tracing::instrument(err)]
-#[utoipa::path(delete, tag = super::TAG, path = super::Paths::oas_task(), responses((status = 200, body = Task)))]
+#[utoipa::path(delete, tag = super::TAG, path = super::TaskPaths::oas_task(), responses((status = 200, body = Task)))]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     Path(id): Path<String>,
@@ -39,9 +39,9 @@ pub async fn handler(
 #[cfg(test)]
 mod tests {
     use crate::app::Db;
-    use crate::features::task::test::factory as task_factory;
-    use crate::features::user::test::factory as user_factory;
-    use crate::{app::tests::AppTest, features::task::routes::Paths};
+    use crate::features::task::test::task_factory;
+    use crate::features::user::test::user_factory;
+    use crate::{app::tests::AppTest, features::task::routes::TaskPaths};
 
     use super::*;
 
@@ -54,7 +54,7 @@ mod tests {
         let created_task = task_factory::create_with_user(&db, &user.id).await?;
 
         test.server()
-            .delete(&Paths::one_task(&created_task.id))
+            .delete(&TaskPaths::one_task(&created_task.id))
             .await;
 
         let tasks = sqlx::query!("SELECT * FROM tasks;").fetch_all(&db).await?;
@@ -73,7 +73,7 @@ mod tests {
         test.login(None).await?;
         let res = test
             .server()
-            .delete(&Paths::one_task(&other_user_task.id))
+            .delete(&TaskPaths::one_task(&other_user_task.id))
             .await;
         assert_ne!(res.status_code(), StatusCode::UNAUTHORIZED);
 

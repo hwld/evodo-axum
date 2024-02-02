@@ -17,7 +17,7 @@ use crate::{
 };
 
 #[tracing::instrument(err, skip_all)]
-#[utoipa::path(put, tag = super::TAG, path = super::Paths::oas_task_node_info(), responses((status = 200, body = TaskNodeInfo)))]
+#[utoipa::path(put, tag = super::TAG, path = super::TaskNodePaths::oas_task_node_info(), responses((status = 200, body = TaskNodeInfo)))]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     Path(id): Path<String>,
@@ -60,7 +60,7 @@ mod tests {
         app::{tests::AppTest, Db},
         features::{
             task::Task,
-            task_node::{routes::Paths, test::factory as task_node_factory, TaskNode},
+            task_node::{routes::TaskNodePaths, test::task_node_factory, TaskNode},
         },
     };
 
@@ -91,7 +91,7 @@ mod tests {
         let new_x = 1.1;
         let new_y = -100.100;
         test.server()
-            .put(&Paths::one_task_node_info(&node_info.id))
+            .put(&TaskNodePaths::one_task_node_info(&node_info.id))
             .json(&UpdateTaskNodeInfo { x: new_x, y: new_y })
             .await;
 

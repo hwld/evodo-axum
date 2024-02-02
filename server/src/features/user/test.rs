@@ -1,5 +1,5 @@
 #[cfg(test)]
-pub mod factory {
+pub mod user_factory {
     use uuid::Uuid;
 
     use crate::{app::AppResult, app::Db, features::user::User};

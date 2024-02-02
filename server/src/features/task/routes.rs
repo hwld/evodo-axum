@@ -12,8 +12,8 @@ pub mod update_task;
 
 pub const TAG: &str = "task";
 
-pub struct Paths;
-impl Paths {
+pub struct TaskPaths;
+impl TaskPaths {
     pub fn tasks() -> String {
         "/tasks".into()
     }
@@ -40,13 +40,13 @@ impl Paths {
 pub fn router() -> Router<AppState> {
     Router::new()
         .route(
-            &Paths::tasks(),
+            &TaskPaths::tasks(),
             get(get_tasks::handler).post(create_task::handler),
         )
         .route(
-            &Paths::task(),
+            &TaskPaths::task(),
             put(update_task::handler).delete(delete_task::handler),
         )
-        .route(&Paths::create_subtask(), post(create_subtask::handler))
+        .route(&TaskPaths::create_subtask(), post(create_subtask::handler))
         .route_layer(login_required!(Auth))
 }

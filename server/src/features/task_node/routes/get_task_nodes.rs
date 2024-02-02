@@ -14,7 +14,7 @@ use crate::{
 };
 
 #[tracing::instrument(err)]
-#[utoipa::path(get, tag = super::TAG, path = super::Paths::task_nodes(), responses((status = 200, body = [TaskNode])))]
+#[utoipa::path(get, tag = super::TAG, path = super::TaskNodePaths::task_nodes(), responses((status = 200, body = [TaskNode])))]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     State(AppState { db }): State<AppState>,
@@ -76,7 +76,7 @@ mod tests {
     use crate::app::AppResult;
     use crate::{
         app::{tests::AppTest, Db},
-        features::task_node::{routes::Paths, test::factory as task_node_factory},
+        features::task_node::{routes::TaskNodePaths, test::task_node_factory},
     };
 
     #[sqlx::test]
@@ -90,7 +90,7 @@ mod tests {
             task_node_factory::create_with_user(&db, &user.id)
         )?;
 
-        let tasks: Vec<TaskNode> = test.server().get(&Paths::task_nodes()).await.json();
+        let tasks: Vec<TaskNode> = test.server().get(&TaskNodePaths::task_nodes()).await.json();
 
         assert_eq!(tasks.len(), 3);
 

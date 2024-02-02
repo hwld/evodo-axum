@@ -12,7 +12,7 @@ use crate::features::task::Task;
 use crate::features::task_node::{CreateTaskNode, TaskNode, TaskNodeInfo};
 
 #[tracing::instrument(err)]
-#[utoipa::path(post, tag = super::TAG, path = super::Paths::task_nodes(), request_body = CreateTaskNode, responses((status = 201, body = TaskNode)))]
+#[utoipa::path(post, tag = super::TAG, path = super::TaskNodePaths::task_nodes(), request_body = CreateTaskNode, responses((status = 201, body = TaskNode)))]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     State(AppState { db }): State<AppState>,
@@ -61,7 +61,7 @@ mod tests {
     use crate::app::AppResult;
     use crate::{
         app::{tests::AppTest, Db},
-        features::{task::CreateTask, task_node::routes::Paths},
+        features::{task::CreateTask, task_node::routes::TaskNodePaths},
     };
 
     #[sqlx::test]
@@ -77,7 +77,7 @@ mod tests {
 
         let task_node: TaskNode = test
             .server()
-            .post(&Paths::task_nodes())
+            .post(&TaskNodePaths::task_nodes())
             .json(&CreateTaskNode {
                 x: node_x,
                 y: node_y,
@@ -113,7 +113,7 @@ mod tests {
 
         let res = test
             .server()
-            .post(&Paths::task_nodes())
+            .post(&TaskNodePaths::task_nodes())
             .json(&CreateTaskNode {
                 task: CreateTask { title: "".into() },
                 x: 0.0,

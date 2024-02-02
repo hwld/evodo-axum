@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[tracing::instrument(err)]
-#[utoipa::path(post, path = super::Paths::create_subtask(), responses((status = 200)))]
+#[utoipa::path(post, path = super::TaskPaths::create_subtask(), responses((status = 200)))]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     State(AppState { db }): State<AppState>,
@@ -56,10 +56,10 @@ pub async fn handler(
 #[cfg(test)]
 mod tests {
     use crate::app::{tests::AppTest, AppResult, Db};
-    use crate::features::task::routes::Paths as TaskPaths;
-    use crate::features::task::test::factory as task_factory;
+    use crate::features::task::routes::TaskPaths;
+    use crate::features::task::test::task_factory;
     use crate::features::task::CreateSubtask;
-    use crate::features::user::test::factory as user_factory;
+    use crate::features::user::test::user_factory;
 
     #[sqlx::test]
     async fn サブタスクを作成できる(db: Db) -> AppResult<()> {

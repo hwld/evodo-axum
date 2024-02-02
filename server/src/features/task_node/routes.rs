@@ -12,8 +12,8 @@ pub mod update_task_node_info;
 
 pub const TAG: &str = "task_node";
 
-pub struct Paths;
-impl Paths {
+pub struct TaskNodePaths;
+impl TaskNodePaths {
     pub fn task_nodes() -> String {
         "/task-nodes".into()
     }
@@ -31,11 +31,11 @@ impl Paths {
 pub fn router() -> Router<AppState> {
     Router::new()
         .route(
-            &Paths::task_nodes(),
+            &TaskNodePaths::task_nodes(),
             get(get_task_nodes::handler).post(create_task_node::handler),
         )
         .route(
-            &Paths::task_node_info(),
+            &TaskNodePaths::task_node_info(),
             put(update_task_node_info::handler),
         )
         .route_layer(login_required!(Auth))

@@ -25,7 +25,7 @@ pub struct AuthzResp {
 }
 
 #[tracing::instrument(err, skip(auth_session, session))]
-#[utoipa::path(get, tag = super::TAG, path = super::Paths::login_callback())]
+#[utoipa::path(get, tag = super::TAG, path = super::AuthPaths::login_callback())]
 pub async fn handler(
     mut auth_session: AuthSession<Auth>,
     session: Session,

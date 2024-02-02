@@ -20,7 +20,7 @@ pub struct LoginRedirectsQuery {
 }
 
 #[tracing::instrument(err, skip(auth_session))]
-#[utoipa::path(get, tag = super::TAG, path = super::Paths::login(), params(LoginRedirectsQuery))]
+#[utoipa::path(get, tag = super::TAG, path = super::AuthPaths::login(), params(LoginRedirectsQuery))]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     session: Session,

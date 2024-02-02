@@ -14,8 +14,8 @@ use axum::{
 
 pub const TAG: &str = "auth";
 
-pub struct Paths;
-impl Paths {
+pub struct AuthPaths;
+impl AuthPaths {
     fn auth() -> String {
         "/auth".into()
     }
@@ -45,15 +45,15 @@ impl Paths {
 
 pub fn router() -> Router<AppState> {
     Router::new()
-        .route(&Paths::login(), get(login::handler))
+        .route(&AuthPaths::login(), get(login::handler))
         .route(
-            &Paths::login_callback(),
+            &AuthPaths::login_callback(),
             get(login_callback::handler)
                 .layer(middleware::from_fn(login_callback::handle_all_error)),
         )
-        .route(&Paths::signup(), post(signup::handler))
-        .route(&Paths::signup_session(), get(signup_session::handler))
-        .route(&Paths::session(), get(session::handler))
-        .route(&Paths::cancel_signup(), post(cancel_signup::handler))
-        .route(&Paths::logout(), post(logout::handler))
+        .route(&AuthPaths::signup(), post(signup::handler))
+        .route(&AuthPaths::signup_session(), get(signup_session::handler))
+        .route(&AuthPaths::session(), get(session::handler))
+        .route(&AuthPaths::cancel_signup(), post(cancel_signup::handler))
+        .route(&AuthPaths::logout(), post(logout::handler))
 }

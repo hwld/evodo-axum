@@ -14,7 +14,7 @@ use crate::{
 };
 
 #[tracing::instrument(err)]
-#[utoipa::path(post, tag = super::TAG, path = super::Paths::tasks(), request_body = CreateTask, responses((status = 201, body = Task)))]
+#[utoipa::path(post, tag = super::TAG, path = super::TaskPaths::tasks(), request_body = CreateTask, responses((status = 201, body = Task)))]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     State(AppState { db }): State<AppState>,
@@ -43,7 +43,7 @@ mod tests {
     use crate::app::AppResult;
     use crate::{
         app::{tests::AppTest, Db},
-        features::task::{routes::Paths, CreateTask, Task},
+        features::task::{routes::TaskPaths, CreateTask, Task},
     };
 
     #[sqlx::test]
@@ -54,7 +54,7 @@ mod tests {
         let title = "title";
         let task: Task = test
             .server()
-            .post(&Paths::tasks())
+            .post(&TaskPaths::tasks())
             .json(&CreateTask {
                 title: title.into(),
             })
@@ -76,7 +76,7 @@ mod tests {
         test.login(None).await?;
 
         test.server()
-            .post(&Paths::tasks())
+            .post(&TaskPaths::tasks())
             .json(&CreateTask { title: "".into() })
             .await;
 

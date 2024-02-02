@@ -5,7 +5,7 @@ use axum_login::AuthSession;
 use http::StatusCode;
 
 #[tracing::instrument(err)]
-#[utoipa::path(post, tag = super::TAG, path = super::Paths::logout(), responses ((status = 200)))]
+#[utoipa::path(post, tag = super::TAG, path = super::AuthPaths::logout(), responses ((status = 200)))]
 pub async fn handler(mut auth_session: AuthSession<Auth>) -> AppResult<impl IntoResponse> {
     auth_session.logout().await?;
 
