@@ -1,10 +1,10 @@
-use crate::app::{AppResult, Db};
+use crate::app::{AppResult, Connection};
 
 use super::ConnectSubtask;
 
 /// タスク同士が循環接続になりうるかを判定する
 pub async fn detect_circular_connection(
-    db: &Db,
+    db: &mut Connection,
     ConnectSubtask {
         parent_task_id,
         subtask_id,
@@ -31,7 +31,7 @@ pub async fn detect_circular_connection(
         parent_task_id,
         subtask_id
     )
-    .fetch_all(db)
+    .fetch_all(&mut *db)
     .await?;
 
     Ok(!result.is_empty())

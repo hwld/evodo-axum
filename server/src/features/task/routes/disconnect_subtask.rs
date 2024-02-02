@@ -18,12 +18,13 @@ pub async fn handle(
         return Err(AppError::unauthorized());
     };
 
+    // 削除できなかったときにエラーにするためにRETURNINGとfetch_oneを使用する
     sqlx::query!(
-        "DELETE FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2 AND user_id = $3",
+        "DELETE FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2 AND user_id = $3 RETURNING *;",
         payload.parent_task_id,
         payload.subtask_id,
         user.id
-    ).execute(&db).await?;
+    ).fetch_one(&db).await?;
 
     Ok(())
 }
@@ -76,13 +77,15 @@ mod tests {
             task_factory::create_subatsk(&db, &other_user.id, &other_user_task.id).await?;
 
         test.login(None).await?;
-        test.server()
+        let res = test
+            .server()
             .delete(&TaskPaths::disconnect_subtask())
             .json(&DisconnectSubtask {
                 parent_task_id: other_user_task.id,
                 subtask_id: other_user_subtask.id,
             })
             .await;
+        res.assert_status_not_ok();
 
         let subtasks = sqlx::query!("SELECT * FROM subtask_connections;")
             .fetch_all(&db)

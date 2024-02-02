@@ -9,6 +9,7 @@ pub mod create_task;
 pub mod delete_task;
 pub mod disconnect_subtask;
 pub mod get_tasks;
+pub mod reconnect_subtask;
 pub mod update_task;
 
 pub const TAG: &str = "task";
@@ -35,8 +36,8 @@ impl TaskPaths {
         Self::subtask() + "/connect"
     }
 
-    pub fn update_subtask() -> String {
-        Self::subtask() + "/update"
+    pub fn reconnect_subtask() -> String {
+        Self::subtask() + "/reconnect"
     }
 
     pub fn disconnect_subtask() -> String {
@@ -57,6 +58,10 @@ pub fn router() -> Router<AppState> {
         .route(
             &TaskPaths::connect_subtask(),
             post(connect_subtask::handler),
+        )
+        .route(
+            &TaskPaths::reconnect_subtask(),
+            put(reconnect_subtask::handler),
         )
         .route(
             &TaskPaths::disconnect_subtask(),

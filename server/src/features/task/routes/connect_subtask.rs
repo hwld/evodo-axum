@@ -43,16 +43,7 @@ pub async fn handler(
 
     // タスク同士が循環していないかを確認する。
     // payload.parent_task_idの祖先に、payload.subtask_idを持つtaskが存在しないことを確認する。
-    let detected = detect_circular_connection(
-        &db,
-        ConnectSubtask {
-            parent_task_id: payload.parent_task_id.clone(),
-            subtask_id: payload.subtask_id.clone(),
-        },
-    )
-    .await?;
-
-    if detected {
+    if detect_circular_connection(&mut tx, payload.clone()).await? {
         return Err(AppError::new(
             StatusCode::BAD_REQUEST,
             Some("タスクの循環は許可されていません。"),
@@ -60,12 +51,12 @@ pub async fn handler(
     }
 
     sqlx::query!(
-        "INSERT INTO subtask_connections(parent_task_id, subtask_id, user_id) VALUES($1, $2, $3);",
+        "INSERT INTO subtask_connections(parent_task_id, subtask_id, user_id) VALUES($1, $2, $3) RETURNING *;",
         payload.parent_task_id,
         payload.subtask_id,
         user.id,
     )
-    .execute(&mut *tx)
+    .fetch_one(&mut *tx)
     .await?;
 
     tx.commit().await?;
@@ -89,6 +80,7 @@ mod tests {
         let parent_task = task_factory::create_with_user(&db, &user.id).await?;
         let subtask = task_factory::create_with_user(&db, &user.id).await?;
 
+        // TODO: responseを受け取って、ステータスコードを検証する。他のテストも同様
         test.server()
             .post(&TaskPaths::connect_subtask())
             .json(&ConnectSubtask {

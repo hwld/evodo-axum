@@ -1,3 +1,4 @@
+pub mod db;
 pub mod routes;
 pub mod test;
 use garde::Validate;
@@ -46,14 +47,14 @@ pub struct UpdateTask {
     pub status: TaskStatus,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Debug, Clone)]
 pub struct ConnectSubtask {
     pub parent_task_id: String,
     pub subtask_id: String,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Debug)]
-pub struct UpdateSubtask {
+pub struct ReconnectSubtask {
     pub old_parent_task_id: String,
     pub old_subtask_id: String,
     pub new_parent_task_id: String,

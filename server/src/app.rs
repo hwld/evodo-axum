@@ -7,7 +7,7 @@ use axum_login::{
     AuthManagerLayerBuilder,
 };
 use http::{header::CONTENT_TYPE, Method};
-use sqlx::{Pool, Sqlite};
+use sqlx::{Pool, Sqlite, SqliteConnection};
 use tower_http::cors::CorsLayer;
 use tower_sessions_sqlx_store::SqliteStore;
 use utoipa::OpenApi;
@@ -17,6 +17,7 @@ use utoipauto::utoipauto;
 use crate::{config::Env, error::AppError, features};
 
 pub type Db = Pool<Sqlite>;
+pub type Connection = SqliteConnection;
 
 #[derive(Debug, Clone)]
 pub struct AppState {
