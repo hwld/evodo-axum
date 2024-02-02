@@ -21,7 +21,7 @@ pub async fn handler(
     WithValidation(payload): WithValidation<Json<CreateTask>>,
 ) -> AppResult<impl IntoResponse> {
     let Some(user) = auth_session.user else {
-        return Err(AppError::new(StatusCode::UNAUTHORIZED, None));
+        return Err(AppError::unauthorized());
     };
 
     let uuid = uuid::Uuid::new_v4().to_string();

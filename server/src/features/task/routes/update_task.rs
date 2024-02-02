@@ -18,7 +18,7 @@ use crate::{
 };
 
 #[tracing::instrument(err)]
-#[utoipa::path(put, tag = super::TAG, path = super::TaskPaths::oas_task(), request_body = UpdateTask, responses((status = 200, body = Task)))]
+#[utoipa::path(put, tag = super::TAG, path = super::TaskPaths::task_open_api(), request_body = UpdateTask, responses((status = 200, body = Task)))]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     Path(id): Path<String>,
@@ -26,7 +26,7 @@ pub async fn handler(
     WithValidation(payload): WithValidation<Json<UpdateTask>>,
 ) -> AppResult<impl IntoResponse> {
     let Some(user) = auth_session.user else {
-        return Err(AppError::new(StatusCode::UNAUTHORIZED, None));
+        return Err(AppError::unauthorized());
     };
 
     let task = sqlx::query_as!(

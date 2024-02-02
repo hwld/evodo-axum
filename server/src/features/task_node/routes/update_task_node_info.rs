@@ -17,7 +17,7 @@ use crate::{
 };
 
 #[tracing::instrument(err, skip_all)]
-#[utoipa::path(put, tag = super::TAG, path = super::TaskNodePaths::oas_task_node_info(), responses((status = 200, body = TaskNodeInfo)))]
+#[utoipa::path(put, tag = super::TAG, path = super::TaskNodePaths::task_node_info_open_api(), responses((status = 200, body = TaskNodeInfo)))]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     Path(id): Path<String>,
@@ -25,7 +25,7 @@ pub async fn handler(
     Json(payload): Json<UpdateTaskNodeInfo>,
 ) -> AppResult<impl IntoResponse> {
     let Some(user) = auth_session.user else {
-        return Err(AppError::new(StatusCode::UNAUTHORIZED, None));
+        return Err(AppError::unauthorized());
     };
 
     let task_node_info = sqlx::query_as!(

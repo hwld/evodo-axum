@@ -20,7 +20,7 @@ impl TaskPaths {
     pub fn task() -> String {
         Self::tasks() + "/:id"
     }
-    pub fn oas_task() -> String {
+    pub fn task_open_api() -> String {
         Self::tasks() + "/{id}"
     }
     pub fn subtasks() -> String {

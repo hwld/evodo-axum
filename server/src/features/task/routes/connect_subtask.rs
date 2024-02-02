@@ -9,7 +9,6 @@ use crate::{
     features::{auth::Auth, task::CreateSubtask},
 };
 
-// TODO: create_subtaskではなく、connect_subtaskにする。
 #[tracing::instrument(err)]
 #[utoipa::path(post, path = super::TaskPaths::connect_subtask(), responses((status = 200)))]
 pub async fn handler(
@@ -18,7 +17,7 @@ pub async fn handler(
     Json(payload): Json<CreateSubtask>,
 ) -> AppResult<impl IntoResponse> {
     let Some(user) = auth_session.user else {
-        return Err(AppError::new(StatusCode::UNAUTHORIZED, None));
+        return Err(AppError::unauthorized());
     };
 
     let mut tx = db.begin().await?;

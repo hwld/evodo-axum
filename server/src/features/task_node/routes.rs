@@ -23,7 +23,7 @@ impl TaskNodePaths {
     pub fn task_node_info() -> String {
         Self::task_node_info_list() + "/:id"
     }
-    pub fn oas_task_node_info() -> String {
+    pub fn task_node_info_open_api() -> String {
         Self::task_node_info_list() + "/{id}"
     }
 }

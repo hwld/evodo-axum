@@ -16,7 +16,7 @@ pub async fn handler(
     State(AppState { db }): State<AppState>,
 ) -> AppResult<impl IntoResponse> {
     let Some(user) = auth_session.user else {
-        return Err(AppError::new(StatusCode::UNAUTHORIZED, None));
+        return Err(AppError::unauthorized());
     };
 
     let tasks = sqlx::query_as!(Task, r#"SELECT * FROM tasks WHERE user_id = $1;"#, user.id)

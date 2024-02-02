@@ -17,6 +17,10 @@ impl AppError {
             inner: anyhow::anyhow!("{}", msg),
         }
     }
+
+    pub fn unauthorized() -> Self {
+        Self::new(StatusCode::UNAUTHORIZED, None)
+    }
 }
 
 impl IntoResponse for AppError {

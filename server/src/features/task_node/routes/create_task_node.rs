@@ -19,7 +19,7 @@ pub async fn handler(
     WithValidation(payload): WithValidation<Json<CreateTaskNode>>,
 ) -> AppResult<impl IntoResponse> {
     let Some(user) = auth_session.user else {
-        return Err(AppError::new(StatusCode::UNAUTHORIZED, None));
+        return Err(AppError::unauthorized());
     };
 
     let mut tx = db.begin().await?;

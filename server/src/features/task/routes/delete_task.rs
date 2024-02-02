@@ -14,14 +14,14 @@ use crate::{
 };
 
 #[tracing::instrument(err)]
-#[utoipa::path(delete, tag = super::TAG, path = super::TaskPaths::oas_task(), responses((status = 200, body = Task)))]
+#[utoipa::path(delete, tag = super::TAG, path = super::TaskPaths::task_open_api(), responses((status = 200, body = Task)))]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     Path(id): Path<String>,
     State(AppState { db }): State<AppState>,
 ) -> AppResult<impl IntoResponse> {
     let Some(user) = auth_session.user else {
-        return Err(AppError::new(StatusCode::UNAUTHORIZED, None));
+        return Err(AppError::unauthorized());
     };
 
     let task = sqlx::query_as!(

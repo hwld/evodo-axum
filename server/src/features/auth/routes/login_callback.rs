@@ -73,7 +73,7 @@ pub async fn handler(
                     .into_response(),
             );
         }
-        Ok(None) => return Err(AppError::new(StatusCode::UNAUTHORIZED, None)),
+        Ok(None) => return Err(AppError::unauthorized()),
         Err(_) => {
             return Err(AppError::new(StatusCode::INTERNAL_SERVER_ERROR, None));
         }
