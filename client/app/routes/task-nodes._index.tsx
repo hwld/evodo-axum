@@ -36,7 +36,7 @@ export default function TaskNodesPage() {
   const { taskNodes, session } = useLoaderData<typeof loader>();
 
   const [nodes, setNodes] = useState<Node<TaskNodeData>[]>(
-    taskNodes.map(({ task, node_info, ancestor_task_ids }) => {
+    taskNodes.map(({ task, node_info }) => {
       return {
         type: "task",
         id: task.id,
@@ -44,7 +44,6 @@ export default function TaskNodesPage() {
           title: task.title,
           taskId: task.id,
           status: task.status,
-          ancestorNodeIds: ancestor_task_ids,
         },
         position: { x: node_info.x, y: node_info.y },
       };

@@ -1,15 +1,12 @@
 use crate::{
     app::{AppResult, Connection},
     features::task::{
-        db::{
-            find_task, find_task_ancestors_list, find_tasks, insert_task, FindTaskArgs,
-            InsertTaskArgs,
-        },
+        db::{find_task, find_tasks, insert_task, FindTaskArgs, InsertTaskArgs},
         TaskStatus,
     },
 };
 
-use super::{TaskNode, TaskNodeInfo, TaskNodeWithAncestors};
+use super::{TaskNode, TaskNodeInfo};
 
 pub struct InsertTaskNodeArgs<'a> {
     pub task_id: &'a str,
@@ -69,15 +66,11 @@ pub async fn find_task_node<'a>(
     Ok(TaskNode { task, node_info })
 }
 
-pub async fn find_task_node_with_ancestors_list<'a>(
-    db: &mut Connection,
-    user_id: &str,
-) -> AppResult<Vec<TaskNodeWithAncestors>> {
+pub async fn find_task_nodes<'a>(db: &mut Connection, user_id: &str) -> AppResult<Vec<TaskNode>> {
     let tasks = find_tasks(db, user_id).await?;
     let node_info_list = find_task_node_info_list(db, user_id).await?;
-    let ancestors_list = find_task_ancestors_list(db, user_id).await?;
 
-    let mut result: Vec<TaskNodeWithAncestors> = Vec::new();
+    let mut result: Vec<TaskNode> = Vec::new();
 
     for task in tasks {
         let Some(node_info) = node_info_list
@@ -89,19 +82,9 @@ pub async fn find_task_node_with_ancestors_list<'a>(
             continue;
         };
 
-        let ancestor_task_ids = ancestors_list
-            .iter()
-            .find(|a| a.task_id == task.id)
-            .map(|a| a.ancestor_task_ids.clone())
-            .unwrap_or_else(Vec::new);
+        let task_node = TaskNode { task, node_info };
 
-        let task_node_with_ancestors = TaskNodeWithAncestors {
-            task,
-            node_info,
-            ancestor_task_ids,
-        };
-
-        result.push(task_node_with_ancestors);
+        result.push(task_node);
     }
 
     Ok(result)

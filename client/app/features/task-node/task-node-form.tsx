@@ -45,7 +45,6 @@ export const TaskNodeForm = ({ onAddNode }: Props) => {
               title: task.title,
               taskId: task.id,
               status: task.status,
-              ancestorNodeIds: [],
             },
             position: { x: node_info.x, y: node_info.y },
           });

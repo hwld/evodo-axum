@@ -2,7 +2,7 @@
 pub mod task_node_factory {
 
     use crate::app::Db;
-    use crate::features::task::test::task_factory::{self, create_subtask};
+    use crate::features::task::test::task_factory;
     use crate::features::task_node::db::{insert_task_node_info, InsertTaskNodeInfoArgs};
     use crate::{
         app::AppResult,
@@ -69,38 +69,6 @@ pub mod task_node_factory {
         };
 
         create(db, task_node).await
-    }
-
-    pub async fn create_subnode(db: &Db, user_id: &str, task_id: &str) -> AppResult<TaskNode> {
-        let subtask = create_subtask(db, user_id, task_id).await?;
-        let info = create_task_node_info(db, user_id, &subtask.id).await?;
-
-        let node = TaskNode {
-            task: subtask,
-            node_info: info,
-        };
-
-        Ok(node)
-    }
-
-    pub async fn create_task_node_info(
-        db: &Db,
-        user_id: &str,
-        task_id: &str,
-    ) -> AppResult<TaskNodeInfo> {
-        let mut conn = db.acquire().await?;
-        let info = insert_task_node_info(
-            &mut conn,
-            InsertTaskNodeInfoArgs {
-                task_id,
-                user_id,
-                x: 0.0,
-                y: 0.0,
-            },
-        )
-        .await?;
-
-        Ok(info)
     }
 }
 

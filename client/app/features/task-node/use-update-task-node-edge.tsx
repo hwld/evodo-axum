@@ -35,7 +35,6 @@ export const useUpdateTaskNodeEdge = ({
         const newParentTaskId = newConnection.source;
         const newSubtaskId = newConnection.target;
 
-        // TODO: newConnectionが循環していないかを確認する
         const id = generateSubtaskEdgeId({
           parentTaskId: newParentTaskId,
           subtaskId: newSubtaskId,

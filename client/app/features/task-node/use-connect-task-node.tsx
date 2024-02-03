@@ -29,7 +29,6 @@ export const useConnectTaskNode = ({ setEdges }: UseConnectSubtaskArgs) => {
           return;
         }
 
-        // TODO: connectionが循環していないかを確認する
         connectSubtack.mutate(
           {
             parent_task_id: parentTaskId,

@@ -44,24 +44,15 @@ const Task = z.object({
   updated_at: z.string(),
   user_id: z.string(),
 });
-const TaskNodeWithAncestors = z.object({
-  ancestor_task_ids: z.array(z.string()),
-  node_info: TaskNodeInfo,
-  task: Task,
-});
+const TaskNode = z.object({ node_info: TaskNodeInfo, task: Task });
 const CreateTask = z.object({ title: z.string().min(1).max(100) });
 const CreateTaskNode = z.object({
   task: CreateTask,
   x: z.number(),
   y: z.number(),
 });
-const TaskNode = z.object({ node_info: TaskNodeInfo, task: Task });
 const UpdateTask = z.object({ status: TaskStatus, title: z.string() });
 const DeleteTaskResponse = z.object({ task_id: z.string() });
-const TaskAncestors = z.object({
-  ancestor_task_ids: z.array(z.string()),
-  task_id: z.string(),
-});
 
 export const schemas = {
   User,
@@ -76,13 +67,11 @@ export const schemas = {
   TaskNodeInfo,
   TaskStatus,
   Task,
-  TaskNodeWithAncestors,
+  TaskNode,
   CreateTask,
   CreateTaskNode,
-  TaskNode,
   UpdateTask,
   DeleteTaskResponse,
-  TaskAncestors,
 };
 
 const endpoints = makeApi([
@@ -198,7 +187,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/task-nodes",
     requestFormat: "json",
-    response: z.array(TaskNodeWithAncestors),
+    response: z.array(TaskNode),
   },
   {
     method: "post",

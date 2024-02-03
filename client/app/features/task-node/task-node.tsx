@@ -13,10 +13,6 @@ export type TaskNodeData = {
   title: string;
   taskId: string;
   status: Task["status"];
-  /**
-   * すべての祖先NodeIdのリスト
-   */
-  ancestorNodeIds: string[];
 };
 
 type Props = NodeProps<TaskNodeData>;

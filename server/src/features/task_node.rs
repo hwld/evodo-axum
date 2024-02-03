@@ -14,13 +14,6 @@ pub struct TaskNode {
     pub node_info: TaskNodeInfo,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Debug)]
-pub struct TaskNodeWithAncestors {
-    pub task: Task,
-    pub node_info: TaskNodeInfo,
-    pub ancestor_task_ids: Vec<String>,
-}
-
 #[derive(Serialize, Deserialize, ToSchema, Debug, Clone)]
 pub struct TaskNodeInfo {
     pub task_id: String,
