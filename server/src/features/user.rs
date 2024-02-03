@@ -1,3 +1,4 @@
+pub mod db;
 pub mod test;
 
 use axum_login::AuthUser;

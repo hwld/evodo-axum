@@ -1,13 +1,15 @@
 use axum::{extract::State, response::IntoResponse, Json};
 use axum_login::AuthSession;
-use http::StatusCode;
 
 use crate::{
     app::{AppResult, AppState},
     error::AppError,
     features::{
         auth::Auth,
-        task::{db::detect_circular_connection, ConnectSubtask},
+        task::{
+            db::{insert_subtask_connection, InsertSubTaskConnectionArgs},
+            ConnectSubtask,
+        },
     },
 };
 
@@ -24,39 +26,14 @@ pub async fn handler(
 
     let mut tx = db.begin().await?;
 
-    // ログインユーザーが指定されたタスクを持っているかを確認する
-    let tasks = sqlx::query!(
-        "SELECT * FROM tasks WHERE id IN ($1, $2) AND user_id = $3;",
-        payload.parent_task_id,
-        payload.subtask_id,
-        user.id,
+    insert_subtask_connection(
+        &mut tx,
+        InsertSubTaskConnectionArgs {
+            parent_task_id: &payload.parent_task_id,
+            subtask_id: &payload.subtask_id,
+            user_id: &user.id,
+        },
     )
-    .fetch_all(&mut *tx)
-    .await?;
-
-    // - 他人のユーザーのタスクではないか
-    // - 同じタスクIdが２つ指定されたこと
-    // を検出できる
-    if tasks.len() != 2 {
-        return Err(AppError::new(StatusCode::NOT_FOUND, None));
-    }
-
-    // タスク同士が循環していないかを確認する。
-    // payload.parent_task_idの祖先に、payload.subtask_idを持つtaskが存在しないことを確認する。
-    if detect_circular_connection(&mut tx, payload.clone()).await? {
-        return Err(AppError::new(
-            StatusCode::BAD_REQUEST,
-            Some("タスクの循環は許可されていません。"),
-        ));
-    }
-
-    sqlx::query!(
-        "INSERT INTO subtask_connections(parent_task_id, subtask_id, user_id) VALUES($1, $2, $3) RETURNING *;",
-        payload.parent_task_id,
-        payload.subtask_id,
-        user.id,
-    )
-    .fetch_one(&mut *tx)
     .await?;
 
     tx.commit().await?;
@@ -190,6 +167,30 @@ mod tests {
         .fetch_all(&db)
         .await?;
         assert!(subtasks.is_empty());
+
+        Ok(())
+    }
+
+    #[sqlx::test]
+    async fn 自分自身をサブタスクにはできない(db: Db) -> AppResult<()> {
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
+
+        let task = task_factory::create_with_user(&db, &user.id).await?;
+        let res = test
+            .server()
+            .post(&TaskPaths::connect_subtask())
+            .json(&ConnectSubtask {
+                parent_task_id: task.id.clone(),
+                subtask_id: task.id.clone(),
+            })
+            .await;
+        res.assert_status_not_ok();
+
+        let subtasks = sqlx::query!("SELECT * FROM subtask_connections;")
+            .fetch_all(&db)
+            .await?;
+        assert_eq!(subtasks.len(), 0);
 
         Ok(())
     }

@@ -3,7 +3,7 @@ pub mod test;
 
 use self::routes::AuthPaths;
 
-use super::user::User;
+use super::user::{db::find_user, User};
 use crate::{app::Db, config::Env};
 use anyhow::anyhow;
 use axum::async_trait;
@@ -122,19 +122,27 @@ impl AuthnBackend for Auth {
 
         let user_id = id_token_claims.subject().to_string();
 
-        let user = sqlx::query_as!(User, "SELECT * FROM users WHERE id = $1", user_id)
-            .fetch_one(&self.db)
+        let mut conn = self
+            .db
+            .acquire()
+            .await
+            .map_err(|e| AuthError::Unknown(e.into()))?;
+        let user = find_user(&mut conn, &user_id)
             .await
             .map_err(|_| AuthError::UserNotFound(user_id))?;
 
-        Ok(Some(user))
+        Ok(user)
     }
 
     async fn get_user(&self, user_id: &UserId<Self>) -> Result<Option<Self::User>, Self::Error> {
-        let user = sqlx::query_as!(Self::User, "SELECT * FROM users WHERE id = $1", user_id)
-            .fetch_optional(&self.db)
+        let mut conn = self
+            .db
+            .acquire()
             .await
             .map_err(|e| AuthError::Unknown(e.into()))?;
+        let user = find_user(&mut conn, user_id)
+            .await
+            .map_err(|e| AuthError::Unknown(anyhow!(e)))?;
 
         Ok(user)
     }

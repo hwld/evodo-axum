@@ -1,10 +1,14 @@
 use std::collections::HashMap;
 
 use anyhow::anyhow;
+use http::StatusCode;
 
-use crate::app::{AppResult, Connection};
+use crate::{
+    app::{AppResult, Connection},
+    error::AppError,
+};
 
-use super::{ConnectSubtask, Task, TaskAncestors, TaskStatus};
+use super::{Task, TaskAncestors, TaskStatus};
 
 pub struct FindTaskArgs<'a> {
     pub user_id: &'a str,
@@ -184,21 +188,84 @@ pub async fn update_task<'a>(
     Ok(task)
 }
 
-// TODO: user_idを渡す
-/// タスク同士が循環接続になりうるかを判定する
-pub async fn detect_circular_connection(
+pub struct InsertSubTaskConnectionArgs<'a> {
+    pub parent_task_id: &'a str,
+    pub subtask_id: &'a str,
+    pub user_id: &'a str,
+}
+pub async fn insert_subtask_connection<'a>(
     db: &mut Connection,
-    ConnectSubtask {
+    args: InsertSubTaskConnectionArgs<'a>,
+) -> AppResult<()> {
+    // ログインユーザーが指定されたタスクを持っているかを確認する
+    let tasks = sqlx::query!(
+        "SELECT * FROM tasks WHERE id IN ($1, $2) AND user_id = $3;",
+        args.parent_task_id,
+        args.subtask_id,
+        args.user_id,
+    )
+    .fetch_all(&mut *db)
+    .await?;
+
+    if tasks.len() != 2 {
+        return Err(AppError::new(StatusCode::NOT_FOUND, None));
+    }
+
+    // タスク同士が循環していないかを確認する。
+    // payload.parent_task_idの祖先に、payload.subtask_idを持つtaskが存在しないことを確認する。
+    if detect_circular_connection(&mut *db, &args).await? {
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            Some("タスクの循環は許可されていません。"),
+        ));
+    }
+
+    sqlx::query!(
+        "INSERT INTO subtask_connections(parent_task_id, subtask_id, user_id) VALUES($1, $2, $3) RETURNING *;",
+        args.parent_task_id,
+        args.subtask_id,
+        args.user_id,
+    )
+    .fetch_one(&mut *db)
+    .await?;
+
+    Ok(())
+}
+
+pub struct DeleteSubTaskConnectionArgs<'a> {
+    pub parent_task_id: &'a str,
+    pub subtask_id: &'a str,
+    pub user_id: &'a str,
+}
+pub async fn delete_subtask_connection<'a>(
+    db: &mut Connection,
+    args: DeleteSubTaskConnectionArgs<'a>,
+) -> AppResult<()> {
+    sqlx::query!(
+        "DELETE FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2 AND user_id = $3 RETURNING *",
+        args.parent_task_id,
+        args.subtask_id,
+        args.user_id
+    ).fetch_one(&mut *db).await?;
+
+    Ok(())
+}
+
+/// タスク同士が循環接続になりうるかを判定する
+pub async fn detect_circular_connection<'a>(
+    db: &mut Connection,
+    &InsertSubTaskConnectionArgs {
         parent_task_id,
         subtask_id,
-    }: ConnectSubtask,
+        user_id,
+    }: &InsertSubTaskConnectionArgs<'a>,
 ) -> AppResult<bool> {
     let result = sqlx::query!(
         r#"
         WITH RECURSIVE ancestors AS (
             SELECT subtask_id, parent_task_id
             FROM subtask_connections
-            WHERE subtask_id = $1
+            WHERE subtask_id = $1 AND user_id = $2
 
             UNION
 
@@ -209,10 +276,11 @@ pub async fn detect_circular_connection(
 
         SELECT DISTINCT parent_task_id
         FROM ancestors
-        WHERE parent_task_id = $2
+        WHERE parent_task_id = $3
         "#,
         parent_task_id,
-        subtask_id
+        user_id,
+        subtask_id,
     )
     .fetch_all(&mut *db)
     .await?;

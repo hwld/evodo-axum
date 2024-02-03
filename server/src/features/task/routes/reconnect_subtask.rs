@@ -1,13 +1,18 @@
 use axum::{extract::State, Json};
 use axum_login::AuthSession;
-use http::StatusCode;
 
 use crate::{
     app::{AppResult, AppState},
     error::AppError,
     features::{
         auth::Auth,
-        task::{db::detect_circular_connection, ConnectSubtask, ReconnectSubtask},
+        task::{
+            db::{
+                delete_subtask_connection, insert_subtask_connection, DeleteSubTaskConnectionArgs,
+                InsertSubTaskConnectionArgs,
+            },
+            ReconnectSubtask,
+        },
     },
 };
 
@@ -24,34 +29,25 @@ pub async fn handler(
 
     let mut tx = db.begin().await?;
 
-    sqlx::query!(
-        "DELETE FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2 AND user_id = $3 RETURNING *",
-        payload.old_parent_task_id,
-        payload.old_subtask_id,
-        user.id
-    ).fetch_one(&mut *tx).await?;
-
-    if detect_circular_connection(
+    delete_subtask_connection(
         &mut tx,
-        ConnectSubtask {
-            parent_task_id: payload.new_parent_task_id.clone(),
-            subtask_id: payload.new_subtask_id.clone(),
+        DeleteSubTaskConnectionArgs {
+            parent_task_id: &payload.old_parent_task_id,
+            subtask_id: &payload.old_subtask_id,
+            user_id: &user.id,
         },
     )
-    .await?
-    {
-        return Err(AppError::new(
-            StatusCode::BAD_REQUEST,
-            Some("タスクの循環は許可されていません。"),
-        ));
-    }
+    .await?;
 
-    sqlx::query!(
-        "INSERT INTO subtask_connections(parent_task_id, subtask_id, user_id) VALUES($1, $2, $3) RETURNING *;",
-        payload.new_parent_task_id,
-        payload.new_subtask_id,
-        user.id
-    ).fetch_one(&mut *tx).await?;
+    insert_subtask_connection(
+        &mut tx,
+        InsertSubTaskConnectionArgs {
+            parent_task_id: &payload.new_parent_task_id,
+            subtask_id: &payload.new_subtask_id,
+            user_id: &user.id,
+        },
+    )
+    .await?;
 
     tx.commit().await?;
 
@@ -193,6 +189,37 @@ mod tests {
             user.id
         ).fetch_all(&db).await?;
         assert!(new_connection.is_empty());
+
+        Ok(())
+    }
+
+    #[sqlx::test]
+    async fn 自分自身をサブタスクにはできない(db: Db) -> AppResult<()> {
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
+
+        let task = task_factory::create_with_user(&db, &user.id).await?;
+        let subtask = task_factory::create_subtask(&db, &user.id, &task.id).await?;
+
+        let res = test
+            .server()
+            .put(&TaskPaths::reconnect_subtask())
+            .json(&ReconnectSubtask {
+                old_parent_task_id: task.id.clone(),
+                old_subtask_id: subtask.id.clone(),
+                new_parent_task_id: task.id.clone(),
+                new_subtask_id: task.id.clone(),
+            })
+            .await;
+        res.assert_status_not_ok();
+
+        let new_subtask = sqlx::query!(
+            "SELECT * FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $1;",
+            task.id
+        )
+        .fetch_optional(&db)
+        .await?;
+        assert!(new_subtask.is_none());
 
         Ok(())
     }

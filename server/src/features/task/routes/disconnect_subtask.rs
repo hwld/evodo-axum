@@ -4,7 +4,13 @@ use axum_login::AuthSession;
 use crate::{
     app::{AppResult, AppState},
     error::AppError,
-    features::{auth::Auth, task::DisconnectSubtask},
+    features::{
+        auth::Auth,
+        task::{
+            db::{delete_subtask_connection, DeleteSubTaskConnectionArgs},
+            DisconnectSubtask,
+        },
+    },
 };
 
 #[tracing::instrument(err)]
@@ -18,13 +24,19 @@ pub async fn handle(
         return Err(AppError::unauthorized());
     };
 
-    // 削除できなかったときにエラーにするためにRETURNINGとfetch_oneを使用する
-    sqlx::query!(
-        "DELETE FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2 AND user_id = $3 RETURNING *;",
-        payload.parent_task_id,
-        payload.subtask_id,
-        user.id
-    ).fetch_one(&db).await?;
+    let mut tx = db.begin().await?;
+
+    delete_subtask_connection(
+        &mut tx,
+        DeleteSubTaskConnectionArgs {
+            parent_task_id: &payload.parent_task_id,
+            subtask_id: &payload.subtask_id,
+            user_id: &user.id,
+        },
+    )
+    .await?;
+
+    tx.commit().await?;
 
     Ok(())
 }

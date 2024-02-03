@@ -1,10 +1,7 @@
 use super::login_callback::SIGNUP_USER_ID_KEY;
 use crate::app::AppResult;
-use crate::{
-    app::AppState,
-    error::AppError,
-    features::{auth::Auth, user::User},
-};
+use crate::features::user::db::{insert_user, InsertUserArgs};
+use crate::{app::AppState, error::AppError, features::auth::Auth};
 use axum::{extract::State, response::IntoResponse, Json};
 use axum_garde::WithValidation;
 use axum_login::{tower_sessions::Session, AuthSession};
@@ -39,14 +36,15 @@ pub async fn handler(
         ));
     };
 
-    let user = sqlx::query_as!(
-        User,
-        "INSERT INTO users(id, name, profile) VALUES($1, $2, $3) RETURNING *",
-        user_id,
-        payload.name,
-        payload.profile,
+    let mut conn = db.begin().await?;
+    let user = insert_user(
+        &mut conn,
+        InsertUserArgs {
+            user_id: &user_id,
+            name: &payload.name,
+            profile: &payload.profile,
+        },
     )
-    .fetch_one(&db)
     .await?;
 
     session.flush().await?;
