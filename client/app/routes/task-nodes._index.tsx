@@ -1,6 +1,5 @@
 import { LoaderFunctionArgs, json } from "@remix-run/node";
 import {
-  Connection,
   Edge,
   Node,
   OnEdgesChange,
@@ -8,13 +7,12 @@ import {
   Panel,
   applyEdgeChanges,
   applyNodeChanges,
-  updateEdge,
   useEdgesState,
 } from "reactflow";
 import { TaskNodeForm } from "~/features/task-node/task-node-form";
 import { useLoaderData } from "@remix-run/react";
 import { TaskNode, TaskNodeData } from "~/features/task-node/task-node";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { useUpdateTaskNode } from "~/features/task-node/use-update-task-node";
 import { requireUserSession } from "~/session.server";
 import { AppControl } from "~/components/app-control/app-control";
@@ -22,7 +20,8 @@ import { SessionProvider } from "~/features/auth/use-session";
 import { serverFetch } from "~/api/index.server";
 import { NodeView } from "~/components/node-view";
 import { useConnectTaskNode } from "~/features/task-node/use-connect-task-node";
-import { generateSubtaskEdgeId } from "~/features/task-node/util";
+import { generateSubtaskEdge } from "~/features/task-node/util";
+import { useUpdateTaskNodeEdge } from "~/features/task-node/use-update-task-node-edge";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const session = await requireUserSession(request);
@@ -36,9 +35,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 const nodeTypes = { task: TaskNode } as const;
 
 export default function TaskNodesPage() {
-  const edgeUpdateSuccessful = useRef(true);
-  const updatePosition = useUpdateTaskNode();
-
   const { taskNodes, session } = useLoaderData<typeof loader>();
   const [nodes, setNodes] = useState<Node<TaskNodeData>[]>(
     taskNodes.map(({ task, node_info, ancestor_task_ids }) => {
@@ -59,54 +55,30 @@ export default function TaskNodesPage() {
     taskNodes
       .map(({ task }): Edge[] => {
         return task.subtask_ids.map((subtaskId): Edge => {
-          return {
-            id: generateSubtaskEdgeId({
-              parentTaskId: task.id,
-              subtaskId: subtaskId,
-            }),
-            source: task.id,
-            target: subtaskId,
-          };
+          return generateSubtaskEdge({
+            parentTaskId: task.id,
+            subtaskId: subtaskId,
+          });
         });
       })
       .flat()
   );
+
   const { handleConnect } = useConnectTaskNode({ setEdges });
+  const { handleEdgeUpdateStart, handleEdgeUpdate, handleEdgeUpdateEnd } =
+    useUpdateTaskNodeEdge({ setEdges });
 
   const handleAddTaskNode = useCallback((node: Node<TaskNodeData>) => {
     setNodes((nodes) => [...nodes, { ...node, type: "task" }]);
   }, []);
 
+  const updatePosition = useUpdateTaskNode();
   const handleNodesChange: OnNodesChange = useCallback(
     (changes) => {
       updatePosition(changes);
       setNodes((nodes) => applyNodeChanges(changes, nodes));
     },
     [updatePosition]
-  );
-
-  const handleEdgeUpdateStart = useCallback(() => {
-    edgeUpdateSuccessful.current = false;
-  }, []);
-
-  const handleEdgeUpdate = useCallback(
-    (oldEdge: Edge, newConnection: Connection) => {
-      // TODO: newConnectionが循環していないかを確認する
-      // TODO: 存在するconnectionかを確認する
-      edgeUpdateSuccessful.current = true;
-      setEdges((els) => updateEdge(oldEdge, newConnection, els));
-    },
-    [setEdges]
-  );
-
-  const handleEdgeUpdateEnd = useCallback(
-    (_: unknown, edge: Edge) => {
-      if (!edgeUpdateSuccessful.current) {
-        setEdges((eds) => eds.filter((e) => e.id !== edge.id));
-      }
-      edgeUpdateSuccessful.current = true;
-    },
-    [setEdges]
   );
 
   const handleEdgesChange: OnEdgesChange = useCallback(

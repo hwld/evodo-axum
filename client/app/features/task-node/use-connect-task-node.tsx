@@ -1,28 +1,18 @@
-import { useMutation } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { Connection, Edge, useReactFlow } from "reactflow";
-import { z } from "zod";
-import { api } from "~/api/index.client";
-import { schemas } from "~/api/schema";
-import { generateSubtaskEdgeId } from "./util";
+import {
+  subtaskHandle,
+  generateSubtaskEdgeId,
+  generateSubtaskEdge,
+} from "./util";
+import { useConnectSubtask } from "./use-connect-subtask";
 
 type UseConnectSubtaskArgs = {
   setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
 };
 export const useConnectTaskNode = ({ setEdges }: UseConnectSubtaskArgs) => {
   const flow = useReactFlow();
-
-  const connectSubtack = useMutation({
-    mutationFn: (data: z.infer<typeof schemas.ConnectSubtask>) => {
-      return api.post("/subtask/connect", {
-        ...data,
-      });
-    },
-    onError: (err) => {
-      console.error(err);
-      window.alert("サブタスクをつなげることができませんでした。");
-    },
-  });
+  const connectSubtack = useConnectSubtask();
 
   const handleConnect = useCallback(
     (connection: Connection) => {
@@ -30,8 +20,7 @@ export const useConnectTaskNode = ({ setEdges }: UseConnectSubtaskArgs) => {
         return;
       }
 
-      // TODO: 文字列を直接扱いたくない・・・
-      if (connection.sourceHandle === "sub") {
+      if (connection.sourceHandle === subtaskHandle) {
         const parentTaskId = connection.source;
         const subtaskId = connection.target;
 
@@ -51,7 +40,7 @@ export const useConnectTaskNode = ({ setEdges }: UseConnectSubtaskArgs) => {
               setEdges((old) => {
                 return [
                   ...old,
-                  { id: newEdgeId, source: parentTaskId, target: subtaskId },
+                  generateSubtaskEdge({ parentTaskId, subtaskId }),
                 ];
               });
             },

@@ -7,6 +7,7 @@ import { Checkbox, CheckboxIndicator } from "@radix-ui/react-checkbox";
 import { useId } from "react";
 import { cn } from "~/lib/utils";
 import { Task } from "../task";
+import { subtaskHandle } from "./util";
 
 export type TaskNodeData = {
   title: string;
@@ -97,7 +98,7 @@ export const TaskNode: React.FC<Props> = ({ data, id: nodeId }) => {
       />
       <Handle
         type="source"
-        id="sub"
+        id={subtaskHandle}
         position={Position.Right}
         className="!-right-5 !top-0 !translate-y-0 !size-4 !rounded-sm !bg-transparent !border !border-neutral-300 shadow"
       />
