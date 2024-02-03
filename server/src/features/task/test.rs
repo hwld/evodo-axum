@@ -44,7 +44,7 @@ pub mod task_factory {
         create(db, task).await
     }
 
-    pub async fn create_subatsk(db: &Db, user_id: &str, task_id: &str) -> AppResult<Task> {
+    pub async fn create_subtask(db: &Db, user_id: &str, task_id: &str) -> AppResult<Task> {
         let subtask = Task {
             user_id: user_id.into(),
             ..Default::default()

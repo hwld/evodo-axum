@@ -74,7 +74,7 @@ mod tests {
         let user = test.login(None).await?;
 
         let task1 = task_factory::create_with_user(&db, &user.id).await?;
-        let task2 = task_factory::create_subatsk(&db, &user.id, &task1.id.clone()).await?;
+        let task2 = task_factory::create_subtask(&db, &user.id, &task1.id.clone()).await?;
         let task3 = task_factory::create_with_user(&db, &user.id).await?;
 
         let res = test
@@ -116,9 +116,9 @@ mod tests {
         let user = test.login(None).await?;
 
         let task1 = task_factory::create_with_user(&db, &user.id).await?;
-        let task2 = task_factory::create_subatsk(&db, &user.id, &task1.id).await?;
-        let task3 = task_factory::create_subatsk(&db, &user.id, &task2.id).await?;
-        let task4 = task_factory::create_subatsk(&db, &user.id, &task3.id).await?;
+        let task2 = task_factory::create_subtask(&db, &user.id, &task1.id).await?;
+        let task3 = task_factory::create_subtask(&db, &user.id, &task2.id).await?;
+        let task4 = task_factory::create_subtask(&db, &user.id, &task3.id).await?;
 
         let res = test
             .server()
@@ -162,7 +162,7 @@ mod tests {
         let other_user = user_factory::create_default(&db).await?;
         let other_task1 = task_factory::create_with_user(&db, &other_user.id).await?;
         let other_task2 =
-            task_factory::create_subatsk(&db, &other_user.id, &other_task1.id).await?;
+            task_factory::create_subtask(&db, &other_user.id, &other_task1.id).await?;
 
         let user = test.login(None).await?;
         let my_task = task_factory::create_with_user(&db, &user.id).await?;

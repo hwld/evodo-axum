@@ -54,4 +54,40 @@ mod tests {
 
         Ok(())
     }
+
+    #[sqlx::test]
+    async fn 全てのサブタスクを取得できる(db: Db) -> AppResult<()> {
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
+
+        let task_a1 = task_factory::create_with_user(&db, &user.id).await?;
+        let task_b1 = task_factory::create_subtask(&db, &user.id, &task_a1.id).await?;
+        let task_b2 = task_factory::create_subtask(&db, &user.id, &task_a1.id).await?;
+        let task_b3 = task_factory::create_subtask(&db, &user.id, &task_a1.id).await?;
+        let task_c1 = task_factory::create_subtask(&db, &user.id, &task_b1.id).await?;
+        let task_c2 = task_factory::create_subtask(&db, &user.id, &task_b1.id).await?;
+
+        let tasks: Vec<Task> = test.server().get(&TaskPaths::tasks()).await.json();
+        assert_eq!(tasks.len(), 6);
+
+        let a1 = tasks.iter().find(|t| t.id == task_a1.id).unwrap();
+        assert_eq!(a1.subtask_ids.len(), 3);
+        assert!([&task_b1.id, &task_b2.id, &task_b3.id]
+            .iter()
+            .all(|i| a1.subtask_ids.contains(i)));
+
+        let b1 = tasks.iter().find(|t| t.id == task_b1.id).unwrap();
+        assert_eq!(b1.subtask_ids.len(), 2);
+        assert!([&task_c1.id, &task_c2.id]
+            .iter()
+            .all(|i| b1.subtask_ids.contains(i)));
+
+        let b2 = tasks.iter().find(|t| t.id == task_b2.id).unwrap();
+        assert_eq!(b2.subtask_ids.len(), 0);
+
+        let b3 = tasks.iter().find(|t| t.id == task_b3.id).unwrap();
+        assert_eq!(b3.subtask_ids.len(), 0);
+
+        Ok(())
+    }
 }
