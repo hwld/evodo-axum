@@ -1,5 +1,6 @@
 import { useNavigate } from "@remix-run/react";
 import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { api } from "~/api/index.client";
 import { Button } from "~/components/ui/button";
 
@@ -11,7 +12,7 @@ export const CancelSignupButton: React.FC = () => {
     },
     onError: (err) => {
       console.error(err);
-      window.alert("登録をキャンセルできませんでした。");
+      toast.error("登録をキャンセルできませんでした。");
     },
     onSuccess: () => {
       navigate("/", { replace: true });

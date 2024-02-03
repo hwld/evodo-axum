@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { z } from "zod";
 import { api } from "~/api/index.client";
 import { schemas } from "~/api/schema";
@@ -10,7 +11,7 @@ export const useReconnectSubtask = () => {
     },
     onError: (err) => {
       console.error(err);
-      window.alert("サブタスクをつなぐことができませんでした。");
+      toast.error("サブタスクをつなぐことができませんでした。");
     },
   });
   return mutation;

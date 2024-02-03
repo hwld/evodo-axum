@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { z } from "zod";
 import { api } from "~/api/index.client";
 import { schemas } from "~/api/schema";
@@ -10,7 +11,7 @@ export const useCreateTask = () => {
     },
     onError: (error) => {
       console.error(error);
-      window.alert("タスクが作成できませんでした。");
+      toast.error("タスクが作成できませんでした。");
     },
   });
 };

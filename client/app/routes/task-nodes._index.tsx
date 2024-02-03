@@ -3,10 +3,8 @@ import {
   Edge,
   Node,
   OnEdgesChange,
-  OnNodesChange,
   Panel,
   applyEdgeChanges,
-  applyNodeChanges,
   useEdgesState,
 } from "reactflow";
 import { TaskNodeForm } from "~/features/task-node/task-node-form";
@@ -36,6 +34,7 @@ const nodeTypes = { task: TaskNode } as const;
 
 export default function TaskNodesPage() {
   const { taskNodes, session } = useLoaderData<typeof loader>();
+
   const [nodes, setNodes] = useState<Node<TaskNodeData>[]>(
     taskNodes.map(({ task, node_info, ancestor_task_ids }) => {
       return {
@@ -51,6 +50,7 @@ export default function TaskNodesPage() {
       };
     })
   );
+
   const [edges, setEdges] = useEdgesState(
     taskNodes
       .map(({ task }): Edge[] => {
@@ -71,15 +71,7 @@ export default function TaskNodesPage() {
   const handleAddTaskNode = useCallback((node: Node<TaskNodeData>) => {
     setNodes((nodes) => [...nodes, { ...node, type: "task" }]);
   }, []);
-
-  const updatePosition = useUpdateTaskNode();
-  const handleNodesChange: OnNodesChange = useCallback(
-    (changes) => {
-      updatePosition(changes);
-      setNodes((nodes) => applyNodeChanges(changes, nodes));
-    },
-    [updatePosition]
-  );
+  const { handleNodesChange } = useUpdateTaskNode({ setNodes });
 
   const handleEdgesChange: OnEdgesChange = useCallback(
     (changes) => {

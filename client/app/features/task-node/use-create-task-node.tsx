@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { z } from "zod";
 import { api } from "~/api/index.client";
 import { schemas } from "~/api/schema";
@@ -16,7 +17,7 @@ export const useCreateTaskNode = () => {
     },
     onError: (error) => {
       console.error(error);
-      window.alert("タスクノードが作成できませんでした。");
+      toast.error("タスクノードが作成できませんでした。");
     },
   });
 };

@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { z } from "zod";
 import { api } from "~/api/index.client";
 import { schemas } from "~/api/schema";
@@ -10,7 +11,7 @@ export const useDisconnectSubtask = () => {
     },
     onError: (err) => {
       console.error(err);
-      window.alert("サブタスクを切り離すことができませんでした。");
+      toast.error("サブタスクを切り離すことができませんでした。");
     },
   });
 
