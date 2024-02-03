@@ -19,15 +19,9 @@ export const useUpdateTaskNodeEdge = ({
   const disconnectSubtask = useDisconnectSubtask();
   const reconnectSubtask = useReconnectSubtask();
 
-  const handleEdgeUpdateStart = useCallback(() => {
-    edgeUpdateSuccessful.current = false;
-  }, []);
-
-  const handleEdgeUpdate = useCallback(
+  const updateEdge = useCallback(
     (oldEdge: Edge, newConnection: Connection) => {
-      // TODO: 関数化してedgeUpdateSuccessfulの更新をまとめる
       if (!(newConnection.source && newConnection.target)) {
-        edgeUpdateSuccessful.current = true;
         return;
       }
 
@@ -39,8 +33,8 @@ export const useUpdateTaskNodeEdge = ({
           parentTaskId: newParentTaskId,
           subtaskId: newSubtaskId,
         });
+        // Edgeの重複を確認する
         if (flow.getEdges().find((e) => e.id === id)) {
-          edgeUpdateSuccessful.current = true;
           return;
         }
 
@@ -70,15 +64,36 @@ export const useUpdateTaskNodeEdge = ({
 
         setEdges((eds) => eds.filter((e) => e.id !== oldEdge.id));
       }
-
-      edgeUpdateSuccessful.current = true;
     },
     [flow, reconnectSubtask, setEdges]
   );
 
+  const handleEdgeUpdateStart = useCallback(() => {
+    edgeUpdateSuccessful.current = false;
+  }, []);
+
+  const updateSuccessful = useCallback((callback: () => void) => {
+    callback();
+    edgeUpdateSuccessful.current = true;
+  }, []);
+
+  const handleEdgeUpdate = useCallback(
+    (oldEdge: Edge, newConnection: Connection) => {
+      updateSuccessful(() => {
+        updateEdge(oldEdge, newConnection);
+      });
+    },
+    [updateEdge, updateSuccessful]
+  );
+
   const handleEdgeUpdateEnd = useCallback(
     (_: unknown, edge: Edge) => {
-      if (!edgeUpdateSuccessful.current) {
+      updateSuccessful(() => {
+        // 更新が完了していたら何もしない
+        if (edgeUpdateSuccessful.current) {
+          return;
+        }
+
         disconnectSubtask.mutate(
           {
             parent_task_id: edge.source,
@@ -92,10 +107,9 @@ export const useUpdateTaskNodeEdge = ({
           }
         );
         setEdges((eds) => eds.filter((e) => e.id !== edge.id));
-      }
-      edgeUpdateSuccessful.current = true;
+      });
     },
-    [disconnectSubtask, setEdges]
+    [disconnectSubtask, setEdges, updateSuccessful]
   );
 
   return { handleEdgeUpdateStart, handleEdgeUpdate, handleEdgeUpdateEnd };

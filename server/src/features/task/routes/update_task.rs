@@ -50,10 +50,9 @@ pub async fn handler(
 #[cfg(test)]
 mod tests {
 
-    use super::*;
     use crate::app::AppResult;
     use crate::features::task::db::{find_task, FindTaskArgs};
-    use crate::features::task::Task;
+    use crate::features::task::{Task, UpdateTask};
     use crate::{
         app::{tests::AppTest, Db},
         features::{
@@ -63,7 +62,6 @@ mod tests {
     };
 
     #[sqlx::test]
-    // TODO: DbをConnectionにできないかを考える
     async fn タスクを更新できる(db: Db) -> AppResult<()> {
         let test = AppTest::new(&db).await?;
         let user = test.login(None).await?;
