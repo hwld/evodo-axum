@@ -3,18 +3,15 @@ use axum_login::AuthSession;
 use http::StatusCode;
 
 use crate::app::AppResult;
+use crate::features::task_node::TaskNodeWithAncestors;
 use crate::{
     app::AppState,
     error::AppError,
-    features::{
-        auth::Auth,
-        task::Task,
-        task_node::{TaskNode, TaskNodeInfo},
-    },
+    features::{auth::Auth, task::Task, task_node::TaskNodeInfo},
 };
 
 #[tracing::instrument(err)]
-#[utoipa::path(get, tag = super::TAG, path = super::TaskNodePaths::task_nodes(), responses((status = 200, body = [TaskNode])))]
+#[utoipa::path(get, tag = super::TAG, path = super::TaskNodePaths::task_nodes(), responses((status = 200, body = [TaskNodeWithAncestors])))]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     State(AppState { db }): State<AppState>,
@@ -45,9 +42,9 @@ pub async fn handler(
     .fetch_all(&db)
     .await?;
 
-    let nodes: Vec<TaskNode> = records
+    let nodes: Vec<TaskNodeWithAncestors> = records
         .into_iter()
-        .map(|r| TaskNode {
+        .map(|r| TaskNodeWithAncestors {
             task: Task {
                 id: r.task_id.clone(),
                 title: r.title,
@@ -61,12 +58,11 @@ pub async fn handler(
             node_info: TaskNodeInfo {
                 task_id: r.task_id,
                 user_id: r.user_id,
-                // TODO:
-                subnode_ids: vec![],
-                ancestor_ids: vec![],
                 x: r.x,
                 y: r.y,
             },
+            // TODO: すべての祖先のタスクID
+            ancestor_task_ids: vec![],
         })
         .collect();
 
@@ -94,7 +90,8 @@ mod tests {
             task_node_factory::create_with_user(&db, &user.id)
         )?;
 
-        let tasks: Vec<TaskNode> = test.server().get(&TaskNodePaths::task_nodes()).await.json();
+        let tasks: Vec<TaskNodeWithAncestors> =
+            test.server().get(&TaskNodePaths::task_nodes()).await.json();
 
         assert_eq!(tasks.len(), 3);
 

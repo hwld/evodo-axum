@@ -77,9 +77,7 @@ mod tests {
                 node_info: TaskNodeInfo {
                     task_id: task.id,
                     user_id: user.clone().id,
-                    x: 0.0,
-                    y: 0.0,
-                    ..TaskNode::default().node_info
+                    ..Default::default()
                 },
             },
         )

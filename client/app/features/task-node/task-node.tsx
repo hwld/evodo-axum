@@ -38,7 +38,6 @@ export const TaskNode: React.FC<Props> = ({ data, id: nodeId }) => {
 
   const updateMutation = useUpdateTask();
   const handleUpdateStatus = () => {
-    console.log("?");
     updateMutation.mutate(
       {
         ...data,

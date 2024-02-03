@@ -167,9 +167,6 @@ pub async fn find_task_node_info<'a>(
     let task_node_info = TaskNodeInfo {
         task_id: result.task_id,
         user_id: result.user_id,
-        // TODO
-        subnode_ids: vec![],
-        ancestor_ids: vec![],
         x: result.x,
         y: result.y,
     };

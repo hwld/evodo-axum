@@ -21,8 +21,6 @@ pub mod task_node_factory {
                 task,
                 node_info: TaskNodeInfo {
                     task_id,
-                    ancestor_ids: vec![],
-                    subnode_ids: vec![],
                     ..Default::default()
                 },
             }
@@ -36,8 +34,6 @@ pub mod task_node_factory {
                 user_id: "user_id".into(),
                 x: 0.0,
                 y: 0.0,
-                subnode_ids: vec![],
-                ancestor_ids: vec![],
             }
         }
     }
