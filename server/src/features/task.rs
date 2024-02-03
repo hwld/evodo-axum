@@ -33,6 +33,12 @@ impl From<String> for TaskStatus {
     }
 }
 
+#[derive(Serialize, Deserialize, ToSchema, Debug, Clone)]
+pub struct TaskAncestors {
+    pub task_id: String,
+    pub ancestor_task_ids: Vec<String>,
+}
+
 #[derive(Serialize, Deserialize, ToSchema, Debug, Validate)]
 pub struct CreateTask {
     #[garde(length(min = 1, max = 100))]

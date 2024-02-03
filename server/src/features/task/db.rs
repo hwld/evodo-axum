@@ -4,7 +4,7 @@ use anyhow::anyhow;
 
 use crate::app::{AppResult, Connection};
 
-use super::{ConnectSubtask, Task, TaskStatus};
+use super::{ConnectSubtask, Task, TaskAncestors, TaskStatus};
 
 pub struct FindTaskArgs<'a> {
     pub user_id: &'a str,
@@ -184,6 +184,7 @@ pub async fn update_task<'a>(
     Ok(task)
 }
 
+// TODO: user_idを渡す
 /// タスク同士が循環接続になりうるかを判定する
 pub async fn detect_circular_connection(
     db: &mut Connection,
@@ -217,4 +218,56 @@ pub async fn detect_circular_connection(
     .await?;
 
     Ok(!result.is_empty())
+}
+
+pub async fn find_task_ancestors_list(
+    db: &mut Connection,
+    user_id: &str,
+) -> AppResult<Vec<TaskAncestors>> {
+    let result = sqlx::query!(
+        r#"
+        WITH RECURSIVE ancestors AS (
+            SELECT
+                subtask_id,
+                parent_task_id
+            FROM 
+                subtask_connections
+            WHERE
+                user_id = $1
+            UNION
+            SELECT
+                a.subtask_id,
+                s.parent_task_id
+            FROM
+                subtask_connections s
+                JOIN ancestors a
+                    ON s.subtask_id = a.parent_task_id
+            WHERE
+                user_id = $1
+        )
+
+        SELECT DISTINCT
+            subtask_id as task_id,
+            parent_task_id as ancestor_id
+        FROM
+            ancestors
+        "#,
+        user_id,
+    )
+    .fetch_all(&mut *db)
+    .await?;
+
+    let mut task_ancestors_map: HashMap<String, TaskAncestors> = HashMap::new();
+    for raw in result {
+        let task_ancestors = task_ancestors_map
+            .entry(raw.task_id.clone())
+            .or_insert_with(|| TaskAncestors {
+                task_id: raw.task_id,
+                ancestor_task_ids: vec![],
+            });
+        task_ancestors.ancestor_task_ids.push(raw.ancestor_id);
+    }
+    let task_ancestors_list: Vec<TaskAncestors> = task_ancestors_map.into_values().collect();
+
+    Ok(task_ancestors_list)
 }

@@ -1,12 +1,15 @@
 use crate::{
     app::{AppResult, Connection},
     features::task::{
-        db::{find_task, insert_task, FindTaskArgs, InsertTaskArgs},
+        db::{
+            find_task, find_task_ancestors_list, find_tasks, insert_task, FindTaskArgs,
+            InsertTaskArgs,
+        },
         TaskStatus,
     },
 };
 
-use super::{TaskNode, TaskNodeInfo};
+use super::{TaskNode, TaskNodeInfo, TaskNodeWithAncestors};
 
 pub struct InsertTaskNodeArgs<'a> {
     pub task_id: &'a str,
@@ -64,6 +67,44 @@ pub async fn find_task_node<'a>(
     let node_info = find_task_node_info(db, FindTaskNodeInfo { task_id, user_id }).await?;
 
     Ok(TaskNode { task, node_info })
+}
+
+pub async fn find_task_node_with_ancestors_list<'a>(
+    db: &mut Connection,
+    user_id: &str,
+) -> AppResult<Vec<TaskNodeWithAncestors>> {
+    let tasks = find_tasks(db, user_id).await?;
+    let node_info_list = find_task_node_info_list(db, user_id).await?;
+    let ancestors_list = find_task_ancestors_list(db, user_id).await?;
+
+    let mut result: Vec<TaskNodeWithAncestors> = Vec::new();
+
+    for task in tasks {
+        let Some(node_info) = node_info_list
+            .iter()
+            .find(|i| i.task_id == task.id)
+            .cloned()
+        else {
+            // taskがあるがtask_node_infoがない場合はスキップする
+            continue;
+        };
+
+        let ancestor_task_ids = ancestors_list
+            .iter()
+            .find(|a| a.task_id == task.id)
+            .map(|a| a.ancestor_task_ids.clone())
+            .unwrap_or_else(Vec::new);
+
+        let task_node_with_ancestors = TaskNodeWithAncestors {
+            task,
+            node_info,
+            ancestor_task_ids,
+        };
+
+        result.push(task_node_with_ancestors);
+    }
+
+    Ok(result)
 }
 
 pub struct InsertTaskNodeInfoArgs<'a> {
@@ -171,4 +212,19 @@ pub async fn find_task_node_info<'a>(
         y: result.y,
     };
     Ok(task_node_info)
+}
+
+pub async fn find_task_node_info_list<'a>(
+    db: &mut Connection,
+    user_id: &str,
+) -> AppResult<Vec<TaskNodeInfo>> {
+    let result = sqlx::query_as!(
+        TaskNodeInfo,
+        r#"SELECT * FROM task_node_info WHERE user_id = $1"#,
+        user_id
+    )
+    .fetch_all(&mut *db)
+    .await?;
+
+    Ok(result)
 }

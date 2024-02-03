@@ -3,12 +3,8 @@ use axum_login::AuthSession;
 use http::StatusCode;
 
 use crate::app::AppResult;
-use crate::features::task_node::TaskNodeWithAncestors;
-use crate::{
-    app::AppState,
-    error::AppError,
-    features::{auth::Auth, task::Task, task_node::TaskNodeInfo},
-};
+use crate::features::task_node::db::find_task_node_with_ancestors_list;
+use crate::{app::AppState, error::AppError, features::auth::Auth};
 
 #[tracing::instrument(err)]
 #[utoipa::path(get, tag = super::TAG, path = super::TaskNodePaths::task_nodes(), responses((status = 200, body = [TaskNodeWithAncestors])))]
@@ -20,60 +16,20 @@ pub async fn handler(
         return Err(AppError::unauthorized());
     };
 
-    let records = sqlx::query!(
-        // https://docs.rs/sqlx/latest/sqlx/macro.query.html#type-overrides-output-columns
-        // ここを見ると、MySQLの場合はONでnot nullのフィールドを比較してたらnon-nullになるっぽいけど、
-        // sqliteとpostgresqlではならなそうなので "field!"で上書きする
-        r#"
-        SELECT
-            n.*,
-            t.status as "status!",
-            t.title as "title!",
-            t.created_at as "created_at!",
-            t.updated_at as "updated_at!"
-        FROM 
-            task_node_info as n LEFT JOIN tasks as t
-                ON n.task_id = t.id
-        WHERE
-            t.user_id = $1;
-        "#,
-        user.id,
-    )
-    .fetch_all(&db)
-    .await?;
+    let mut tx = db.begin().await?;
 
-    let nodes: Vec<TaskNodeWithAncestors> = records
-        .into_iter()
-        .map(|r| TaskNodeWithAncestors {
-            task: Task {
-                id: r.task_id.clone(),
-                title: r.title,
-                status: r.status.into(),
-                user_id: r.user_id.clone(),
-                // TODO: 一旦空にするが、後でちゃんとsubtask_idsを入れる
-                subtask_ids: Vec::new(),
-                created_at: r.created_at,
-                updated_at: r.updated_at,
-            },
-            node_info: TaskNodeInfo {
-                task_id: r.task_id,
-                user_id: r.user_id,
-                x: r.x,
-                y: r.y,
-            },
-            // TODO: すべての祖先のタスクID
-            ancestor_task_ids: vec![],
-        })
-        .collect();
+    let result = find_task_node_with_ancestors_list(&mut tx, &user.id).await?;
 
-    Ok((StatusCode::OK, Json(nodes)).into_response())
+    tx.commit().await?;
+
+    Ok((StatusCode::OK, Json(result)).into_response())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
 
     use crate::app::AppResult;
+    use crate::features::task_node::TaskNodeWithAncestors;
     use crate::{
         app::{tests::AppTest, Db},
         features::task_node::{routes::TaskNodePaths, test::task_node_factory},
@@ -92,7 +48,6 @@ mod tests {
 
         let tasks: Vec<TaskNodeWithAncestors> =
             test.server().get(&TaskNodePaths::task_nodes()).await.json();
-
         assert_eq!(tasks.len(), 3);
 
         Ok(())
