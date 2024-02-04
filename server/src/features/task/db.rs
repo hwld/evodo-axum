@@ -97,9 +97,10 @@ pub async fn find_parent_tasks<'a>(
 ) -> AppResult<Vec<Task>> {
     let raw_parent_tasks = sqlx::query!(
         r#"
-        SELECT t.*, sc.subtask_id
+        SELECT t.*, sc2.subtask_id
         FROM subtask_connections sc
         LEFT OUTER JOIN tasks t ON (t.id = sc.parent_task_id AND t.user_id = sc.user_id)
+        LEFT OUTER JOIN subtask_connections sc2 ON (sc2.parent_task_id = t.id AND sc2.user_id = t.user_id)
         WHERE sc.subtask_id = $1 AND t.user_id = $2;
         "#,
         args.subtask_id,
@@ -119,7 +120,9 @@ pub async fn find_parent_tasks<'a>(
             created_at: raw_task.created_at,
             updated_at: raw_task.updated_at,
         });
-        task.subtask_ids.push(raw_task.subtask_id);
+        if let Some(subtask_id) = raw_task.subtask_id {
+            task.subtask_ids.push(subtask_id);
+        }
     }
 
     let parent_tasks: Vec<Task> = task_map.into_values().collect();

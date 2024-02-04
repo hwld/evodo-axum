@@ -79,6 +79,7 @@ pub async fn handler(
 
 #[cfg(test)]
 mod tests {
+
     use crate::{
         app::{tests::AppTest, AppResult, Db},
         features::task::{
@@ -188,6 +189,43 @@ mod tests {
         )
         .await?;
         assert_eq!(sub3.status, TaskStatus::Done);
+
+        Ok(())
+    }
+
+    #[sqlx::test]
+    async fn サブタスクが全て完了にならないと親タスクは完了にならない(
+        db: Db,
+    ) -> AppResult<()> {
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
+
+        // t1 --> t2
+        // t1 --> t3
+        let t1 = task_factory::create_with_user(&db, &user.id).await?;
+        let t2 = task_factory::create_subtask(&db, &user.id, &t1.id).await?;
+        let t3 = task_factory::create_subtask(&db, &user.id, &t1.id).await?;
+        assert!([&t1, &t2, &t3].iter().all(|t| t.status == TaskStatus::Todo));
+
+        let res = test
+            .server()
+            .put(&TaskPaths::one_update_task_status(&t2.id))
+            .json(&UpdateTaskStatus {
+                status: TaskStatus::Done,
+            })
+            .await;
+        res.assert_status_ok();
+
+        let mut conn = db.acquire().await?;
+        let parent = find_task(
+            &mut conn,
+            FindTaskArgs {
+                user_id: &user.id,
+                task_id: &t1.id,
+            },
+        )
+        .await?;
+        assert_eq!(parent.status, TaskStatus::Todo);
 
         Ok(())
     }
