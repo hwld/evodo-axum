@@ -4,8 +4,12 @@ import {
   subtaskHandle,
   generateSubtaskEdgeId,
   generateSubtaskEdge,
+  buildTaskNodes,
+  buildTaskNodeEdges,
 } from "./util";
 import { useConnectSubtask } from "./use-connect-subtask";
+import { api } from "~/api/index.client";
+import { toast } from "sonner";
 
 type UseConnectSubtaskArgs = {
   setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
@@ -29,22 +33,32 @@ export const useConnectTaskNode = ({ setEdges }: UseConnectSubtaskArgs) => {
           return;
         }
 
+        const oldEdges = flow.getEdges();
         connectSubtack.mutate(
           {
             parent_task_id: parentTaskId,
             subtask_id: subtaskId,
           },
           {
-            onSuccess: () => {
-              setEdges((old) => {
-                return [
-                  ...old,
-                  generateSubtaskEdge({ parentTaskId, subtaskId }),
-                ];
-              });
+            onSuccess: async () => {
+              try {
+                const nodes = await api.get("/task-nodes");
+                flow.setNodes(buildTaskNodes(nodes));
+                flow.setEdges(buildTaskNodeEdges(nodes));
+              } catch (e) {
+                console.error(e);
+                toast.error("タスクを読み込めませんでした。");
+              }
+            },
+            onError: () => {
+              setEdges(oldEdges);
             },
           }
         );
+
+        setEdges((old) => {
+          return [...old, generateSubtaskEdge({ parentTaskId, subtaskId })];
+        });
       }
     },
     [connectSubtack, flow, setEdges]

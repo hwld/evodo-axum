@@ -7,7 +7,10 @@ use crate::{
     features::{
         auth::Auth,
         task::{
-            db::{insert_subtask_connection, InsertSubTaskConnectionArgs},
+            db::{
+                insert_subtask_connection, update_all_ancestors_task_status,
+                InsertSubTaskConnectionArgs, TaskAndUser,
+            },
             ConnectSubtask,
         },
     },
@@ -36,6 +39,15 @@ pub async fn handler(
     )
     .await?;
 
+    update_all_ancestors_task_status(
+        &mut tx,
+        TaskAndUser {
+            task_id: &payload.subtask_id,
+            user_id: &user.id,
+        },
+    )
+    .await?;
+
     tx.commit().await?;
 
     Ok(())
@@ -44,9 +56,10 @@ pub async fn handler(
 #[cfg(test)]
 mod tests {
     use crate::app::{tests::AppTest, AppResult, Db};
+    use crate::features::task::db::{find_task, FindTaskArgs};
     use crate::features::task::routes::TaskPaths;
     use crate::features::task::test::task_factory::{self};
-    use crate::features::task::ConnectSubtask;
+    use crate::features::task::{ConnectSubtask, Task, TaskStatus};
     use crate::features::user::test::user_factory;
 
     #[sqlx::test]
@@ -191,6 +204,48 @@ mod tests {
             .fetch_all(&db)
             .await?;
         assert_eq!(subtasks.len(), 0);
+
+        Ok(())
+    }
+
+    #[sqlx::test]
+    async fn 完了状態のタスクをサブタスクにすると完了状態になる(
+        db: Db,
+    ) -> AppResult<()> {
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
+
+        let parent = task_factory::create_with_user(&db, &user.id).await?;
+        let sub = task_factory::create(
+            &db,
+            Task {
+                user_id: user.id.clone(),
+                status: TaskStatus::Done,
+                ..Default::default()
+            },
+        )
+        .await?;
+
+        let res = test
+            .server()
+            .post(&TaskPaths::connect_subtask())
+            .json(&ConnectSubtask {
+                parent_task_id: parent.id.clone(),
+                subtask_id: sub.id.clone(),
+            })
+            .await;
+        res.assert_status_ok();
+
+        let mut conn = db.acquire().await?;
+        let parent = find_task(
+            &mut conn,
+            FindTaskArgs {
+                task_id: &parent.id,
+                user_id: &user.id,
+            },
+        )
+        .await?;
+        assert_eq!(parent.status, TaskStatus::Done);
 
         Ok(())
     }

@@ -44,6 +44,7 @@ pub async fn handler(
     )
     .await?;
 
+    // TODO: Doneに変更するのは子孫をすべてDoneにすれば良いので実装できそう
     // サブタスクを持っているタスクは直接更新できない
     if !task.subtask_ids.is_empty() {
         return Err(AppError::new(
