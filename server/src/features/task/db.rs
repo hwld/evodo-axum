@@ -299,14 +299,10 @@ pub struct TaskAndUser<'a> {
     pub task_id: &'a str,
     pub user_id: &'a str,
 }
-#[async_recursion]
 pub async fn update_all_ancestors_task_status<'a>(
     db: &mut Connection,
     args: TaskAndUser<'a>,
-) -> AppResult<()>
-where
-    'a: 'async_recursion,
-{
+) -> AppResult<()> {
     let parents = find_parent_tasks(
         &mut *db,
         FindParentTaskArgs {
@@ -320,30 +316,67 @@ where
         return Ok(());
     };
 
-    for parent in parents {
-        let all_subtasks_done = all_tasks_done(&mut *db, &parent.subtask_ids).await?;
+    update_tasks_and_ancestors_status(
+        &mut *db,
+        TasksAndUser {
+            tasks: &parents,
+            user_id: args.user_id,
+        },
+    )
+    .await?;
+
+    Ok(())
+}
+
+pub struct TasksAndUser<'a> {
+    tasks: &'a Vec<Task>,
+    user_id: &'a str,
+}
+#[async_recursion]
+pub async fn update_tasks_and_ancestors_status<'a>(
+    db: &mut Connection,
+    args: TasksAndUser<'a>,
+) -> AppResult<()>
+where
+    'a: 'async_recursion,
+{
+    if args.tasks.is_empty() {
+        return Ok(());
+    }
+
+    for task in args.tasks {
+        let all_subtasks_done = all_tasks_done(&mut *db, &task.subtask_ids).await?;
         let new_status = if all_subtasks_done {
             TaskStatus::Done
         } else {
             TaskStatus::Todo
         };
 
-        // 親が多いことを想定するならupdateをまとめたほうがいいかもしれないけど、多くならないと思う
+        // 渡されたタスクが多いことを想定するならupdateをまとめたほうがいいかもしれないけど、多くならないと思う
         update_task_status(
             &mut *db,
             UpdateTaskStatusArgs {
-                id: &parent.id,
+                id: &task.id,
                 status: &new_status,
                 user_id: args.user_id,
             },
         )
         .await?;
 
-        // 親の祖先も同じように処理する
-        update_all_ancestors_task_status(
+        let parents = find_parent_tasks(
             &mut *db,
-            TaskAndUser {
-                task_id: &parent.id,
+            FindParentTaskArgs {
+                subtask_id: &task.id,
+                user_id: args.user_id,
+            },
+        )
+        .await?;
+
+        // 親の祖先も同じように処理する
+        update_tasks_and_ancestors_status(
+            &mut *db,
+            TasksAndUser {
+                tasks: &parents,
                 user_id: args.user_id,
             },
         )
