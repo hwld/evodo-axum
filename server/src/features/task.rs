@@ -49,6 +49,11 @@ pub struct UpdateTask {
     pub status: TaskStatus,
 }
 
+#[derive(Deserialize, Serialize, ToSchema, Debug)]
+pub struct UpdateTaskStatus {
+    pub status: TaskStatus,
+}
+
 #[derive(Serialize, Deserialize, ToSchema, Debug)]
 pub struct DeleteTaskResponse {
     pub task_id: String,

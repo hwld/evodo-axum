@@ -15,7 +15,7 @@ use crate::{
 
 #[tracing::instrument(err)]
 #[utoipa::path(delete, tag = super::TAG, path = super::TaskPaths::disconnect_subtask(), responses(( status = 200)))]
-pub async fn handle(
+pub async fn handler(
     auth_session: AuthSession<Auth>,
     State(AppState { db }): State<AppState>,
     Json(payload): Json<DisconnectSubtask>,

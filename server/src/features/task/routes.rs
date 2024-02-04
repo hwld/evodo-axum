@@ -11,6 +11,7 @@ pub mod disconnect_subtask;
 pub mod get_tasks;
 pub mod reconnect_subtask;
 pub mod update_task;
+pub mod update_task_status;
 
 pub const TAG: &str = "task";
 
@@ -26,6 +27,18 @@ impl TaskPaths {
 
     pub fn task_open_api() -> String {
         Self::tasks() + "/{id}"
+    }
+
+    pub fn update_task_status_base() -> String {
+        "/update-status".into()
+    }
+
+    pub fn update_task_status() -> String {
+        Self::task() + &Self::update_task_status_base()
+    }
+
+    pub fn update_task_status_open_api() -> String {
+        Self::task_open_api() + &Self::update_task_status_base()
     }
 
     pub fn subtask() -> String {
@@ -65,7 +78,11 @@ pub fn router() -> Router<AppState> {
         )
         .route(
             &TaskPaths::disconnect_subtask(),
-            delete(disconnect_subtask::handle),
+            delete(disconnect_subtask::handler),
+        )
+        .route(
+            &TaskPaths::update_task_status(),
+            put(update_task_status::handler),
         )
         .route_layer(login_required!(Auth))
 }

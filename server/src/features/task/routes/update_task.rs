@@ -17,6 +17,7 @@ use crate::{
     features::{auth::Auth, task::UpdateTask},
 };
 
+//TODO: swagger-uiで{id}みたいなパスを編集できない
 #[tracing::instrument(err)]
 #[utoipa::path(put, tag = super::TAG, path = super::TaskPaths::task_open_api(), request_body = UpdateTask, responses((status = 200, body = Task)))]
 pub async fn handler(

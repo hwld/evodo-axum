@@ -53,6 +53,7 @@ const CreateTaskNode = z.object({
 });
 const UpdateTask = z.object({ status: TaskStatus, title: z.string() });
 const DeleteTaskResponse = z.object({ task_id: z.string() });
+const UpdateTaskStatus = z.object({ status: TaskStatus });
 
 export const schemas = {
   User,
@@ -72,6 +73,7 @@ export const schemas = {
   CreateTaskNode,
   UpdateTask,
   DeleteTaskResponse,
+  UpdateTaskStatus,
 };
 
 const endpoints = makeApi([
@@ -245,6 +247,19 @@ const endpoints = makeApi([
     path: "/tasks/:id",
     requestFormat: "json",
     response: z.object({ task_id: z.string() }),
+  },
+  {
+    method: "put",
+    path: "/tasks/:id/update-status",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: UpdateTaskStatus,
+      },
+    ],
+    response: Task,
   },
 ]);
 

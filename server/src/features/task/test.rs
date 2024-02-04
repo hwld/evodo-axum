@@ -72,5 +72,8 @@ pub mod routes {
         pub fn one_task(id: &str) -> String {
             Self::tasks() + "/" + id
         }
+        pub fn one_update_task_status(id: &str) -> String {
+            Self::one_task(id) + &Self::update_task_status_base()
+        }
     }
 }
