@@ -4,14 +4,14 @@ import { z } from "zod";
 import { api } from "~/api/index.client";
 import { schemas } from "~/api/schema";
 
-export const useUpdateTask = () => {
+export const useUpdateTaskStatus = () => {
   return useMutation({
     mutationFn: (
-      data: z.infer<typeof schemas.UpdateTask> & { taskId: string }
+      data: z.infer<typeof schemas.UpdateTaskStatus> & { taskId: string }
     ) => {
       return api.put(
-        "/tasks/:id",
-        { title: data.title, status: data.status },
+        "/tasks/:id/update-status",
+        { status: data.status },
         { params: { id: data.taskId } }
       );
     },

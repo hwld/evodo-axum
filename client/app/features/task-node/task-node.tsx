@@ -1,13 +1,15 @@
 import { CheckCircle2Icon, CircleDashedIcon, XIcon } from "lucide-react";
 import { Handle, NodeProps, Position, useReactFlow } from "reactflow";
 import { useDeleteTask } from "./use-delete-task-node";
-import { useUpdateTask } from "../task/use-update-task";
+import { useUpdateTaskStatus } from "../task/use-update-task-status";
 import { Node } from "~/components/ui/node";
 import { Checkbox, CheckboxIndicator } from "@radix-ui/react-checkbox";
 import { useId } from "react";
 import { cn } from "~/lib/utils";
 import { Task } from "../task";
-import { subtaskHandle } from "./util";
+import { buildTaskNodeEdges, buildTaskNodes, subtaskHandle } from "./util";
+import { api } from "~/api/index.client";
+import { toast } from "sonner";
 
 export type TaskNodeData = {
   title: string;
@@ -33,23 +35,23 @@ export const TaskNode: React.FC<Props> = ({ data, id: nodeId }) => {
     );
   };
 
-  const updateMutation = useUpdateTask();
+  const updateMutation = useUpdateTaskStatus();
   const handleUpdateStatus = () => {
     updateMutation.mutate(
       {
-        ...data,
+        taskId: data.taskId,
         status: data.status === "Todo" ? "Done" : "Todo",
       },
       {
-        onSuccess: (task) => {
-          flow.setNodes((nodes) =>
-            nodes.map((node) => {
-              if (node.data.taskId === task.id) {
-                return { ...node, data: { ...node.data, status: task.status } };
-              }
-              return node;
-            })
-          );
+        onSuccess: async () => {
+          try {
+            const taskNodes = await api.get("/task-nodes");
+            flow.setNodes(buildTaskNodes(taskNodes));
+            flow.setEdges(buildTaskNodeEdges(taskNodes));
+          } catch (e) {
+            console.error(e);
+            toast.error("タスクの読み込みに失敗しました。");
+          }
         },
       }
     );
