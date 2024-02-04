@@ -44,22 +44,32 @@ pub mod task_factory {
         create(db, task).await
     }
 
-    pub async fn create_subtask(db: &Db, user_id: &str, task_id: &str) -> AppResult<Task> {
-        let subtask = Task {
-            user_id: user_id.into(),
-            ..Default::default()
-        };
-        create(db, subtask.clone()).await?;
+    pub async fn create_subtask(db: &Db, parent_task_id: &str, task: Task) -> AppResult<Task> {
+        create(db, task.clone()).await?;
 
         sqlx::query!(
             "INSERT INTO subtask_connections(parent_task_id, subtask_id, user_id) VALUES($1, $2, $3);",
-            task_id,
-            subtask.id,
-            user_id,
+            parent_task_id,
+            task.id,
+            task.user_id,
         )
         .execute(db)
         .await?;
 
+        Ok(task)
+    }
+
+    pub async fn create_default_subtask(
+        db: &Db,
+        user_id: &str,
+        parent_task_id: &str,
+    ) -> AppResult<Task> {
+        let subtask = Task {
+            user_id: user_id.into(),
+            ..Default::default()
+        };
+
+        let subtask = create_subtask(db, parent_task_id, subtask).await?;
         Ok(subtask)
     }
 }

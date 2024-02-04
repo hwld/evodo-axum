@@ -87,46 +87,30 @@ pub async fn find_tasks(db: &mut Connection, user_id: &str) -> AppResult<Vec<Tas
     Ok(tasks)
 }
 
-pub struct FindParentTaskArgs<'a> {
+pub struct FindParentTaskIdsArgs<'a> {
     pub subtask_id: &'a str,
     pub user_id: &'a str,
 }
-pub async fn find_parent_tasks<'a>(
+pub async fn find_parent_task_ids<'a>(
     db: &mut Connection,
-    args: FindParentTaskArgs<'a>,
-) -> AppResult<Vec<Task>> {
-    let raw_parent_tasks = sqlx::query!(
+    args: FindParentTaskIdsArgs<'a>,
+) -> AppResult<Vec<String>> {
+    let parent_ids = sqlx::query!(
         r#"
-        SELECT t.*, sc2.subtask_id
-        FROM subtask_connections sc
-        LEFT OUTER JOIN tasks t ON (t.id = sc.parent_task_id AND t.user_id = sc.user_id)
-        LEFT OUTER JOIN subtask_connections sc2 ON (sc2.parent_task_id = t.id AND sc2.user_id = t.user_id)
+        SELECT id
+        FROM subtask_connections sc 
+            LEFT OUTER JOIN tasks t 
+            ON (t.id = sc.parent_task_id AND t.user_id = sc.user_id)
         WHERE sc.subtask_id = $1 AND t.user_id = $2;
         "#,
         args.subtask_id,
-        args.user_id
+        args.user_id,
     )
     .fetch_all(&mut *db)
     .await?;
 
-    let mut task_map: HashMap<String, Task> = HashMap::new();
-    for raw_task in raw_parent_tasks {
-        let task = task_map.entry(raw_task.id.clone()).or_insert(Task {
-            id: raw_task.id,
-            status: raw_task.status.into(),
-            title: raw_task.title,
-            user_id: raw_task.user_id,
-            subtask_ids: Vec::new(),
-            created_at: raw_task.created_at,
-            updated_at: raw_task.updated_at,
-        });
-        if let Some(subtask_id) = raw_task.subtask_id {
-            task.subtask_ids.push(subtask_id);
-        }
-    }
-
-    let parent_tasks: Vec<Task> = task_map.into_values().collect();
-    Ok(parent_tasks)
+    let parent_ids: Vec<String> = parent_ids.into_iter().map(|r| r.id).collect();
+    Ok(parent_ids)
 }
 
 pub async fn all_tasks_done(db: &mut Connection, task_ids: &Vec<String>) -> AppResult<bool> {
@@ -194,16 +178,33 @@ pub struct DeleteTaskArgs<'a> {
     pub id: &'a str,
     pub user_id: &'a str,
 }
-pub async fn delete_task<'a>(
-    db: &mut Connection,
-    DeleteTaskArgs { id, user_id }: DeleteTaskArgs<'a>,
-) -> AppResult<String> {
+pub async fn delete_task<'a>(db: &mut Connection, args: DeleteTaskArgs<'a>) -> AppResult<String> {
+    // 祖先タスクを更新するために削除する前に取得しておく
+    let parent_ids = find_parent_task_ids(
+        &mut *db,
+        FindParentTaskIdsArgs {
+            subtask_id: args.id,
+            user_id: args.user_id,
+        },
+    )
+    .await?;
+
     let result = sqlx::query!(
         r#"DELETE FROM tasks WHERE id = $1 AND user_id = $2 RETURNING *;"#,
-        id,
-        user_id
+        args.id,
+        args.user_id
     )
     .fetch_one(&mut *db)
+    .await?;
+
+    // 祖先タスクを更新
+    update_tasks_and_ancestors_status(
+        &mut *db,
+        TasksAndUser {
+            task_ids: &parent_ids,
+            user_id: args.user_id,
+        },
+    )
     .await?;
 
     Ok(result.id)
@@ -283,6 +284,16 @@ pub async fn update_task_status<'a>(
     .fetch_one(&mut *db)
     .await?;
 
+    // すべての祖先タスクを更新する
+    update_all_ancestors_task_status(
+        &mut *db,
+        TaskAndUser {
+            task_id: args.id,
+            user_id: args.user_id,
+        },
+    )
+    .await?;
+
     let task = find_task(
         &mut *db,
         FindTaskArgs {
@@ -303,23 +314,23 @@ pub async fn update_all_ancestors_task_status<'a>(
     db: &mut Connection,
     args: TaskAndUser<'a>,
 ) -> AppResult<()> {
-    let parents = find_parent_tasks(
+    let parent_ids = find_parent_task_ids(
         &mut *db,
-        FindParentTaskArgs {
+        FindParentTaskIdsArgs {
             subtask_id: args.task_id,
             user_id: args.user_id,
         },
     )
     .await?;
 
-    if parents.is_empty() {
+    if parent_ids.is_empty() {
         return Ok(());
     };
 
     update_tasks_and_ancestors_status(
         &mut *db,
         TasksAndUser {
-            tasks: &parents,
+            task_ids: &parent_ids,
             user_id: args.user_id,
         },
     )
@@ -329,9 +340,11 @@ pub async fn update_all_ancestors_task_status<'a>(
 }
 
 pub struct TasksAndUser<'a> {
-    tasks: &'a Vec<Task>,
+    task_ids: &'a Vec<String>,
     user_id: &'a str,
 }
+
+// パフォーマンス悪いかも
 #[async_recursion]
 pub async fn update_tasks_and_ancestors_status<'a>(
     db: &mut Connection,
@@ -340,32 +353,44 @@ pub async fn update_tasks_and_ancestors_status<'a>(
 where
     'a: 'async_recursion,
 {
-    if args.tasks.is_empty() {
+    if args.task_ids.is_empty() {
         return Ok(());
     }
 
-    for task in args.tasks {
-        let all_subtasks_done = all_tasks_done(&mut *db, &task.subtask_ids).await?;
-        let new_status = if all_subtasks_done {
-            TaskStatus::Done
-        } else {
-            TaskStatus::Todo
-        };
-
-        // 渡されたタスクが多いことを想定するならupdateをまとめたほうがいいかもしれないけど、多くならないと思う
-        update_task_status(
+    for task_id in args.task_ids {
+        let task = find_task(
             &mut *db,
-            UpdateTaskStatusArgs {
-                id: &task.id,
-                status: &new_status,
+            FindTaskArgs {
+                task_id,
                 user_id: args.user_id,
             },
         )
         .await?;
 
-        let parents = find_parent_tasks(
+        // 子から辿った親がargs.tasksに入っているなら空にはならないが、子を持たないtaskで呼ばれる可能性がある
+        if !task.subtask_ids.is_empty() {
+            let all_subtasks_done = all_tasks_done(&mut *db, &task.subtask_ids).await?;
+            let new_status = if all_subtasks_done {
+                TaskStatus::Done
+            } else {
+                TaskStatus::Todo
+            };
+
+            // 渡されたタスクが多いことを想定するならupdateをまとめたほうがいいかもしれないけど、多くならないと思う
+            update_task_status(
+                &mut *db,
+                UpdateTaskStatusArgs {
+                    id: &task.id,
+                    status: &new_status,
+                    user_id: args.user_id,
+                },
+            )
+            .await?;
+        }
+
+        let parent_ids = find_parent_task_ids(
             &mut *db,
-            FindParentTaskArgs {
+            FindParentTaskIdsArgs {
                 subtask_id: &task.id,
                 user_id: args.user_id,
             },
@@ -376,7 +401,7 @@ where
         update_tasks_and_ancestors_status(
             &mut *db,
             TasksAndUser {
-                tasks: &parents,
+                task_ids: &parent_ids,
                 user_id: args.user_id,
             },
         )
@@ -427,6 +452,15 @@ pub async fn insert_subtask_connection<'a>(
     .fetch_one(&mut *db)
     .await?;
 
+    update_all_ancestors_task_status(
+        &mut *db,
+        TaskAndUser {
+            task_id: args.subtask_id,
+            user_id: args.user_id,
+        },
+    )
+    .await?;
+
     Ok(())
 }
 
@@ -439,12 +473,32 @@ pub async fn delete_subtask_connection<'a>(
     db: &mut Connection,
     args: DeleteSubTaskConnectionArgs<'a>,
 ) -> AppResult<()> {
+    // 後でサブタスクの親すべてを更新する必要があるので、subtask_connectionを削除する前に親を取得しておく
+    let parent_ids = find_parent_task_ids(
+        &mut *db,
+        FindParentTaskIdsArgs {
+            subtask_id: args.subtask_id,
+            user_id: args.user_id,
+        },
+    )
+    .await?;
+
     sqlx::query!(
         "DELETE FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2 AND user_id = $3 RETURNING *",
         args.parent_task_id,
         args.subtask_id,
         args.user_id
     ).fetch_one(&mut *db).await?;
+
+    // 接続を切り離したサブタスクの祖先の状態をすべて更新する
+    update_tasks_and_ancestors_status(
+        &mut *db,
+        TasksAndUser {
+            task_ids: &parent_ids,
+            user_id: args.user_id,
+        },
+    )
+    .await?;
 
     Ok(())
 }

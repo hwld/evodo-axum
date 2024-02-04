@@ -12,10 +12,7 @@ use crate::{
     features::{
         auth::Auth,
         task::{
-            db::{
-                find_task, update_all_ancestors_task_status, update_task_status, FindTaskArgs,
-                TaskAndUser, UpdateTaskStatusArgs,
-            },
+            db::{find_task, update_task_status, FindTaskArgs, UpdateTaskStatusArgs},
             UpdateTaskStatus,
         },
     },
@@ -63,16 +60,6 @@ pub async fn handler(
     )
     .await?;
 
-    // すべての祖先タスクを更新する
-    update_all_ancestors_task_status(
-        &mut tx,
-        TaskAndUser {
-            task_id: &updated_task.id,
-            user_id: &user.id,
-        },
-    )
-    .await?;
-
     tx.commit().await?;
 
     Ok(Json(updated_task))
@@ -101,10 +88,10 @@ mod tests {
         // t12 --> t122
         // t12 --> t123
         let t1 = task_factory::create_with_user(&db, &user.id).await?;
-        let t12 = task_factory::create_subtask(&db, &user.id, &t1.id).await?;
-        let t121 = task_factory::create_subtask(&db, &user.id, &t12.id).await?;
-        let t122 = task_factory::create_subtask(&db, &user.id, &t12.id).await?;
-        let t123 = task_factory::create_subtask(&db, &user.id, &t12.id).await?;
+        let t12 = task_factory::create_default_subtask(&db, &user.id, &t1.id).await?;
+        let t121 = task_factory::create_default_subtask(&db, &user.id, &t12.id).await?;
+        let t122 = task_factory::create_default_subtask(&db, &user.id, &t12.id).await?;
+        let t123 = task_factory::create_default_subtask(&db, &user.id, &t12.id).await?;
         assert!([&t1, &t12, &t121, &t122, &t123]
             .iter()
             .all(|s| s.status == TaskStatus::Todo));
@@ -204,8 +191,8 @@ mod tests {
         // t1 --> t2
         // t1 --> t3
         let t1 = task_factory::create_with_user(&db, &user.id).await?;
-        let t2 = task_factory::create_subtask(&db, &user.id, &t1.id).await?;
-        let t3 = task_factory::create_subtask(&db, &user.id, &t1.id).await?;
+        let t2 = task_factory::create_default_subtask(&db, &user.id, &t1.id).await?;
+        let t3 = task_factory::create_default_subtask(&db, &user.id, &t1.id).await?;
         assert!([&t1, &t2, &t3].iter().all(|t| t.status == TaskStatus::Todo));
 
         let res = test

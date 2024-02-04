@@ -51,7 +51,9 @@ pub async fn handler(
 #[cfg(test)]
 mod tests {
     use crate::app::Db;
+    use crate::features::task::db::{find_task, FindTaskArgs};
     use crate::features::task::test::task_factory;
+    use crate::features::task::{Task, TaskStatus};
     use crate::features::user::test::user_factory;
     use crate::{app::tests::AppTest, features::task::routes::TaskPaths};
 
@@ -93,6 +95,63 @@ mod tests {
 
         let tasks = sqlx::query!("SELECT * FROM tasks;").fetch_all(&db).await?;
         assert_eq!(tasks.len(), 1);
+
+        Ok(())
+    }
+
+    #[sqlx::test]
+    async fn 完了していないサブタスクを削除するとメインタスクが完了状態になる(
+        db: Db,
+    ) -> AppResult<()> {
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
+
+        let parent = task_factory::create(
+            &db,
+            Task {
+                status: TaskStatus::Todo,
+                user_id: user.id.clone(),
+                ..Default::default()
+            },
+        )
+        .await?;
+        let _done_sub = task_factory::create_subtask(
+            &db,
+            &parent.id,
+            Task {
+                status: TaskStatus::Done,
+                user_id: user.id.clone(),
+                ..Default::default()
+            },
+        )
+        .await?;
+        let todo_sub = task_factory::create_subtask(
+            &db,
+            &parent.id,
+            Task {
+                status: TaskStatus::Todo,
+                user_id: user.id.clone(),
+                ..Default::default()
+            },
+        )
+        .await?;
+
+        let res = test
+            .server()
+            .delete(&TaskPaths::one_task(&todo_sub.id))
+            .await;
+        res.assert_status_ok();
+
+        let mut conn = db.acquire().await?;
+        let parent = find_task(
+            &mut conn,
+            FindTaskArgs {
+                task_id: &parent.id,
+                user_id: &user.id,
+            },
+        )
+        .await?;
+        assert_eq!(parent.status, TaskStatus::Done);
 
         Ok(())
     }

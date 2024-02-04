@@ -61,11 +61,11 @@ mod tests {
         let user = test.login(None).await?;
 
         let task_a1 = task_factory::create_with_user(&db, &user.id).await?;
-        let task_b1 = task_factory::create_subtask(&db, &user.id, &task_a1.id).await?;
-        let task_b2 = task_factory::create_subtask(&db, &user.id, &task_a1.id).await?;
-        let task_b3 = task_factory::create_subtask(&db, &user.id, &task_a1.id).await?;
-        let task_c1 = task_factory::create_subtask(&db, &user.id, &task_b1.id).await?;
-        let task_c2 = task_factory::create_subtask(&db, &user.id, &task_b1.id).await?;
+        let task_b1 = task_factory::create_default_subtask(&db, &user.id, &task_a1.id).await?;
+        let task_b2 = task_factory::create_default_subtask(&db, &user.id, &task_a1.id).await?;
+        let task_b3 = task_factory::create_default_subtask(&db, &user.id, &task_a1.id).await?;
+        let task_c1 = task_factory::create_default_subtask(&db, &user.id, &task_b1.id).await?;
+        let task_c2 = task_factory::create_default_subtask(&db, &user.id, &task_b1.id).await?;
 
         let tasks: Vec<Task> = test.server().get(&TaskPaths::tasks()).await.json();
         assert_eq!(tasks.len(), 6);

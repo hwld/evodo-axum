@@ -7,10 +7,7 @@ use crate::{
     features::{
         auth::Auth,
         task::{
-            db::{
-                insert_subtask_connection, update_all_ancestors_task_status,
-                InsertSubTaskConnectionArgs, TaskAndUser,
-            },
+            db::{insert_subtask_connection, InsertSubTaskConnectionArgs},
             ConnectSubtask,
         },
     },
@@ -34,15 +31,6 @@ pub async fn handler(
         InsertSubTaskConnectionArgs {
             parent_task_id: &payload.parent_task_id,
             subtask_id: &payload.subtask_id,
-            user_id: &user.id,
-        },
-    )
-    .await?;
-
-    update_all_ancestors_task_status(
-        &mut tx,
-        TaskAndUser {
-            task_id: &payload.subtask_id,
             user_id: &user.id,
         },
     )
@@ -127,7 +115,7 @@ mod tests {
         let user = test.login(None).await?;
 
         let task1 = task_factory::create_with_user(&db, &user.id).await?;
-        let task2 = task_factory::create_subtask(&db, &user.id, &task1.id).await?;
+        let task2 = task_factory::create_default_subtask(&db, &user.id, &task1.id).await?;
 
         let res = test
             .server()
@@ -157,10 +145,10 @@ mod tests {
         let user = test.login(None).await?;
 
         let task1 = task_factory::create_with_user(&db, &user.id).await?;
-        let task2 = task_factory::create_subtask(&db, &user.id, &task1.id).await?;
-        let task3 = task_factory::create_subtask(&db, &user.id, &task2.id).await?;
-        let task4 = task_factory::create_subtask(&db, &user.id, &task3.id).await?;
-        let task5 = task_factory::create_subtask(&db, &user.id, &task4.id).await?;
+        let task2 = task_factory::create_default_subtask(&db, &user.id, &task1.id).await?;
+        let task3 = task_factory::create_default_subtask(&db, &user.id, &task2.id).await?;
+        let task4 = task_factory::create_default_subtask(&db, &user.id, &task3.id).await?;
+        let task5 = task_factory::create_default_subtask(&db, &user.id, &task4.id).await?;
 
         let res = test
             .server()
@@ -246,6 +234,66 @@ mod tests {
         )
         .await?;
         assert_eq!(parent.status, TaskStatus::Done);
+
+        Ok(())
+    }
+
+    #[sqlx::test]
+    async fn 未完了状態のタスクをサブタスクにすると未完了状態になる(
+        db: Db,
+    ) -> AppResult<()> {
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
+
+        let parent = task_factory::create(
+            &db,
+            Task {
+                status: TaskStatus::Done,
+                user_id: user.id.clone(),
+                ..Default::default()
+            },
+        )
+        .await?;
+        let _done_sub = task_factory::create_subtask(
+            &db,
+            &parent.id,
+            Task {
+                status: TaskStatus::Done,
+                user_id: user.id.clone(),
+                ..Default::default()
+            },
+        )
+        .await?;
+        let todo_sub = task_factory::create(
+            &db,
+            Task {
+                status: TaskStatus::Todo,
+                user_id: user.id.clone(),
+                ..Default::default()
+            },
+        )
+        .await?;
+
+        let res = test
+            .server()
+            .post(&TaskPaths::connect_subtask())
+            .json(&ConnectSubtask {
+                parent_task_id: parent.id.clone(),
+                subtask_id: todo_sub.id.clone(),
+            })
+            .await;
+        res.assert_status_ok();
+
+        let mut conn = db.acquire().await?;
+        let parent = find_task(
+            &mut conn,
+            FindTaskArgs {
+                task_id: &parent.id,
+                user_id: &user.id,
+            },
+        )
+        .await?;
+        assert_eq!(parent.status, TaskStatus::Todo);
 
         Ok(())
     }
