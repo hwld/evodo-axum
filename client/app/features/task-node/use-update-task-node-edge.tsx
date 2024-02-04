@@ -5,8 +5,11 @@ import { useReconnectSubtask } from "./use-reconnect-subtask";
 import {
   subtaskHandle,
   generateSubtaskEdgeId,
-  generateSubtaskEdge,
+  buildTaskNodes,
+  buildTaskNodeEdges,
 } from "./util";
+import { api } from "~/api/index.client";
+import { toast } from "sonner";
 
 type UseUpdateTaskNodeEdgeArgs = {
   setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
@@ -46,14 +49,15 @@ export const useUpdateTaskNodeEdge = ({
             new_subtask_id: newConnection.target,
           },
           {
-            onSuccess: () => {
-              setEdges((eds) => [
-                ...eds,
-                generateSubtaskEdge({
-                  parentTaskId: newParentTaskId,
-                  subtaskId: newSubtaskId,
-                }),
-              ]);
+            onSuccess: async () => {
+              try {
+                const taskNodes = await api.get("/task-nodes");
+                flow.setNodes(buildTaskNodes(taskNodes));
+                flow.setEdges(buildTaskNodeEdges(taskNodes));
+              } catch (e) {
+                console.error(e);
+                toast.error("タスクの読み込みに失敗しました。");
+              }
             },
             onError: () => {
               const cacheOldEdge = oldEdge;
@@ -100,6 +104,15 @@ export const useUpdateTaskNodeEdge = ({
             subtask_id: edge.target,
           },
           {
+            onSuccess: async () => {
+              try {
+                const taskNodes = await api.get("/task-nodes");
+                flow.setNodes(buildTaskNodes(taskNodes));
+              } catch (e) {
+                console.error(e);
+                toast.error("タスクの読み込みに失敗しました。");
+              }
+            },
             onError: () => {
               const cacheEdge = edge;
               setEdges((eds) => [...eds, cacheEdge]);
@@ -109,7 +122,7 @@ export const useUpdateTaskNodeEdge = ({
         setEdges((eds) => eds.filter((e) => e.id !== edge.id));
       });
     },
-    [disconnectSubtask, setEdges, updateSuccessful]
+    [disconnectSubtask, flow, setEdges, updateSuccessful]
   );
 
   return { handleEdgeUpdateStart, handleEdgeUpdate, handleEdgeUpdateEnd };

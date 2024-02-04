@@ -18,7 +18,7 @@ export type TaskNodeData = {
 };
 
 type Props = NodeProps<TaskNodeData>;
-export const TaskNode: React.FC<Props> = ({ data, id: nodeId }) => {
+export const TaskNode: React.FC<Props> = ({ data }) => {
   const checkboxId = useId();
   const flow = useReactFlow<TaskNodeData>();
   const isChecked = data.status === "Done";
@@ -28,8 +28,15 @@ export const TaskNode: React.FC<Props> = ({ data, id: nodeId }) => {
     deleteMutation.mutate(
       { taskId: data.taskId },
       {
-        onSuccess: () => {
-          flow.deleteElements({ nodes: [{ id: nodeId }] });
+        onSuccess: async () => {
+          try {
+            const nodes = await api.get("/task-nodes");
+            flow.setNodes(buildTaskNodes(nodes));
+            flow.setEdges(buildTaskNodeEdges(nodes));
+          } catch (e) {
+            console.error(e);
+            toast.error("タスクを読み込めませんでした。");
+          }
         },
       }
     );
