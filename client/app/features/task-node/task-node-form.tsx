@@ -8,6 +8,7 @@ import { TaskNodeData } from "./task-node";
 import { useEffect, useRef } from "react";
 import { useMergedRef } from "@mantine/hooks";
 import { CommandIcon } from "lucide-react";
+import { generateTaskNode } from "./util";
 
 const createTaskNodeSchema = schemas.CreateTaskNode.pick({ task: true });
 type CreateTaskNode = z.infer<typeof createTaskNodeSchema>;
@@ -38,16 +39,8 @@ export const TaskNodeForm = ({ onAddNode }: Props) => {
         y: (-y + window.innerHeight / 2) / zoom,
       },
       {
-        onSuccess: ({ node_info, task }) => {
-          onAddNode({
-            id: task.id,
-            data: {
-              title: task.title,
-              taskId: task.id,
-              status: task.status,
-            },
-            position: { x: node_info.x, y: node_info.y },
-          });
+        onSuccess: (data) => {
+          onAddNode(generateTaskNode(data));
           reset();
         },
       }

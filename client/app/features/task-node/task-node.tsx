@@ -1,8 +1,13 @@
-import { CheckCircle2Icon, CircleDashedIcon, XIcon } from "lucide-react";
+import {
+  BlocksIcon,
+  CheckIcon,
+  Grid2X2Icon,
+  LayoutGridIcon,
+  XIcon,
+} from "lucide-react";
 import { Handle, NodeProps, Position, useReactFlow } from "reactflow";
 import { useDeleteTask } from "./use-delete-task-node";
 import { useUpdateTaskStatus } from "../task/use-update-task-status";
-import { Node } from "~/components/ui/node";
 import { Checkbox, CheckboxIndicator } from "@radix-ui/react-checkbox";
 import { useId } from "react";
 import { cn } from "~/lib/utils";
@@ -10,11 +15,15 @@ import { Task } from "../task";
 import { buildTaskNodeEdges, buildTaskNodes, subtaskHandle } from "./util";
 import { api } from "~/api/index.client";
 import { toast } from "sonner";
+import { Card } from "~/components/ui/card";
+import { Separator } from "~/components/ui/separator";
+import clsx from "clsx";
 
 export type TaskNodeData = {
   title: string;
   taskId: string;
   status: Task["status"];
+  type: "normal" | "main" | "sub";
 };
 
 type Props = NodeProps<TaskNodeData>;
@@ -65,30 +74,59 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
   };
 
   return (
-    <Node
+    <Card
       className={cn(
-        "group max-w-[450px] break-all relative",
+        "group min-w-[250px] max-w-[450px] break-all relative flex flex-col gap-1 p-2 transition-colors",
         isChecked && "border-green-500"
       )}
     >
-      <div className="flex items-center">
+      <div className="flex gap-1 text-muted-foreground items-center">
+        {
+          {
+            sub: (
+              <>
+                <BlocksIcon size={16} />
+                <p className="text-xs">サブタスク</p>
+              </>
+            ),
+            main: (
+              <>
+                <LayoutGridIcon size={16} />
+                <p className="text-xs">メインタスク</p>
+              </>
+            ),
+            normal: (
+              <>
+                <Grid2X2Icon size={16} />
+                <p className="text-xs">タスク</p>
+              </>
+            ),
+          }[data.type]
+        }
+      </div>
+      <Separator
+        className={cn("transition-colors", isChecked && "bg-green-500")}
+      />
+      <div
+        className={clsx("flex items-center p-1 transition-colors grow rounded")}
+      >
         <Checkbox
           checked={isChecked}
           onCheckedChange={handleUpdateStatus}
           id={checkboxId}
+          className={clsx(
+            "shrink-0 size-[20px] border-2 rounded flex items-center justify-center data-[state=checked]:border-green-500 data-[state=checked]:bg-green-50 text-green-500 transition-colors relative hover:bg-green-50 hover:data-[state=checked]:text-green-400 hover:data-[state=checked]:border-green-400"
+          )}
         >
-          <CheckboxIndicator forceMount>
-            {isChecked ? (
-              <CheckCircle2Icon className="text-green-500" />
-            ) : (
-              <CircleDashedIcon className="text-muted-foreground" />
-            )}
+          <CheckboxIndicator>
+            <CheckIcon size={13} strokeWidth={3} />
           </CheckboxIndicator>
         </Checkbox>
-        <label className="pl-2 cursor-pointer" htmlFor={checkboxId}>
+        <label className={clsx("pl-1 cursor-pointer")} htmlFor={checkboxId}>
           {data.title}
         </label>
       </div>
+
       <button
         className="rounded p-[2px] absolute top-1 right-1 text-neutral-500 group-hover:opacity-100 opacity-0 transition-[background-color,opacity] bg-primary text-primary-foreground hover:bg-primary/80"
         onClick={handleDelete}
@@ -99,20 +137,14 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
       <Handle
         type="target"
         position={Position.Left}
-        className="!-left-5 !size-4 !rounded-sm !bg-transparent !border !border-neutral-300 shadow"
+        className="!-left-[10px] !size-5 !rounded-full !bg-primary-foreground !border !border-neutral-300 shadow"
       />
       <Handle
         type="source"
         id={subtaskHandle}
         position={Position.Right}
-        className="!-right-5 !top-0 !translate-y-0 !size-4 !rounded-sm !bg-transparent !border !border-neutral-300 shadow"
+        className="!-right-[10px] !size-5 !rounded-full !bg-primary-foreground !border !border-neutral-300 shadow"
       />
-      <Handle
-        type="source"
-        id="block"
-        position={Position.Right}
-        className="!-right-5 !bottom-0 !top-auto !translate-y-0 !size-4 !rounded-sm !bg-transparent !border !border-neutral-300 shadow"
-      />
-    </Node>
+    </Card>
   );
 };

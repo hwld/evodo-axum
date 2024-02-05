@@ -26,19 +26,40 @@ export const generateSubtaskEdge = ({
   };
 };
 
+export const generateTaskNode = ({
+  task,
+  node_info,
+  type = "normal",
+}: TaskNode & { type?: "main" | "sub" | "normal" }): Node<TaskNodeData> => {
+  return {
+    type: "task",
+    id: task.id,
+    data: {
+      type,
+      title: task.title,
+      taskId: task.id,
+      status: task.status,
+    },
+    position: { x: node_info.x, y: node_info.y },
+  };
+};
+
 export type TaskNode = z.infer<typeof schemas.TaskNode>;
 export const buildTaskNodes = (taskNodes: TaskNode[]): Node<TaskNodeData>[] => {
+  const allSubtasks = taskNodes.map(({ task }) => task.subtask_ids).flat();
+
   return taskNodes.map(({ task, node_info }): Node<TaskNodeData> => {
-    return {
-      type: "task",
-      id: task.id,
-      data: {
-        title: task.title,
-        taskId: task.id,
-        status: task.status,
-      },
-      position: { x: node_info.x, y: node_info.y },
+    const getType = () => {
+      if (task.subtask_ids.length > 0) {
+        return "main";
+      } else if (allSubtasks.includes(task.id)) {
+        return "sub";
+      } else {
+        return "normal";
+      }
     };
+
+    return generateTaskNode({ task, node_info, type: getType() });
   });
 };
 
