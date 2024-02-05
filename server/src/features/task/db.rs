@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::anyhow;
 use async_recursion::async_recursion;
 use http::StatusCode;
-use sqlx::{QueryBuilder, Row, Sqlite};
+use sqlx::{Execute, QueryBuilder, Row, Sqlite};
 
 use crate::{
     app::{AppResult, Connection},
@@ -274,6 +274,44 @@ pub async fn update_task_status<'a>(
     .await?;
 
     Ok(task)
+}
+
+pub struct UpdateTasksStatusArgs<'a> {
+    pub task_ids: &'a Vec<String>,
+    pub status: &'a TaskStatus,
+    pub user_id: &'a str,
+}
+pub async fn update_tasks_status<'a>(
+    db: &mut Connection,
+    args: UpdateTasksStatusArgs<'a>,
+) -> AppResult<()> {
+    let mut query_builder: QueryBuilder<Sqlite> = QueryBuilder::new(
+        r#"
+        UPDATE
+            tasks 
+        SET
+            status = "#,
+    );
+    let query_builder = query_builder.push_bind(args.status);
+    let query_builder = query_builder.push(
+        r#"
+            ,updated_at = (strftime('%Y/%m/%d %H:%M:%S', CURRENT_TIMESTAMP, 'localtime'))
+        WHERE
+            id IN ("#,
+    );
+
+    let mut separated = query_builder.separated(", ");
+    for id in args.task_ids {
+        separated.push_bind(id);
+    }
+    separated.push_unseparated(") AND user_id = ");
+    query_builder.push_bind(args.user_id);
+
+    let query = query_builder.build();
+    println!("{}", query.sql());
+    query.execute(&mut *db).await?;
+
+    Ok(())
 }
 
 pub struct TaskAndUser<'a> {
