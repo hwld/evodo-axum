@@ -129,9 +129,10 @@ impl AuthnBackend for Auth {
             .map_err(|e| AuthError::Unknown(e.into()))?;
         let user = find_user(&mut conn, &user_id)
             .await
-            .map_err(|_| AuthError::UserNotFound(user_id))?;
+            .map_err(|e| AuthError::Unknown(anyhow!(e.to_string())))?
+            .ok_or(AuthError::UserNotFound(user_id))?;
 
-        Ok(user)
+        Ok(Some(user))
     }
 
     async fn get_user(&self, user_id: &UserId<Self>) -> Result<Option<Self::User>, Self::Error> {

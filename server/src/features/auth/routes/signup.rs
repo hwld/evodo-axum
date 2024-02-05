@@ -47,6 +47,8 @@ pub async fn handler(
     )
     .await?;
 
+    conn.commit().await?;
+
     session.flush().await?;
     auth_session.login(&user).await?;
 
