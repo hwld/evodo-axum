@@ -32,8 +32,11 @@ export const NodeView: React.FC<Props> = ({ children, ...props }) => {
       </Panel>
 
       <Background />
-      <Controls />
-      <MiniMap />
+      <Controls
+        position="bottom-left"
+        className="!top-[50%] !bottom-[50%] !-translate-y-[50%] h-min border border-border rounded overflow-hidden"
+      />
+      <MiniMap position="bottom-left" />
     </ReactFlow>
   );
 };

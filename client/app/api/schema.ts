@@ -230,6 +230,12 @@ const endpoints = makeApi([
     response: Task,
   },
   {
+    method: "get",
+    path: "/tasks/:id",
+    requestFormat: "json",
+    response: Task,
+  },
+  {
     method: "put",
     path: "/tasks/:id",
     requestFormat: "json",

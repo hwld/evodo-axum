@@ -14,6 +14,7 @@ import reactFlowStyles from "reactflow/dist/style.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { Toaster } from "./components/ui/sonner";
+import { ReactFlowProvider } from "reactflow";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: tailwindStylesheet },
@@ -43,7 +44,9 @@ export default function App() {
       </head>
       <body>
         <QueryClientProvider client={queryClient}>
-          <Outlet />
+          <ReactFlowProvider>
+            <Outlet />
+          </ReactFlowProvider>
         </QueryClientProvider>
         <Toaster />
         <ScrollRestoration />

@@ -3,7 +3,6 @@ import {
   CheckIcon,
   Grid2X2Icon,
   LayoutGridIcon,
-  XIcon,
 } from "lucide-react";
 import { Handle, NodeProps, Position, useReactFlow } from "reactflow";
 import { useUpdateTaskStatus } from "../task/use-update-task-status";
@@ -12,14 +11,14 @@ import { useId, useState } from "react";
 import { cn } from "~/lib/utils";
 import { Task } from "../task";
 import { buildTaskNodeEdges, buildTaskNodes, subtaskHandle } from "./util";
-import { api } from "~/api/index.client";
-import { toast } from "sonner";
 import { Card } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
 import clsx from "clsx";
-import { DeleteTaskDialog } from "./delete-task-dialog";
 import { UpdateTaskDialog } from "./update-task-dialog";
-import { useDeleteTask } from "./use-delete-task-node";
+import { TaskNodeMenu } from "./task-node-menu";
+import { useRevalidator } from "@remix-run/react";
+import { toast } from "sonner";
+import { api } from "~/api/index.client";
 
 export type TaskNodeData = {
   title: string;
@@ -30,33 +29,10 @@ export type TaskNodeData = {
 
 type Props = NodeProps<TaskNodeData>;
 export const TaskNode: React.FC<Props> = ({ data }) => {
+  const revalidator = useRevalidator();
   const checkboxId = useId();
   const flow = useReactFlow<TaskNodeData>();
   const isChecked = data.status === "Done";
-
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const handleTriggerDelete = () => {
-    setIsDeleteDialogOpen(true);
-  };
-
-  const deleteMutation = useDeleteTask();
-  const handleDelete = () => {
-    deleteMutation.mutate(
-      { taskId: data.taskId },
-      {
-        onSuccess: async () => {
-          try {
-            const nodes = await api.get("/task-nodes");
-            flow.setNodes(buildTaskNodes(nodes));
-            flow.setEdges(buildTaskNodeEdges(nodes));
-          } catch (e) {
-            console.error(e);
-            toast.error("タスクを読み込めませんでした。");
-          }
-        },
-      }
-    );
-  };
 
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const updateMutation = useUpdateTaskStatus();
@@ -85,6 +61,8 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
             console.error(e);
             toast.error("タスクの読み込みに失敗しました。");
           }
+
+          revalidator.revalidate();
         },
       }
     );
@@ -145,10 +123,9 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
         </label>
       </div>
 
-      <DeleteTaskDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        onDelete={handleDelete}
+      <TaskNodeMenu
+        taskId={data.taskId}
+        className="opacity-0 group-hover:opacity-100 absolute top-1 right-1"
       />
 
       <UpdateTaskDialog
@@ -156,14 +133,6 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
         onOpenChange={setIsUpdateDialogOpen}
         onUpdate={handleUpdateStatus}
       />
-
-      <button
-        className="rounded p-[2px] absolute top-1 right-1 text-neutral-500 group-hover:opacity-100 opacity-0 transition-[background-color,opacity] bg-primary text-primary-foreground hover:bg-primary/80"
-        onClick={handleTriggerDelete}
-        disabled={deleteMutation.isPending}
-      >
-        <XIcon size={20} />
-      </button>
       <Handle
         type="target"
         position={Position.Left}
