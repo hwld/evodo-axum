@@ -4,7 +4,6 @@ use axum::{
     Json,
 };
 use axum_login::AuthSession;
-use http::StatusCode;
 
 use crate::{
     app::{AppResult, AppState},
@@ -13,8 +12,8 @@ use crate::{
         auth::Auth,
         task::{
             db::{
-                find_task, update_all_ancestors_task_status, update_task_status, FindTaskArgs,
-                TaskAndUser, UpdateTaskStatusArgs,
+                find_all_descendant_task_ids, update_all_ancestors_task_status, update_task_status,
+                update_tasks_status, TaskAndUser, UpdateTaskStatusArgs, UpdateTasksStatusArgs,
             },
             UpdateTaskStatus,
         },
@@ -35,30 +34,31 @@ pub async fn handler(
 
     let mut tx = db.begin().await?;
 
-    let task = find_task(
-        &mut tx,
-        FindTaskArgs {
-            task_id: &id,
-            user_id: &user.id,
-        },
-    )
-    .await?;
-
-    // TODO: Doneに変更するのは子孫をすべてDoneにすれば良いので実装できそう
-    // サブタスクを持っているタスクは直接更新できない
-    if !task.subtask_ids.is_empty() {
-        return Err(AppError::new(
-            StatusCode::BAD_REQUEST,
-            Some("サブタスクを持っているタスクは直接更新できない"),
-        ));
-    }
-
     let updated_task = update_task_status(
         &mut tx,
         UpdateTaskStatusArgs {
             id: &id,
             user_id: &user.id,
             status: &payload.status,
+        },
+    )
+    .await?;
+
+    //　子孫タスクをすべて更新する
+    let descendants = find_all_descendant_task_ids(
+        &mut tx,
+        TaskAndUser {
+            task_id: &updated_task.id,
+            user_id: &user.id,
+        },
+    )
+    .await?;
+    update_tasks_status(
+        &mut tx,
+        UpdateTasksStatusArgs {
+            status: &payload.status,
+            user_id: &user.id,
+            task_ids: &descendants,
         },
     )
     .await?;
@@ -87,7 +87,7 @@ mod tests {
             db::{find_task, FindTaskArgs},
             routes::TaskPaths,
             test::task_factory,
-            TaskStatus, UpdateTaskStatus,
+            Task, TaskStatus, UpdateTaskStatus,
         },
     };
 
@@ -227,6 +227,172 @@ mod tests {
         )
         .await?;
         assert_eq!(parent.status, TaskStatus::Todo);
+
+        Ok(())
+    }
+
+    #[sqlx::test]
+    async fn 親タスクが完了状態になるとサブタスクもすべて完了状態になる(
+        db: Db,
+    ) -> AppResult<()> {
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
+
+        // parent --> sub1
+        // parent --> sub2
+        // sub1 --> sub11
+        let parent = task_factory::create_with_user(&db, &user.id).await?;
+        let sub1 = task_factory::create_subtask(
+            &db,
+            &parent.id,
+            Task {
+                status: TaskStatus::Todo,
+                user_id: user.id.clone(),
+                ..Default::default()
+            },
+        )
+        .await?;
+        let sub2 = task_factory::create_subtask(
+            &db,
+            &parent.id,
+            Task {
+                status: TaskStatus::Todo,
+                user_id: user.id.clone(),
+                ..Default::default()
+            },
+        )
+        .await?;
+        let sub11 = task_factory::create_subtask(
+            &db,
+            &sub1.id,
+            Task {
+                status: TaskStatus::Todo,
+                user_id: user.id.clone(),
+                ..Default::default()
+            },
+        )
+        .await?;
+
+        let res = test
+            .server()
+            .put(&TaskPaths::one_update_task_status(&parent.id))
+            .json(&UpdateTaskStatus {
+                status: TaskStatus::Done,
+            })
+            .await;
+        res.assert_status_ok();
+
+        let mut conn = db.acquire().await?;
+        let sub1 = find_task(
+            &mut conn,
+            FindTaskArgs {
+                user_id: &user.id,
+                task_id: &sub1.id,
+            },
+        )
+        .await?;
+        let sub2 = find_task(
+            &mut conn,
+            FindTaskArgs {
+                user_id: &user.id,
+                task_id: &sub2.id,
+            },
+        )
+        .await?;
+        let sub11 = find_task(
+            &mut conn,
+            FindTaskArgs {
+                user_id: &user.id,
+                task_id: &sub11.id,
+            },
+        )
+        .await?;
+        assert_eq!(sub1.status, TaskStatus::Done);
+        assert_eq!(sub2.status, TaskStatus::Done);
+        assert_eq!(sub11.status, TaskStatus::Done);
+
+        Ok(())
+    }
+
+    #[sqlx::test]
+    async fn 親タスクが未完了になるとサブタスクもすべて未完了になる(
+        db: Db,
+    ) -> AppResult<()> {
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
+
+        // parent --> sub1
+        // parent --> sub2
+        // sub1 --> sub11
+        let parent = task_factory::create_with_user(&db, &user.id).await?;
+        let sub1 = task_factory::create_subtask(
+            &db,
+            &parent.id,
+            Task {
+                status: TaskStatus::Done,
+                user_id: user.id.clone(),
+                ..Default::default()
+            },
+        )
+        .await?;
+        let sub2 = task_factory::create_subtask(
+            &db,
+            &parent.id,
+            Task {
+                status: TaskStatus::Done,
+                user_id: user.id.clone(),
+                ..Default::default()
+            },
+        )
+        .await?;
+        let sub11 = task_factory::create_subtask(
+            &db,
+            &sub1.id,
+            Task {
+                status: TaskStatus::Done,
+                user_id: user.id.clone(),
+                ..Default::default()
+            },
+        )
+        .await?;
+
+        let res = test
+            .server()
+            .put(&TaskPaths::one_update_task_status(&parent.id))
+            .json(&UpdateTaskStatus {
+                status: TaskStatus::Todo,
+            })
+            .await;
+        res.assert_status_ok();
+
+        let mut conn = db.acquire().await?;
+        let sub1 = find_task(
+            &mut conn,
+            FindTaskArgs {
+                user_id: &user.id,
+                task_id: &sub1.id,
+            },
+        )
+        .await?;
+        let sub2 = find_task(
+            &mut conn,
+            FindTaskArgs {
+                user_id: &user.id,
+                task_id: &sub2.id,
+            },
+        )
+        .await?;
+        let sub11 = find_task(
+            &mut conn,
+            FindTaskArgs {
+                user_id: &user.id,
+                task_id: &sub11.id,
+            },
+        )
+        .await?;
+        assert_eq!(sub1.status, TaskStatus::Todo);
+        assert_eq!(sub2.status, TaskStatus::Todo);
+        assert_eq!(sub11.status, TaskStatus::Todo);
 
         Ok(())
     }

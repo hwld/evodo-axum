@@ -113,6 +113,37 @@ pub async fn find_parent_task_ids<'a>(
     Ok(parent_ids)
 }
 
+pub async fn find_all_descendant_task_ids<'a>(
+    db: &mut Connection,
+    args: TaskAndUser<'a>,
+) -> AppResult<Vec<String>> {
+    let result = sqlx::query!(
+        r#"
+        WITH RECURSIVE descendants AS (
+            SELECT subtask_id, parent_task_id
+            FROM subtask_connections
+            WHERE parent_task_id = $1 AND user_id = $2
+
+            UNION
+
+            SELECT s.subtask_id, d.parent_task_id
+            FROM subtask_connections s
+            JOIN descendants d ON s.parent_task_id = d.subtask_id
+        )
+
+        SELECT DISTINCT subtask_id
+        FROM descendants
+        "#,
+        args.task_id,
+        args.user_id,
+    )
+    .fetch_all(&mut *db)
+    .await?;
+
+    let ids: Vec<String> = result.into_iter().filter_map(|r| r.subtask_id).collect();
+    Ok(ids)
+}
+
 pub async fn all_tasks_done(db: &mut Connection, task_ids: &Vec<String>) -> AppResult<bool> {
     if task_ids.is_empty() {
         return Ok(true);
@@ -285,6 +316,10 @@ pub async fn update_tasks_status<'a>(
     db: &mut Connection,
     args: UpdateTasksStatusArgs<'a>,
 ) -> AppResult<()> {
+    if args.task_ids.is_empty() {
+        return Ok(());
+    };
+
     let mut query_builder: QueryBuilder<Sqlite> = QueryBuilder::new(
         r#"
         UPDATE
