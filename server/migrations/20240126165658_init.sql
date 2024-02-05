@@ -16,7 +16,12 @@ CREATE TABLE `tasks` (
     CHECK (`status` = 'Todo' OR `status` = 'Done')
 );
 
-CREATE TABLE subtask_connections (
+CREATE TRIGGER `trigger_tasks_updated_at` AFTER UPDATE ON `tasks`
+BEGIN
+    UPDATE `tasks` SET `updated_at` = strftime('%Y/%m/%d %H:%M:%S', CURRENT_TIMESTAMP, 'localtime') WHERE rowid == NEW.rowid;
+END;
+
+CREATE TABLE `subtask_connections` (
     `subtask_id` text NOT NULL,
     `parent_task_id` text NOT NULL,
     `user_id` text NOT NULL,

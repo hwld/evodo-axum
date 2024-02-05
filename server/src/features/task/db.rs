@@ -242,8 +242,7 @@ pub async fn update_task<'a>(
             tasks 
         SET
             status = $1,
-            title = $2,
-            updated_at = (strftime('%Y/%m/%d %H:%M:%S', CURRENT_TIMESTAMP, 'localtime'))
+            title = $2
         WHERE
             id = $3 AND user_id = $4
         RETURNING *;        
@@ -282,8 +281,7 @@ pub async fn update_task_status<'a>(
         UPDATE
             tasks 
         SET
-            status = $1,
-            updated_at = (strftime('%Y/%m/%d %H:%M:%S', CURRENT_TIMESTAMP, 'localtime'))
+            status = $1
         WHERE
             id = $2 AND user_id = $3
         RETURNING *;        
@@ -330,7 +328,6 @@ pub async fn update_tasks_status<'a>(
     let query_builder = query_builder.push_bind(args.status);
     let query_builder = query_builder.push(
         r#"
-            ,updated_at = (strftime('%Y/%m/%d %H:%M:%S', CURRENT_TIMESTAMP, 'localtime'))
         WHERE
             id IN ("#,
     );
