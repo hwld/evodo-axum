@@ -58,21 +58,25 @@ export default function TaskNodeDetail() {
         </div>
 
         <div className="mt-5 space-y-1">
-          <DetailRow icon={Clock4Icon} label={task.created_at} />
-          <DetailRow icon={HistoryIcon} label={task.updated_at} />
+          <DetailRow icon={Clock4Icon} title="作成日" label={task.created_at} />
+          <DetailRow
+            icon={HistoryIcon}
+            title="更新日"
+            label={task.updated_at}
+          />
         </div>
       </Card>
     </div>
   );
 }
 
-type Props = { icon: LucideIcon; label: string };
-const DetailRow: React.FC<Props> = ({ icon: Icon, label }) => {
+type Props = { icon: LucideIcon; label: string; title: string };
+const DetailRow: React.FC<Props> = ({ icon: Icon, title, label }) => {
   return (
     <div className="flex items-center gap-1 w-full">
       <div className="w-[80px] flex gap-1 items-center text-muted-foreground text-sm">
         <Icon size={17} />
-        作成日
+        {title}
       </div>
       <div className="">{label}</div>
     </div>

@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import { PanelRightOpenIcon, XIcon } from "lucide-react";
-import { ComponentProps, useState } from "react";
+import { ComponentProps, ReactNode, useState } from "react";
 import { DeleteTaskDialog } from "../task/delete-task-dialog";
 import { useDeleteTask } from "./use-delete-task-node";
 import { useReactFlow } from "reactflow";
@@ -8,12 +8,18 @@ import { TaskNodeData } from "./task-node";
 import { api } from "~/api/index.client";
 import { buildTaskNodeEdges, buildTaskNodes } from "./util";
 import { toast } from "sonner";
-import { Link } from "@remix-run/react";
-import { RemixLinkProps } from "@remix-run/react/dist/components";
+import {
+  NavLink,
+  NavLinkProps,
+  useMatches,
+  useNavigate,
+} from "@remix-run/react";
 
 type Props = { taskId: string; className?: string };
 export const TaskNodeMenu: React.FC<Props> = ({ taskId, className }) => {
   const flow = useReactFlow<TaskNodeData>();
+  const navigate = useNavigate();
+  const matches = useMatches();
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const handleTriggerDelete = () => {
@@ -33,6 +39,10 @@ export const TaskNodeMenu: React.FC<Props> = ({ taskId, className }) => {
           } catch (e) {
             console.error(e);
             toast.error("タスクを読み込めませんでした。");
+          }
+
+          if (matches.some(({ id }) => id === "routes/task-nodes.$node-id")) {
+            navigate("/task-nodes", { replace: true });
           }
         },
       }
@@ -82,15 +92,15 @@ const TaskNodeMenuButton: React.FC<ButtonProps> = ({
   );
 };
 
-type LinkProps = RemixLinkProps;
+type LinkProps = NavLinkProps & { children: ReactNode };
 const TaskNodeMenuLink: React.FC<LinkProps> = ({
   children,
   className,
   ...props
 }) => {
   return (
-    <Link {...props} className={clsx(menuItemClass, className)}>
+    <NavLink {...props} className={clsx(menuItemClass, className)}>
       {children}
-    </Link>
+    </NavLink>
   );
 };
