@@ -8,6 +8,7 @@ pub mod connect_subtask;
 pub mod create_task;
 pub mod delete_task;
 pub mod disconnect_subtask;
+pub mod get_task;
 pub mod get_tasks;
 pub mod reconnect_subtask;
 pub mod update_task;
@@ -66,7 +67,9 @@ pub fn router() -> Router<AppState> {
         )
         .route(
             &TaskPaths::task(),
-            put(update_task::handler).delete(delete_task::handler),
+            get(get_task::handler)
+                .put(update_task::handler)
+                .delete(delete_task::handler),
         )
         .route(
             &TaskPaths::connect_subtask(),
