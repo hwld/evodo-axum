@@ -6,10 +6,9 @@ import {
   XIcon,
 } from "lucide-react";
 import { Handle, NodeProps, Position, useReactFlow } from "reactflow";
-import { useDeleteTask } from "./use-delete-task-node";
 import { useUpdateTaskStatus } from "../task/use-update-task-status";
 import { Checkbox, CheckboxIndicator } from "@radix-ui/react-checkbox";
-import { useId } from "react";
+import { useId, useState } from "react";
 import { cn } from "~/lib/utils";
 import { Task } from "../task";
 import { buildTaskNodeEdges, buildTaskNodes, subtaskHandle } from "./util";
@@ -18,6 +17,9 @@ import { toast } from "sonner";
 import { Card } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
 import clsx from "clsx";
+import { DeleteTaskDialog } from "./delete-task-dialog";
+import { UpdateTaskDialog } from "./update-task-dialog";
+import { useDeleteTask } from "./use-delete-task-node";
 
 export type TaskNodeData = {
   title: string;
@@ -31,6 +33,11 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
   const checkboxId = useId();
   const flow = useReactFlow<TaskNodeData>();
   const isChecked = data.status === "Done";
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const handleTriggerDelete = () => {
+    setIsDeleteDialogOpen(true);
+  };
 
   const deleteMutation = useDeleteTask();
   const handleDelete = () => {
@@ -51,7 +58,17 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
     );
   };
 
+  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const updateMutation = useUpdateTaskStatus();
+  const handleTriggerUpdateStatus = () => {
+    if (data.type === "main") {
+      setIsUpdateDialogOpen(true);
+      return;
+    }
+
+    handleUpdateStatus();
+  };
+
   const handleUpdateStatus = () => {
     updateMutation.mutate(
       {
@@ -112,11 +129,12 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
       >
         <Checkbox
           checked={isChecked}
-          onCheckedChange={handleUpdateStatus}
+          onCheckedChange={handleTriggerUpdateStatus}
           id={checkboxId}
           className={clsx(
             "shrink-0 size-[20px] border-2 rounded flex items-center justify-center data-[state=checked]:border-green-500 data-[state=checked]:bg-green-50 text-green-500 transition-colors relative hover:bg-green-50 hover:data-[state=checked]:text-green-400 hover:data-[state=checked]:border-green-400"
           )}
+          disabled={updateMutation.isPending}
         >
           <CheckboxIndicator>
             <CheckIcon size={13} strokeWidth={3} />
@@ -127,9 +145,21 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
         </label>
       </div>
 
+      <DeleteTaskDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        onDelete={handleDelete}
+      />
+
+      <UpdateTaskDialog
+        open={isUpdateDialogOpen}
+        onOpenChange={setIsUpdateDialogOpen}
+        onUpdate={handleUpdateStatus}
+      />
+
       <button
         className="rounded p-[2px] absolute top-1 right-1 text-neutral-500 group-hover:opacity-100 opacity-0 transition-[background-color,opacity] bg-primary text-primary-foreground hover:bg-primary/80"
-        onClick={handleDelete}
+        onClick={handleTriggerDelete}
         disabled={deleteMutation.isPending}
       >
         <XIcon size={20} />
