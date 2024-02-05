@@ -1,6 +1,7 @@
 pub mod db;
 pub mod routes;
 pub mod test;
+pub mod usecases;
 use garde::Validate;
 pub use routes::router;
 use serde::{Deserialize, Serialize};

@@ -12,7 +12,10 @@ use crate::{
     features::{
         auth::Auth,
         task::{
-            db::{find_task, update_task_status, FindTaskArgs, UpdateTaskStatusArgs},
+            db::{
+                find_task, update_all_ancestors_task_status, update_task_status, FindTaskArgs,
+                TaskAndUser, UpdateTaskStatusArgs,
+            },
             UpdateTaskStatus,
         },
     },
@@ -56,6 +59,16 @@ pub async fn handler(
             id: &id,
             user_id: &user.id,
             status: &payload.status,
+        },
+    )
+    .await?;
+
+    // すべての祖先タスクを更新する
+    update_all_ancestors_task_status(
+        &mut tx,
+        TaskAndUser {
+            task_id: &id,
+            user_id: &user.id,
         },
     )
     .await?;

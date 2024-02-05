@@ -179,32 +179,12 @@ pub struct DeleteTaskArgs<'a> {
     pub user_id: &'a str,
 }
 pub async fn delete_task<'a>(db: &mut Connection, args: DeleteTaskArgs<'a>) -> AppResult<String> {
-    // 祖先タスクを更新するために削除する前に取得しておく
-    let parent_ids = find_parent_task_ids(
-        &mut *db,
-        FindParentTaskIdsArgs {
-            subtask_id: args.id,
-            user_id: args.user_id,
-        },
-    )
-    .await?;
-
     let result = sqlx::query!(
         r#"DELETE FROM tasks WHERE id = $1 AND user_id = $2 RETURNING *;"#,
         args.id,
         args.user_id
     )
     .fetch_one(&mut *db)
-    .await?;
-
-    // 祖先タスクを更新
-    update_tasks_and_ancestors_status(
-        &mut *db,
-        TasksAndUser {
-            task_ids: &parent_ids,
-            user_id: args.user_id,
-        },
-    )
     .await?;
 
     Ok(result.id)
@@ -284,16 +264,6 @@ pub async fn update_task_status<'a>(
     .fetch_one(&mut *db)
     .await?;
 
-    // すべての祖先タスクを更新する
-    update_all_ancestors_task_status(
-        &mut *db,
-        TaskAndUser {
-            task_id: args.id,
-            user_id: args.user_id,
-        },
-    )
-    .await?;
-
     let task = find_task(
         &mut *db,
         FindTaskArgs {
@@ -340,8 +310,8 @@ pub async fn update_all_ancestors_task_status<'a>(
 }
 
 pub struct TasksAndUser<'a> {
-    task_ids: &'a Vec<String>,
-    user_id: &'a str,
+    pub task_ids: &'a Vec<String>,
+    pub user_id: &'a str,
 }
 
 // パフォーマンス悪いかも
@@ -420,6 +390,23 @@ pub async fn insert_subtask_connection<'a>(
     db: &mut Connection,
     args: InsertSubTaskConnectionArgs<'a>,
 ) -> AppResult<()> {
+    sqlx::query!(
+        "INSERT INTO subtask_connections(parent_task_id, subtask_id, user_id) VALUES($1, $2, $3) RETURNING *;",
+        args.parent_task_id,
+        args.subtask_id,
+        args.user_id,
+    )
+    .fetch_one(&mut *db)
+    .await?;
+
+    Ok(())
+}
+
+// TODO: カスタムエラーを作る
+pub async fn check_subtask_connection<'a>(
+    db: &mut Connection,
+    args: &InsertSubTaskConnectionArgs<'a>,
+) -> AppResult<bool> {
     // ログインユーザーが指定されたタスクを持っているかを確認する
     let tasks = sqlx::query!(
         "SELECT * FROM tasks WHERE id IN ($1, $2) AND user_id = $3;",
@@ -431,37 +418,28 @@ pub async fn insert_subtask_connection<'a>(
     .await?;
 
     if tasks.len() != 2 {
-        return Err(AppError::new(StatusCode::NOT_FOUND, None));
+        return Ok(false);
     }
 
     // タスク同士が循環していないかを確認する。
     // payload.parent_task_idの祖先に、payload.subtask_idを持つtaskが存在しないことを確認する。
-    if detect_circular_connection(&mut *db, &args).await? {
+    if detect_circular_connection(
+        &mut *db,
+        &InsertSubTaskConnectionArgs {
+            parent_task_id: args.parent_task_id,
+            subtask_id: args.subtask_id,
+            user_id: args.user_id,
+        },
+    )
+    .await?
+    {
         return Err(AppError::new(
             StatusCode::BAD_REQUEST,
             Some("タスクの循環は許可されていません。"),
         ));
     }
 
-    sqlx::query!(
-        "INSERT INTO subtask_connections(parent_task_id, subtask_id, user_id) VALUES($1, $2, $3) RETURNING *;",
-        args.parent_task_id,
-        args.subtask_id,
-        args.user_id,
-    )
-    .fetch_one(&mut *db)
-    .await?;
-
-    update_all_ancestors_task_status(
-        &mut *db,
-        TaskAndUser {
-            task_id: args.subtask_id,
-            user_id: args.user_id,
-        },
-    )
-    .await?;
-
-    Ok(())
+    Ok(tasks.len() == 2)
 }
 
 pub struct DeleteSubTaskConnectionArgs<'a> {
@@ -473,32 +451,12 @@ pub async fn delete_subtask_connection<'a>(
     db: &mut Connection,
     args: DeleteSubTaskConnectionArgs<'a>,
 ) -> AppResult<()> {
-    // 後でサブタスクの親すべてを更新する必要があるので、subtask_connectionを削除する前に親を取得しておく
-    let parent_ids = find_parent_task_ids(
-        &mut *db,
-        FindParentTaskIdsArgs {
-            subtask_id: args.subtask_id,
-            user_id: args.user_id,
-        },
-    )
-    .await?;
-
     sqlx::query!(
         "DELETE FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2 AND user_id = $3 RETURNING *",
         args.parent_task_id,
         args.subtask_id,
         args.user_id
     ).fetch_one(&mut *db).await?;
-
-    // 接続を切り離したサブタスクの祖先の状態をすべて更新する
-    update_tasks_and_ancestors_status(
-        &mut *db,
-        TasksAndUser {
-            task_ids: &parent_ids,
-            user_id: args.user_id,
-        },
-    )
-    .await?;
 
     Ok(())
 }

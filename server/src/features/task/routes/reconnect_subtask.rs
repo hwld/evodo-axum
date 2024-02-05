@@ -7,10 +7,7 @@ use crate::{
     features::{
         auth::Auth,
         task::{
-            db::{
-                delete_subtask_connection, insert_subtask_connection, DeleteSubTaskConnectionArgs,
-                InsertSubTaskConnectionArgs,
-            },
+            usecases::reconnect_subtask::{self, ReconnectSubtaskArgs},
             ReconnectSubtask,
         },
     },
@@ -29,21 +26,13 @@ pub async fn handler(
 
     let mut tx = db.begin().await?;
 
-    delete_subtask_connection(
+    reconnect_subtask::action(
         &mut tx,
-        DeleteSubTaskConnectionArgs {
-            parent_task_id: &payload.old_parent_task_id,
-            subtask_id: &payload.old_subtask_id,
-            user_id: &user.id,
-        },
-    )
-    .await?;
-
-    insert_subtask_connection(
-        &mut tx,
-        InsertSubTaskConnectionArgs {
-            parent_task_id: &payload.new_parent_task_id,
-            subtask_id: &payload.new_subtask_id,
+        ReconnectSubtaskArgs {
+            old_parent_task_id: &payload.old_parent_task_id,
+            old_subtask_id: &payload.old_subtask_id,
+            new_parent_task_id: &payload.new_parent_task_id,
+            new_subtask_id: &payload.new_subtask_id,
             user_id: &user.id,
         },
     )

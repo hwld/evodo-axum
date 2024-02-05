@@ -7,7 +7,7 @@ use crate::{
     features::{
         auth::Auth,
         task::{
-            db::{delete_subtask_connection, DeleteSubTaskConnectionArgs},
+            usecases::disconnect_subtask::{self, DisconnectSubtaskArgs},
             DisconnectSubtask,
         },
     },
@@ -26,9 +26,9 @@ pub async fn handler(
 
     let mut tx = db.begin().await?;
 
-    delete_subtask_connection(
+    disconnect_subtask::action(
         &mut tx,
-        DeleteSubTaskConnectionArgs {
+        DisconnectSubtaskArgs {
             parent_task_id: &payload.parent_task_id,
             subtask_id: &payload.subtask_id,
             user_id: &user.id,

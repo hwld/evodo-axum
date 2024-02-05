@@ -9,7 +9,10 @@ use http::StatusCode;
 use crate::{
     app::AppResult,
     features::task::{
-        db::{delete_task, DeleteTaskArgs},
+        db::{
+            delete_task, find_parent_task_ids, update_tasks_and_ancestors_status, DeleteTaskArgs,
+            FindParentTaskIdsArgs, TasksAndUser,
+        },
         DeleteTaskResponse,
     },
 };
@@ -28,10 +31,30 @@ pub async fn handler(
 
     let mut tx = db.begin().await?;
 
+    // 祖先タスクを更新するために削除する前に取得しておく
+    let parent_ids = find_parent_task_ids(
+        &mut tx,
+        FindParentTaskIdsArgs {
+            subtask_id: &id,
+            user_id: &user.id,
+        },
+    )
+    .await?;
+
     let deleted_id = delete_task(
         &mut tx,
         DeleteTaskArgs {
             id: &id,
+            user_id: &user.id,
+        },
+    )
+    .await?;
+
+    // 祖先タスクを更新
+    update_tasks_and_ancestors_status(
+        &mut tx,
+        TasksAndUser {
+            task_ids: &parent_ids,
             user_id: &user.id,
         },
     )

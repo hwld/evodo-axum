@@ -7,7 +7,7 @@ use crate::{
     features::{
         auth::Auth,
         task::{
-            db::{insert_subtask_connection, InsertSubTaskConnectionArgs},
+            usecases::connect_subtask::{self, ConnectSubtaskArgs},
             ConnectSubtask,
         },
     },
@@ -26,9 +26,9 @@ pub async fn handler(
 
     let mut tx = db.begin().await?;
 
-    insert_subtask_connection(
+    connect_subtask::action(
         &mut tx,
-        InsertSubTaskConnectionArgs {
+        ConnectSubtaskArgs {
             parent_task_id: &payload.parent_task_id,
             subtask_id: &payload.subtask_id,
             user_id: &user.id,
