@@ -32,6 +32,7 @@ pub async fn insert_task_node<'a>(
         InsertTaskArgs {
             id: task_id,
             title,
+            description: "",
             user_id,
             status,
         },

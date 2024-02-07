@@ -37,6 +37,7 @@ const TaskNodeInfo = z.object({
 const TaskStatus = z.enum(["Todo", "Done"]);
 const Task = z.object({
   created_at: z.string(),
+  description: z.string(),
   id: z.string(),
   status: TaskStatus,
   subtask_ids: z.array(z.string()),
@@ -51,7 +52,11 @@ const CreateTaskNode = z.object({
   x: z.number(),
   y: z.number(),
 });
-const UpdateTask = z.object({ status: TaskStatus, title: z.string() });
+const UpdateTask = z.object({
+  description: z.string(),
+  status: TaskStatus,
+  title: z.string(),
+});
 const DeleteTaskResponse = z.object({ task_id: z.string() });
 const UpdateTaskStatus = z.object({ status: TaskStatus });
 

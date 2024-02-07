@@ -37,6 +37,7 @@ pub async fn find_task<'a>(
             title: raw.title,
             status: raw.status.into(),
             user_id: raw.user_id,
+            description: raw.description,
             created_at: raw.created_at,
             updated_at: raw.updated_at,
             subtask_ids: Vec::new(),
@@ -69,6 +70,7 @@ pub async fn find_tasks(db: &mut Connection, user_id: &str) -> AppResult<Vec<Tas
             id: raw.id,
             title: raw.title,
             status: raw.status.into(),
+            description: raw.description,
             user_id: raw.user_id,
             created_at: raw.created_at,
             updated_at: raw.updated_at,
@@ -167,24 +169,18 @@ pub async fn all_tasks_done(db: &mut Connection, task_ids: &Vec<String>) -> AppR
 pub struct InsertTaskArgs<'a> {
     pub id: &'a str,
     pub title: &'a str,
+    pub description: &'a str,
     pub user_id: &'a str,
     pub status: &'a TaskStatus,
 }
-pub async fn insert_task<'a>(
-    db: &mut Connection,
-    InsertTaskArgs {
-        id,
-        title,
-        user_id,
-        status,
-    }: InsertTaskArgs<'a>,
-) -> AppResult<Task> {
+pub async fn insert_task<'a>(db: &mut Connection, args: InsertTaskArgs<'a>) -> AppResult<Task> {
     let result = sqlx::query!(
-        r#" INSERT INTO tasks(id, title, user_id, status) VALUES($1, $2, $3, $4) RETURNING *"#,
-        id,
-        title,
-        user_id,
-        status
+        r#" INSERT INTO tasks(id, title, description, user_id, status) VALUES($1, $2, $3, $4, $5) RETURNING *"#,
+        args.id,
+        args.title,
+        args.description,
+        args.user_id,
+        args.status
     )
     .fetch_one(&mut *db)
     .await?;
@@ -192,7 +188,7 @@ pub async fn insert_task<'a>(
     let task = find_task(
         &mut *db,
         FindTaskArgs {
-            user_id,
+            user_id: args.user_id,
             task_id: &result.id,
         },
     )
@@ -220,33 +216,28 @@ pub async fn delete_task<'a>(db: &mut Connection, args: DeleteTaskArgs<'a>) -> A
 pub struct UpdateTaskArgs<'a> {
     pub id: &'a str,
     pub title: &'a str,
+    pub description: &'a str,
     pub status: &'a TaskStatus,
     pub user_id: &'a str,
 }
-pub async fn update_task<'a>(
-    db: &mut Connection,
-    UpdateTaskArgs {
-        id,
-        title,
-        status,
-        user_id,
-    }: UpdateTaskArgs<'a>,
-) -> AppResult<Task> {
+pub async fn update_task<'a>(db: &mut Connection, args: UpdateTaskArgs<'a>) -> AppResult<Task> {
     let result = sqlx::query!(
         r#"
         UPDATE
             tasks 
         SET
             status = $1,
-            title = $2
+            title = $2,
+            description = $3
         WHERE
-            id = $3 AND user_id = $4
+            id = $4 AND user_id = $5
         RETURNING *;        
         "#,
-        status,
-        title,
-        id,
-        user_id
+        args.status,
+        args.title,
+        args.description,
+        args.id,
+        args.user_id
     )
     .fetch_one(&mut *db)
     .await?;
@@ -254,7 +245,7 @@ pub async fn update_task<'a>(
     let task = find_task(
         &mut *db,
         FindTaskArgs {
-            user_id,
+            user_id: args.user_id,
             task_id: &result.id,
         },
     )

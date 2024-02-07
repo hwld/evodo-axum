@@ -37,6 +37,7 @@ pub async fn handler(
         UpdateTaskArgs {
             id: &id,
             title: &payload.title,
+            description: &payload.description,
             status: &payload.status,
             user_id: &user.id,
         },
@@ -78,6 +79,7 @@ mod tests {
         )
         .await?;
         let new_title = "new_title";
+        let new_description = "new_descriptioni";
         let new_status = TaskStatus::Done;
 
         let res = test
@@ -85,6 +87,7 @@ mod tests {
             .put(&TaskPaths::one_task(&task.id))
             .json(&UpdateTask {
                 title: new_title.into(),
+                description: new_description.into(),
                 status: new_status,
             })
             .await;
@@ -101,22 +104,25 @@ mod tests {
         .await?;
 
         assert_eq!(updated.title, new_title);
+        assert_eq!(updated.description, new_description);
         assert_eq!(updated.status, new_status);
 
         Ok(())
     }
 
     #[sqlx::test]
-    async fn 空文字列には更新できない(db: Db) -> AppResult<()> {
+    async fn タイトルを空文字列には更新できない(db: Db) -> AppResult<()> {
         let test = AppTest::new(&db).await?;
         let user = test.login(None).await?;
 
         let old_title = "old_title";
+        let old_description = "old_description";
         let old_task = task_factory::create(
             &db,
             Task {
                 user_id: user.id.clone(),
                 title: old_title.into(),
+                description: old_description.into(),
                 ..Default::default()
             },
         )
@@ -127,6 +133,7 @@ mod tests {
             .put(&TaskPaths::one_task(&old_task.id))
             .json(&UpdateTask {
                 title: "".into(),
+                description: "".into(),
                 status: TaskStatus::Todo,
             })
             .await;
@@ -142,6 +149,7 @@ mod tests {
         )
         .await?;
         assert_eq!(task.title, old_title);
+        assert_eq!(task.description, old_description);
 
         Ok(())
     }
@@ -155,6 +163,7 @@ mod tests {
             &db,
             Task {
                 title: "old_title".into(),
+                description: "old_description".into(),
                 status: TaskStatus::Todo,
                 user_id: other_user.id.clone(),
                 ..Default::default()
@@ -163,6 +172,7 @@ mod tests {
         .await?;
 
         let new_title = "new_title";
+        let new_description = "new_description";
         let new_status = TaskStatus::Done;
 
         test.login(None).await?;
@@ -171,6 +181,7 @@ mod tests {
             .post(&TaskPaths::one_task(&other_user_task.id))
             .json(&UpdateTask {
                 title: new_title.into(),
+                description: new_description.into(),
                 status: new_status,
             })
             .await;
@@ -186,6 +197,7 @@ mod tests {
         )
         .await?;
         assert_eq!(task.title, other_user_task.title);
+        assert_eq!(task.description, other_user_task.description);
         assert_eq!(task.status, other_user_task.status);
 
         Ok(())

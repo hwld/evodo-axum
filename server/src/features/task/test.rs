@@ -13,6 +13,7 @@ pub mod task_factory {
                 status: Default::default(),
                 user_id: "user_id".into(),
                 title: "title".into(),
+                description: "description".into(),
                 subtask_ids: Vec::new(),
                 created_at: "".into(),
                 updated_at: "".into(),
@@ -27,6 +28,7 @@ pub mod task_factory {
             InsertTaskArgs {
                 id: &task.id,
                 title: &task.title,
+                description: &task.description,
                 user_id: &task.user_id,
                 status: &task.status,
             },

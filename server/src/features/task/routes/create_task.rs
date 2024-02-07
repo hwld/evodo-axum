@@ -30,6 +30,7 @@ pub async fn handler(
         InsertTaskArgs {
             id: &uuid,
             title: &payload.title,
+            description: "",
             user_id: &user.id,
             status: &Default::default(),
         },

@@ -14,6 +14,7 @@ pub struct Task {
     pub id: String,
     pub status: TaskStatus,
     pub title: String,
+    pub description: String,
     pub user_id: String,
     pub subtask_ids: Vec<String>,
     pub created_at: String,
@@ -45,6 +46,9 @@ pub struct CreateTask {
 pub struct UpdateTask {
     #[garde(length(min = 1, max = 100))]
     pub title: String,
+
+    #[garde(length(max = 2000))]
+    pub description: String,
 
     #[garde(skip)]
     pub status: TaskStatus,
