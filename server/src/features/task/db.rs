@@ -2,13 +2,9 @@ use std::collections::HashMap;
 
 use anyhow::anyhow;
 use async_recursion::async_recursion;
-use http::StatusCode;
 use sqlx::{Execute, QueryBuilder, Row, Sqlite};
 
-use crate::{
-    app::{AppResult, Connection},
-    error::AppError,
-};
+use crate::app::{AppResult, Connection};
 
 use super::{Task, TaskStatus};
 
@@ -472,11 +468,10 @@ pub async fn insert_subtask_connection<'a>(
     Ok(())
 }
 
-// TODO: カスタムエラーを作る
 pub async fn check_subtask_connection<'a>(
     db: &mut Connection,
     args: &InsertSubTaskConnectionArgs<'a>,
-) -> AppResult<bool> {
+) -> AppResult<()> {
     // ログインユーザーが指定されたタスクを持っているかを確認する
     let tasks = sqlx::query!(
         "SELECT * FROM tasks WHERE id IN ($1, $2) AND user_id = $3;",
@@ -488,7 +483,7 @@ pub async fn check_subtask_connection<'a>(
     .await?;
 
     if tasks.len() != 2 {
-        return Ok(false);
+        return Err(anyhow!("タスクが存在しません").into());
     }
 
     // タスク同士が循環していないかを確認する。
@@ -503,13 +498,14 @@ pub async fn check_subtask_connection<'a>(
     )
     .await?
     {
-        return Err(AppError::new(
-            StatusCode::BAD_REQUEST,
-            Some("タスクの循環は許可されていません。"),
-        ));
+        return Err(anyhow!("タスクの循環は許可されていません").into());
     }
 
-    Ok(tasks.len() == 2)
+    if tasks.len() == 2 {
+        Ok(())
+    } else {
+        Err(anyhow!("サーバーエラー").into())
+    }
 }
 
 pub struct DeleteSubTaskConnectionArgs<'a> {

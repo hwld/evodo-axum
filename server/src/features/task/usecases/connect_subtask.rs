@@ -21,9 +21,9 @@ pub async fn action<'a>(db: &mut Connection, args: ConnectSubtaskArgs<'a>) -> Ap
         user_id: args.user_id,
     };
 
-    if !check_subtask_connection(db, &insert_args).await? {
-        return Err(AppError::new(StatusCode::NOT_FOUND, None));
-    };
+    check_subtask_connection(db, &insert_args)
+        .await
+        .map_err(|e| AppError::new(StatusCode::NOT_FOUND, Some(&e.to_string())))?;
 
     insert_subtask_connection(db, insert_args).await?;
 
