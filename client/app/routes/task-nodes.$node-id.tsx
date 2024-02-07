@@ -70,7 +70,7 @@ export default function TaskNodeDetail() {
         </div>
 
         <VerticalDatailRow icon={TextIcon} title="説明">
-          <TaskDescriptionForm defaultTask={task} />
+          <TaskDescriptionForm defaultTask={task} key={task.id} />
         </VerticalDatailRow>
       </Card>
     </div>
