@@ -1,5 +1,6 @@
 import { LoaderFunctionArgs, json } from "@remix-run/node";
-import { Link, useLoaderData } from "@remix-run/react";
+import { useLoaderData, useNavigate } from "@remix-run/react";
+import { motion, useAnimate } from "framer-motion";
 import {
   CircleIcon,
   Clock4Icon,
@@ -30,19 +31,31 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
 export default function TaskNodeDetail() {
   const { task } = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
+
+  const [scope, animate] = useAnimate();
+  const handleClose = async () => {
+    // 画面遷移したときにexitアニメーションを実行する方法がわからないので
+    // closeボタンが押されたときだけアニメーションを実行する
+    await animate(scope.current, { x: 128, opacity: 0 });
+    navigate("/task-nodes");
+  };
 
   return (
-    <div className="h-dvh w-[500px] top-0 right-0 fixed p-2 animate-in slide-in-from-right-32">
+    <motion.div
+      ref={scope}
+      className="h-dvh w-[500px] top-0 right-0 fixed p-2"
+      initial={{ opacity: 0, x: 128 }}
+      animate={{ opacity: 1, x: 0 }}
+    >
       <Card className="h-full w-full p-6 flex flex-col">
         <Button
           size="icon"
           variant="ghost"
           className="absolute right-5 top-5"
-          asChild
+          onClick={handleClose}
         >
-          <Link to="/task-nodes">
-            <XIcon />
-          </Link>
+          <XIcon />
         </Button>
         <div className="scape-y-1">
           <div className="text-sm text-muted-foreground">タスクの詳細</div>
@@ -73,7 +86,7 @@ export default function TaskNodeDetail() {
           <TaskDescriptionForm defaultTask={task} key={task.id} />
         </VerticalDatailRow>
       </Card>
-    </div>
+    </motion.div>
   );
 }
 

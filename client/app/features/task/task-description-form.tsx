@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { useRevalidator } from "@remix-run/react";
 import { Button } from "~/components/ui/button";
 import { AlertCircleIcon } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 
 const updateTaskDescriptionSchema = schemas.UpdateTask.pick({
   description: true,
@@ -89,27 +90,37 @@ export const TaskDescriptionForm: React.FC<Props> = ({ defaultTask }) => {
             );
           }}
         />
-        {isDirty && (
-          <div className="flex gap- justify-between items-center">
-            <div className="text-xs flex gap-1">
-              <AlertCircleIcon size={15} />
-              変更が保存されていません。
-            </div>
-            <div className="flex gap-2">
-              <Button
-                type="reset"
-                size="sm"
-                variant="outline"
-                onClick={handleReset}
-              >
-                リセットする
-              </Button>
-              <Button size="sm" disabled={updateMutation.isPending || !isDirty}>
-                保存する
-              </Button>
-            </div>
-          </div>
-        )}
+        <AnimatePresence>
+          {isDirty && (
+            <motion.div
+              className="flex gap- justify-between items-center"
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -5 }}
+            >
+              <div className="text-xs flex gap-1">
+                <AlertCircleIcon size={15} />
+                変更が保存されていません。
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="reset"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleReset}
+                >
+                  リセットする
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={updateMutation.isPending || !isDirty}
+                >
+                  保存する
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </form>
     </Form>
   );
