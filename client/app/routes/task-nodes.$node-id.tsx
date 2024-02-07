@@ -5,11 +5,14 @@ import {
   Clock4Icon,
   HistoryIcon,
   LucideIcon,
+  TextIcon,
   XIcon,
 } from "lucide-react";
+import { ReactNode } from "react";
 import { serverFetch } from "~/api/index.server";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
+import { TaskDescriptionForm } from "~/features/task/task-description-form";
 import { TaskStatusBadge } from "~/features/task/task-status-badge";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
@@ -47,31 +50,43 @@ export default function TaskNodeDetail() {
           <div className="text-xs text-muted-foreground">ID: {task.id}</div>
         </div>
 
-        <div className="space-y-2 mt-5">
-          <div className="flex gap-1 text-muted-foreground items-center text-sm">
-            <CircleIcon size={17} />
-            状態
-          </div>
+        <VerticalDatailRow icon={CircleIcon} title="状態">
           <div className="ml-2">
             <TaskStatusBadge status={task.status} />
           </div>
-        </div>
+        </VerticalDatailRow>
 
         <div className="mt-5 space-y-1">
-          <DetailRow icon={Clock4Icon} title="作成日" label={task.created_at} />
-          <DetailRow
+          <HorizontalDetailRow
+            icon={Clock4Icon}
+            title="作成日"
+            label={task.created_at}
+          />
+          <HorizontalDetailRow
             icon={HistoryIcon}
             title="更新日"
             label={task.updated_at}
           />
         </div>
+
+        <VerticalDatailRow icon={TextIcon} title="説明">
+          <TaskDescriptionForm defaultTask={task} />
+        </VerticalDatailRow>
       </Card>
     </div>
   );
 }
 
-type Props = { icon: LucideIcon; label: string; title: string };
-const DetailRow: React.FC<Props> = ({ icon: Icon, title, label }) => {
+type HorizontalDetailRowProps = {
+  icon: LucideIcon;
+  label: string;
+  title: string;
+};
+const HorizontalDetailRow: React.FC<HorizontalDetailRowProps> = ({
+  icon: Icon,
+  title,
+  label,
+}) => {
   return (
     <div className="flex items-center gap-1 w-full">
       <div className="w-[80px] flex gap-1 items-center text-muted-foreground text-sm">
@@ -79,6 +94,27 @@ const DetailRow: React.FC<Props> = ({ icon: Icon, title, label }) => {
         {title}
       </div>
       <div className="">{label}</div>
+    </div>
+  );
+};
+
+type VerticalDetailRowProps = {
+  icon: LucideIcon;
+  title: string;
+  children: ReactNode;
+};
+const VerticalDatailRow: React.FC<VerticalDetailRowProps> = ({
+  icon: Icon,
+  title,
+  children,
+}) => {
+  return (
+    <div className="space-y-2 mt-5">
+      <div className="flex gap-1 text-muted-foreground items-center text-sm">
+        <Icon size={17} />
+        {title}
+      </div>
+      {children}
     </div>
   );
 };

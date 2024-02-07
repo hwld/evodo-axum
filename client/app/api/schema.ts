@@ -53,9 +53,9 @@ const CreateTaskNode = z.object({
   y: z.number(),
 });
 const UpdateTask = z.object({
-  description: z.string(),
+  description: z.string().max(2000),
   status: TaskStatus,
-  title: z.string(),
+  title: z.string().min(1).max(100),
 });
 const DeleteTaskResponse = z.object({ task_id: z.string() });
 const UpdateTaskStatus = z.object({ status: TaskStatus });

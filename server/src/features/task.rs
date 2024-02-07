@@ -45,9 +45,11 @@ pub struct CreateTask {
 #[derive(Deserialize, Serialize, ToSchema, Debug, Validate)]
 pub struct UpdateTask {
     #[garde(length(min = 1, max = 100))]
+    #[schema(min_length = 1, max_length = 100)]
     pub title: String,
 
     #[garde(length(max = 2000))]
+    #[schema(max_length = 2000)]
     pub description: String,
 
     #[garde(skip)]
