@@ -142,7 +142,7 @@ pub async fn find_all_descendant_task_ids<'a>(
     Ok(ids)
 }
 
-pub async fn all_tasks_done(db: &mut Connection, task_ids: &Vec<String>) -> AppResult<bool> {
+pub async fn is_all_tasks_done(db: &mut Connection, task_ids: &Vec<String>) -> AppResult<bool> {
     if task_ids.is_empty() {
         return Ok(true);
     }
@@ -217,7 +217,6 @@ pub struct UpdateTaskArgs<'a> {
     pub id: &'a str,
     pub title: &'a str,
     pub description: &'a str,
-    pub status: &'a TaskStatus,
     pub user_id: &'a str,
 }
 pub async fn update_task<'a>(db: &mut Connection, args: UpdateTaskArgs<'a>) -> AppResult<Task> {
@@ -226,14 +225,12 @@ pub async fn update_task<'a>(db: &mut Connection, args: UpdateTaskArgs<'a>) -> A
         UPDATE
             tasks 
         SET
-            status = $1,
-            title = $2,
-            description = $3
+            title = $1,
+            description = $2
         WHERE
-            id = $4 AND user_id = $5
+            id = $3 AND user_id = $4
         RETURNING *;        
         "#,
-        args.status,
         args.title,
         args.description,
         args.id,
@@ -396,7 +393,7 @@ where
 
         // 子から辿った親がargs.tasksに入っているなら空にはならないが、子を持たないtaskで呼ばれる可能性がある
         if !task.subtask_ids.is_empty() {
-            let all_subtasks_done = all_tasks_done(&mut *db, &task.subtask_ids).await?;
+            let all_subtasks_done = is_all_tasks_done(&mut *db, &task.subtask_ids).await?;
             let new_status = if all_subtasks_done {
                 TaskStatus::Done
             } else {
@@ -668,4 +665,47 @@ pub async fn is_subtask<'a>(db: &mut Connection, args: IsSubtaskArgs<'a>) -> App
     .await?;
 
     Ok(!result.is_empty())
+}
+
+pub async fn is_all_blocking_tasks_done(db: &mut Connection, task_id: &str) -> AppResult<bool> {
+    let result = sqlx::query!(
+        r#"
+        WITH RECURSIVE ancestors AS (
+            -- 非再帰
+            -- サブタスクの親のステータスは関係ないのでNULLにする
+            SELECT parent_task_id, subtask_id as child_task_id, NULL as parent_task_status
+            FROM subtask_connections
+            WHERE subtask_id = $1
+
+            UNION
+
+            SELECT blocking_task_id as parent_task_id, blocked_task_id as child_task_id, status
+            FROM blocking_tasks b JOIN tasks t ON b.blocking_task_id = t.id
+            WHERE blocked_task_id = $1
+
+            UNION
+
+            -- 再帰
+            SELECT s.parent_task_id, a.child_task_id, NULL as status
+            FROM subtask_connections s
+            JOIN ancestors a ON s.subtask_id = a.parent_task_id
+
+            UNION
+
+            SELECT b.blocking_task_id, a.child_task_id, t.status
+            FROM blocking_tasks b
+            JOIN ancestors a ON b.blocked_task_id = a.parent_task_id
+            JOIN tasks t ON b.blocking_task_id = t.id
+        )
+
+        SELECT COUNT(*) as non_done_status_count
+        FROM ancestors a
+        WHERE a.parent_task_status != 'Done'
+        "#,
+        task_id
+    )
+    .fetch_one(db)
+    .await?;
+
+    Ok(result.non_done_status_count == 0)
 }

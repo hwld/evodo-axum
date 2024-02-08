@@ -38,7 +38,6 @@ pub async fn handler(
             id: &id,
             title: &payload.title,
             description: &payload.description,
-            status: &payload.status,
             user_id: &user.id,
         },
     )
@@ -80,7 +79,6 @@ mod tests {
         .await?;
         let new_title = "new_title";
         let new_description = "new_descriptioni";
-        let new_status = TaskStatus::Done;
 
         let res = test
             .server()
@@ -88,7 +86,6 @@ mod tests {
             .json(&UpdateTask {
                 title: new_title.into(),
                 description: new_description.into(),
-                status: new_status,
             })
             .await;
         res.assert_status_ok();
@@ -105,7 +102,6 @@ mod tests {
 
         assert_eq!(updated.title, new_title);
         assert_eq!(updated.description, new_description);
-        assert_eq!(updated.status, new_status);
 
         Ok(())
     }
@@ -134,7 +130,6 @@ mod tests {
             .json(&UpdateTask {
                 title: "".into(),
                 description: "".into(),
-                status: TaskStatus::Todo,
             })
             .await;
         res.assert_status_not_ok();
@@ -173,7 +168,6 @@ mod tests {
 
         let new_title = "new_title";
         let new_description = "new_description";
-        let new_status = TaskStatus::Done;
 
         test.login(None).await?;
         let res = test
@@ -182,7 +176,6 @@ mod tests {
             .json(&UpdateTask {
                 title: new_title.into(),
                 description: new_description.into(),
-                status: new_status,
             })
             .await;
         res.assert_status_not_ok();
@@ -198,7 +191,6 @@ mod tests {
         .await?;
         assert_eq!(task.title, other_user_task.title);
         assert_eq!(task.description, other_user_task.description);
-        assert_eq!(task.status, other_user_task.status);
 
         Ok(())
     }

@@ -51,9 +51,6 @@ pub struct UpdateTask {
     #[garde(length(max = 2000))]
     #[schema(max_length = 2000)]
     pub description: String,
-
-    #[garde(skip)]
-    pub status: TaskStatus,
 }
 
 #[derive(Deserialize, Serialize, ToSchema, Debug)]
