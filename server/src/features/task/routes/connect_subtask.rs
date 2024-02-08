@@ -298,4 +298,37 @@ mod tests {
 
         Ok(())
     }
+
+    #[sqlx::test]
+    pub fn メインタスクをブロックしているタスクをサブタスクにはできない(
+        db: Db,
+    ) -> AppResult<()> {
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
+
+        let blocking = task_factory::create_with_user(&db, &user.id).await?;
+        let main = task_factory::create_default_blocked_task(&db, &user.id, &blocking.id).await?;
+        let sub = task_factory::create_default_subtask(&db, &user.id, &main.id).await?;
+
+        let res = test
+            .server()
+            .post(&TaskPaths::connect_subtask())
+            .json(&ConnectSubtask {
+                parent_task_id: sub.id.clone(),
+                subtask_id: blocking.id.clone(),
+            })
+            .await;
+        res.assert_status_not_ok();
+
+        let subtasks = sqlx::query!(
+            "SELECT * FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2",
+            sub.id,
+            blocking.id
+        )
+        .fetch_all(&db)
+        .await?;
+        assert!(subtasks.is_empty());
+
+        Ok(())
+    }
 }

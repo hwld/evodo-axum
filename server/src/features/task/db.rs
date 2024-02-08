@@ -502,9 +502,9 @@ pub async fn check_subtask_connection<'a>(
     // payload.parent_task_idの祖先に、payload.subtask_idを持つtaskが存在しないことを確認する。
     if detect_circular_connection(
         &mut *db,
-        &InsertSubTaskConnectionArgs {
+        DetectCircularConnectionArgs {
             parent_task_id: args.parent_task_id,
-            subtask_id: args.subtask_id,
+            child_task_id: args.subtask_id,
             user_id: args.user_id,
         },
     )
@@ -548,7 +548,19 @@ pub async fn check_insert_block_task_connection<'a>(
         return Err(anyhow!("サブタスクをブロックすることはできません").into());
     };
 
-    // TODO: 循環の確認
+    // タスク同士が循環していないかを確認する。
+    if detect_circular_connection(
+        &mut *db,
+        DetectCircularConnectionArgs {
+            parent_task_id: args.blocking_task_id,
+            child_task_id: args.blocked_task_id,
+            user_id: args.user_id,
+        },
+    )
+    .await?
+    {
+        return Err(anyhow!("タスクの循環は許可されていません").into());
+    }
 
     Ok(())
 }
@@ -572,36 +584,51 @@ pub async fn delete_subtask_connection<'a>(
     Ok(())
 }
 
+pub struct DetectCircularConnectionArgs<'a> {
+    parent_task_id: &'a str,
+    child_task_id: &'a str,
+    user_id: &'a str,
+}
+
 /// タスク同士が循環接続になりうるかを判定する
 pub async fn detect_circular_connection<'a>(
     db: &mut Connection,
-    &InsertSubTaskConnectionArgs {
-        parent_task_id,
-        subtask_id,
-        user_id,
-    }: &InsertSubTaskConnectionArgs<'a>,
+    args: DetectCircularConnectionArgs<'a>,
 ) -> AppResult<bool> {
     let result = sqlx::query!(
         r#"
         WITH RECURSIVE ancestors AS (
-            SELECT subtask_id, parent_task_id
+            -- 非再帰
+            SELECT subtask_id as child_id, parent_task_id as parent_id
             FROM subtask_connections
             WHERE subtask_id = $1 AND user_id = $2
 
             UNION
 
+            SELECT blocked_task_id as child_id, blocking_task_id as parent_id
+            FROM blocking_tasks
+            WHERE blocked_task_id = $1 AND user_id = $2
+
+            UNION
+            -- 再帰
             SELECT s.subtask_id, s.parent_task_id
             FROM subtask_connections s
-            JOIN ancestors a ON s.subtask_id = a.parent_task_id
+            JOIN ancestors a ON s.subtask_id = a.parent_id
+
+            UNION
+
+            SELECT b.blocked_task_id, b.blocking_task_id
+            FROM blocking_tasks b
+            JOIN ancestors a ON b.blocked_task_id = a.parent_id
         )
 
-        SELECT DISTINCT parent_task_id
+        SELECT DISTINCT parent_id
         FROM ancestors
-        WHERE parent_task_id = $3
+        WHERE parent_id = $3
         "#,
-        parent_task_id,
-        user_id,
-        subtask_id,
+        args.parent_task_id,
+        args.user_id,
+        args.child_task_id,
     )
     .fetch_all(&mut *db)
     .await?;

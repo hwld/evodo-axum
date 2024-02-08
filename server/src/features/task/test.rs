@@ -74,6 +74,39 @@ pub mod task_factory {
         let subtask = create_subtask(db, parent_task_id, subtask).await?;
         Ok(subtask)
     }
+
+    pub async fn create_blocked_task(
+        db: &Db,
+        blocking_task_id: &str,
+        task: Task,
+    ) -> AppResult<Task> {
+        create(db, task.clone()).await?;
+
+        sqlx::query!(
+            "INSERT INTO blocking_tasks(blocking_task_id, blocked_task_id, user_id) VALUES($1, $2, $3);",
+            blocking_task_id,
+            task.id,
+            task.user_id,
+        )
+        .execute(db)
+        .await?;
+
+        Ok(task)
+    }
+
+    pub async fn create_default_blocked_task(
+        db: &Db,
+        user_id: &str,
+        blocking_task_id: &str,
+    ) -> AppResult<Task> {
+        let blocked = Task {
+            user_id: user_id.into(),
+            ..Default::default()
+        };
+
+        let blocked = create_blocked_task(db, blocking_task_id, blocked).await?;
+        Ok(blocked)
+    }
 }
 
 #[cfg(test)]

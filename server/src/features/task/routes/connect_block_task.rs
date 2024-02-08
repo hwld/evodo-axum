@@ -164,12 +164,71 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn ブロックタスクを循環させることはできない() -> AppResult<()> {
-        todo!()
+    async fn ブロックタスクを循環させることはできない(db: Db) -> AppResult<()> {
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
+
+        let blocking = task_factory::create_with_user(&db, &user.id).await?;
+        let blocked1 =
+            task_factory::create_default_blocked_task(&db, &user.id, &blocking.id).await?;
+        let blocked11 =
+            task_factory::create_default_blocked_task(&db, &user.id, &blocked1.id).await?;
+
+        let res = test
+            .server()
+            .post(&TaskPaths::connect_block_task())
+            .json(&ConnectBlockTask {
+                blocking_task_id: blocked11.id.clone(),
+                blocked_task_id: blocking.id.clone(),
+            })
+            .await;
+        res.assert_status_not_ok();
+
+        let result = sqlx::query!(
+            "SELECT * FROM blocking_tasks WHERE blocking_task_id = $1 AND blocked_task_id = $2;",
+            blocked11.id,
+            blocking.id
+        )
+        .fetch_all(&db)
+        .await?;
+        assert!(result.is_empty());
+
+        Ok(())
     }
 
     #[sqlx::test]
-    async fn ブロックタスクとサブタスクを循環させることはできない() -> AppResult<()> {
-        todo!()
+    async fn メインタスクをブロックしているタスクをブロックすることはできない(
+        db: Db,
+    ) -> AppResult<()> {
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
+
+        // blocking -->|block| blocked1
+        // blocked1 -->|sub| sub
+        let blocking = task_factory::create_with_user(&db, &user.id).await?;
+        let blocked1 =
+            task_factory::create_default_blocked_task(&db, &user.id, &blocking.id).await?;
+        let sub = task_factory::create_default_subtask(&db, &user.id, &blocked1.id).await?;
+
+        let res = test
+            .server()
+            .post(&TaskPaths::connect_block_task())
+            .json(&ConnectBlockTask {
+                blocking_task_id: sub.id.clone(),
+                blocked_task_id: blocking.id.clone(),
+            })
+            .await;
+        res.assert_status_not_ok();
+
+        let result = sqlx::query!(
+            "SELECT * FROM blocking_tasks WHERE blocking_task_id = $1 AND blocked_task_id = $2;",
+            sub.id,
+            blocking.id
+        )
+        .fetch_all(&db)
+        .await?;
+        assert!(result.is_empty());
+
+        Ok(())
     }
 }
