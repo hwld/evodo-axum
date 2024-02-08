@@ -13,6 +13,20 @@ const CreateUser = z.object({
   profile: z.string().max(500),
 });
 const SignupSessionResponse = z.object({ session_exists: z.boolean() });
+const ConnectBlockTask = z.object({
+  blocked_task_id: z.string(),
+  blocking_task_id: z.string(),
+});
+const DisconnectBlockTask = z.object({
+  blocked_task_id: z.string(),
+  blocking_task_id: z.string(),
+});
+const ReconnectBlockTask = z.object({
+  new_blocked_task_id: z.string(),
+  new_blocking_task_id: z.string(),
+  old_blocked_task_id: z.string(),
+  old_blocking_task_id: z.string(),
+});
 const ConnectSubtask = z.object({
   parent_task_id: z.string(),
   subtask_id: z.string(),
@@ -36,6 +50,7 @@ const TaskNodeInfo = z.object({
 });
 const TaskStatus = z.enum(["Todo", "Done"]);
 const Task = z.object({
+  blocked_task_ids: z.array(z.string()),
   created_at: z.string(),
   description: z.string(),
   id: z.string(),
@@ -54,7 +69,6 @@ const CreateTaskNode = z.object({
 });
 const UpdateTask = z.object({
   description: z.string().max(2000),
-  status: TaskStatus,
   title: z.string().min(1).max(100),
 });
 const DeleteTaskResponse = z.object({ task_id: z.string() });
@@ -66,6 +80,9 @@ export const schemas = {
   SessionResponse,
   CreateUser,
   SignupSessionResponse,
+  ConnectBlockTask,
+  DisconnectBlockTask,
+  ReconnectBlockTask,
   ConnectSubtask,
   DisconnectSubtask,
   ReconnectSubtask,
@@ -137,6 +154,45 @@ const endpoints = makeApi([
     path: "/auth/signup-session",
     requestFormat: "json",
     response: z.object({ session_exists: z.boolean() }),
+  },
+  {
+    method: "post",
+    path: "/block-task/connect",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: ConnectBlockTask,
+      },
+    ],
+    response: z.void(),
+  },
+  {
+    method: "delete",
+    path: "/block-task/disconnect",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: DisconnectBlockTask,
+      },
+    ],
+    response: z.void(),
+  },
+  {
+    method: "put",
+    path: "/block-task/reconnect",
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: ReconnectBlockTask,
+      },
+    ],
+    response: z.void(),
   },
   {
     method: "post",

@@ -3,6 +3,8 @@ import {
   CheckIcon,
   Grid2X2Icon,
   LayoutGridIcon,
+  ShieldHalfIcon,
+  SplitIcon,
 } from "lucide-react";
 import { Handle, NodeProps, Position, useReactFlow } from "reactflow";
 import { useUpdateTaskStatus } from "../task/use-update-task-status";
@@ -10,7 +12,12 @@ import { Checkbox, CheckboxIndicator } from "@radix-ui/react-checkbox";
 import { useId, useState } from "react";
 import { cn } from "~/lib/utils";
 import { Task } from "../task";
-import { buildTaskNodeEdges, buildTaskNodes, subtaskHandle } from "./util";
+import {
+  blockTaskHandle,
+  buildTaskNodeEdges,
+  buildTaskNodes,
+  subtaskHandle,
+} from "./util";
 import { Card } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
 import clsx from "clsx";
@@ -71,11 +78,11 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
   return (
     <Card
       className={cn(
-        "group min-w-[250px] max-w-[450px] break-all relative flex flex-col gap-1 p-2 transition-colors",
+        "group justify-items-start gap-[2px] content-start min-w-[250px] max-w-[450px] break-all relative grid grid-cols-[1fr_5px_25px] grid-rows-[20px_5px_20px_1fr] p-2 transition-colors",
         isChecked && "border-green-500"
       )}
     >
-      <div className="flex gap-1 text-muted-foreground items-center">
+      <div className="col-start-1 row-start-1 flex gap-1 text-muted-foreground items-center h-5 relative w-full">
         {
           {
             sub: (
@@ -98,12 +105,21 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
             ),
           }[data.type]
         }
+        <TaskNodeMenu
+          taskId={data.taskId}
+          className="opacity-0 group-hover:opacity-100 absolute -top-[6px] right-0"
+        />
       </div>
       <Separator
-        className={cn("transition-colors", isChecked && "bg-green-500")}
+        className={cn(
+          "col-start-1 row-start-2 transition-colors self-center",
+          isChecked && "bg-green-500"
+        )}
       />
       <div
-        className={clsx("flex items-center p-1 transition-colors grow rounded")}
+        className={clsx(
+          "col-start-1 row-start-3 row-span-2 flex items-center p-1 transition-colors grow rounded"
+        )}
       >
         <Checkbox
           checked={isChecked}
@@ -123,10 +139,38 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
         </label>
       </div>
 
-      <TaskNodeMenu
-        taskId={data.taskId}
-        className="opacity-0 group-hover:opacity-100 absolute top-1 right-1"
+      <Separator
+        orientation="vertical"
+        className={cn(
+          "row-start-1 row-span-4 col-start-2 justify-self-center",
+          isChecked && "bg-green-500"
+        )}
       />
+
+      <div className="row-start-1 col-start-3 col-span-1 text-muted-foreground w-full h-full flex justify-center items-center relative">
+        <SplitIcon size={15} />
+        <Handle
+          type="source"
+          id={subtaskHandle}
+          position={Position.Right}
+          className="!-right-[0px] !left-full !top-[50%] !size-[20px] !rounded-full !bg-primary-foreground !border !border-neutral-300 shadow"
+        />
+      </div>
+      <Separator
+        className={cn(
+          "row-start-2 col-start-3 self-center",
+          isChecked && "bg-green-500"
+        )}
+      />
+      <div className="row-start-3 col-start-3 text-muted-foreground w-full h-full flex justify-center relative">
+        <ShieldHalfIcon size={15} />
+        <Handle
+          type="source"
+          id={blockTaskHandle}
+          position={Position.Right}
+          className="!-right-[0px] !left-full !top-[50%] !size-[20px] !rounded-full !bg-primary-foreground !border !border-neutral-300 shadow"
+        />
+      </div>
 
       <UpdateTaskDialog
         open={isUpdateDialogOpen}
@@ -137,12 +181,6 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
         type="target"
         position={Position.Left}
         className="!-left-[10px] !size-5 !rounded-full !bg-primary-foreground !border !border-neutral-300 shadow"
-      />
-      <Handle
-        type="source"
-        id={subtaskHandle}
-        position={Position.Right}
-        className="!-right-[10px] !size-5 !rounded-full !bg-primary-foreground !border !border-neutral-300 shadow"
       />
     </Card>
   );

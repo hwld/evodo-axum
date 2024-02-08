@@ -12,6 +12,7 @@ export const generateSubtaskEdgeId = ({
 };
 
 export const subtaskHandle = "sub";
+export const blockTaskHandle = "block";
 
 export const generateSubtaskEdge = ({
   parentTaskId,

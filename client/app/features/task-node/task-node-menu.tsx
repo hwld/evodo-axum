@@ -52,7 +52,7 @@ export const TaskNodeMenu: React.FC<Props> = ({ taskId, className }) => {
   return (
     <div
       className={clsx(
-        "flex gap-1  p-1 bg-primary/90 text-primary-foreground rounded transition-opacity z-",
+        "flex gap-1  p-[2px] bg-primary/90 text-primary-foreground rounded transition-opacity z-",
         className
       )}
     >
