@@ -17,6 +17,7 @@ pub struct Task {
     pub description: String,
     pub user_id: String,
     pub subtask_ids: Vec<String>,
+    pub blocked_task_ids: Vec<String>,
     pub created_at: String,
     pub updated_at: String,
 }

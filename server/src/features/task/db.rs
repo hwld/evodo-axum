@@ -18,9 +18,10 @@ pub async fn find_task<'a>(
 ) -> AppResult<Task> {
     let raw_task = sqlx::query!(
         r#"
-        SELECT t.*, s.parent_task_id, s.subtask_id
+        SELECT t.*, s.parent_task_id, s.subtask_id, b.blocked_task_id
         FROM tasks t 
         LEFT OUTER JOIN subtask_connections s ON (t.id = s.parent_task_id AND t.user_id = s.user_id)
+        LEFT OUTER JOIN blocking_tasks b ON (t.id = b.blocking_task_id AND t.user_id = b.user_id)
         WHERE t.user_id = $1 AND t.id = $2;
         "#,
         user_id,
@@ -41,12 +42,26 @@ pub async fn find_task<'a>(
             created_at: raw.created_at,
             updated_at: raw.updated_at,
             subtask_ids: Vec::new(),
+            blocked_task_ids: Vec::new(),
         });
         if let Some(subtask_id) = raw.subtask_id {
             task.subtask_ids.push(subtask_id);
         }
+        if let Some(blocked_task_id) = raw.blocked_task_id {
+            task.blocked_task_ids.push(blocked_task_id);
+        }
     }
-    let (_, task) = task_map.into_iter().next().ok_or(anyhow!("Error"))?;
+    let task = task_map
+        .into_iter()
+        .next()
+        .map(|(_, mut t)| {
+            t.subtask_ids.sort();
+            t.subtask_ids.dedup();
+            t.blocked_task_ids.sort();
+            t.blocked_task_ids.dedup();
+            t
+        })
+        .ok_or(anyhow!("Error"))?;
 
     Ok(task)
 }
@@ -54,9 +69,10 @@ pub async fn find_task<'a>(
 pub async fn find_tasks(db: &mut Connection, user_id: &str) -> AppResult<Vec<Task>> {
     let raw_tasks = sqlx::query!(
         r#"
-        SELECT t.*, s.parent_task_id, s.subtask_id
+        SELECT t.*, s.parent_task_id, s.subtask_id, b.blocked_task_id
         FROM tasks t 
         LEFT OUTER JOIN subtask_connections s ON (t.id = s.parent_task_id AND t.user_id = s.user_id)
+        LEFT OUTER JOIN blocking_tasks b ON (t.id = b.blocking_task_id AND t.user_id = b.user_id)
         WHERE t.user_id = $1;
         "#,
         user_id
@@ -75,12 +91,25 @@ pub async fn find_tasks(db: &mut Connection, user_id: &str) -> AppResult<Vec<Tas
             created_at: raw.created_at,
             updated_at: raw.updated_at,
             subtask_ids: Vec::new(),
+            blocked_task_ids: Vec::new(),
         });
         if let Some(subtask_id) = raw.subtask_id {
             task.subtask_ids.push(subtask_id);
         }
+        if let Some(blocked_task_id) = raw.blocked_task_id {
+            task.blocked_task_ids.push(blocked_task_id);
+        }
     }
-    let tasks: Vec<Task> = task_map.into_values().collect();
+    let tasks: Vec<Task> = task_map
+        .into_values()
+        .map(|mut t| {
+            t.subtask_ids.sort();
+            t.subtask_ids.dedup();
+            t.blocked_task_ids.sort();
+            t.blocked_task_ids.dedup();
+            t
+        })
+        .collect();
 
     Ok(tasks)
 }

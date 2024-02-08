@@ -15,6 +15,7 @@ pub mod task_factory {
                 title: "title".into(),
                 description: "description".into(),
                 subtask_ids: Vec::new(),
+                blocked_task_ids: Vec::new(),
                 created_at: "".into(),
                 updated_at: "".into(),
             }

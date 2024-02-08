@@ -27,6 +27,7 @@ pub async fn handler(
 
 #[cfg(test)]
 mod tests {
+
     use crate::app::tests::AppTest;
     use crate::app::Db;
     use crate::features::task::routes::TaskPaths;
@@ -56,37 +57,32 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn 全てのサブタスクを取得できる(db: Db) -> AppResult<()> {
+    async fn すべてのサブタスクとブロックされたタスクを重複なく取得できる(
+        db: Db,
+    ) -> AppResult<()> {
         let test = AppTest::new(&db).await?;
         let user = test.login(None).await?;
 
-        let task_a1 = task_factory::create_with_user(&db, &user.id).await?;
-        let task_b1 = task_factory::create_default_subtask(&db, &user.id, &task_a1.id).await?;
-        let task_b2 = task_factory::create_default_subtask(&db, &user.id, &task_a1.id).await?;
-        let task_b3 = task_factory::create_default_subtask(&db, &user.id, &task_a1.id).await?;
-        let task_c1 = task_factory::create_default_subtask(&db, &user.id, &task_b1.id).await?;
-        let task_c2 = task_factory::create_default_subtask(&db, &user.id, &task_b1.id).await?;
+        let task1 = task_factory::create_with_user(&db, &user.id).await?;
+        let task11 = task_factory::create_default_blocked_task(&db, &user.id, &task1.id).await?;
+        let task12 = task_factory::create_default_blocked_task(&db, &user.id, &task1.id).await?;
+        let task13 = task_factory::create_default_blocked_task(&db, &user.id, &task1.id).await?;
+        let task14 = task_factory::create_default_subtask(&db, &user.id, &task1.id).await?;
+        let task15 = task_factory::create_default_subtask(&db, &user.id, &task1.id).await?;
 
         let tasks: Vec<Task> = test.server().get(&TaskPaths::tasks()).await.json();
         assert_eq!(tasks.len(), 6);
 
-        let a1 = tasks.iter().find(|t| t.id == task_a1.id).unwrap();
-        assert_eq!(a1.subtask_ids.len(), 3);
-        assert!([&task_b1.id, &task_b2.id, &task_b3.id]
+        let t1 = tasks.iter().find(|t| t.id == task1.id).unwrap();
+        assert_eq!(t1.blocked_task_ids.len(), 3);
+        assert!([&task11.id, &task12.id, &task13.id]
             .iter()
-            .all(|i| a1.subtask_ids.contains(i)));
+            .all(|d| t1.blocked_task_ids.contains(d)));
 
-        let b1 = tasks.iter().find(|t| t.id == task_b1.id).unwrap();
-        assert_eq!(b1.subtask_ids.len(), 2);
-        assert!([&task_c1.id, &task_c2.id]
+        assert_eq!(t1.subtask_ids.len(), 2);
+        assert!([&task14.id, &task15.id]
             .iter()
-            .all(|i| b1.subtask_ids.contains(i)));
-
-        let b2 = tasks.iter().find(|t| t.id == task_b2.id).unwrap();
-        assert_eq!(b2.subtask_ids.len(), 0);
-
-        let b3 = tasks.iter().find(|t| t.id == task_b3.id).unwrap();
-        assert_eq!(b3.subtask_ids.len(), 0);
+            .all(|i| t1.subtask_ids.contains(i)));
 
         Ok(())
     }
