@@ -581,6 +581,25 @@ pub async fn delete_subtask_connection<'a>(
     Ok(())
 }
 
+pub struct DeleteBlockTaskConnectionArgs<'a> {
+    pub blocking_task_id: &'a str,
+    pub blocked_task_id: &'a str,
+    pub user_id: &'a str,
+}
+pub async fn delete_block_task_connection<'a>(
+    db: &mut Connection,
+    args: DeleteBlockTaskConnectionArgs<'a>,
+) -> AppResult<()> {
+    sqlx::query!(
+        "DELETE FROM blocking_tasks WHERE blocking_task_id = $1 AND blocked_task_id = $2 AND user_id = $3 RETURNING *",
+        args.blocking_task_id,
+        args.blocked_task_id,
+        args.user_id
+    ).fetch_one(&mut *db).await?;
+
+    Ok(())
+}
+
 pub struct DetectCircularConnectionArgs<'a> {
     parent_task_id: &'a str,
     child_task_id: &'a str,

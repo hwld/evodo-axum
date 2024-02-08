@@ -8,9 +8,11 @@ pub mod connect_block_task;
 pub mod connect_subtask;
 pub mod create_task;
 pub mod delete_task;
+pub mod disconnect_block_task;
 pub mod disconnect_subtask;
 pub mod get_task;
 pub mod get_tasks;
+pub mod reconnect_block_task;
 pub mod reconnect_subtask;
 pub mod update_task;
 pub mod update_task_status;
@@ -66,6 +68,14 @@ impl TaskPaths {
     pub fn connect_block_task() -> String {
         Self::block_task() + "/connect"
     }
+
+    pub fn reconnect_block_task() -> String {
+        Self::block_task() + "/reconnect"
+    }
+
+    pub fn disconnect_block_task() -> String {
+        Self::block_task() + "/disconnect"
+    }
 }
 
 pub fn router() -> Router<AppState> {
@@ -99,6 +109,14 @@ pub fn router() -> Router<AppState> {
         .route(
             &TaskPaths::connect_block_task(),
             post(connect_block_task::handler),
+        )
+        .route(
+            &TaskPaths::disconnect_block_task(),
+            delete(disconnect_block_task::handler),
+        )
+        .route(
+            &TaskPaths::reconnect_block_task(),
+            put(reconnect_block_task::handler),
         )
         .route_layer(login_required!(Auth))
 }
