@@ -66,6 +66,7 @@ mod tests {
                 subtask_id: subtask.id.clone(),
             })
             .await;
+
         let fetched_subtask = sqlx::query!(
             "SELECT * FROM subtask_connections WHERE parent_task_id = $1;",
             parent_task.id

@@ -4,6 +4,7 @@ use axum::{
     Router,
 };
 use axum_login::login_required;
+pub mod connect_block_task;
 pub mod connect_subtask;
 pub mod create_task;
 pub mod delete_task;
@@ -57,6 +58,14 @@ impl TaskPaths {
     pub fn disconnect_subtask() -> String {
         Self::subtask() + "/disconnect"
     }
+
+    pub fn block_task() -> String {
+        "/block-task".into()
+    }
+
+    pub fn connect_block_task() -> String {
+        Self::block_task() + "/connect"
+    }
 }
 
 pub fn router() -> Router<AppState> {
@@ -86,6 +95,10 @@ pub fn router() -> Router<AppState> {
         .route(
             &TaskPaths::update_task_status(),
             put(update_task_status::handler),
+        )
+        .route(
+            &TaskPaths::connect_block_task(),
+            post(connect_block_task::handler),
         )
         .route_layer(login_required!(Auth))
 }

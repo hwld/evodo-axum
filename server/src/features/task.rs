@@ -85,3 +85,9 @@ pub struct DisconnectSubtask {
     pub parent_task_id: String,
     pub subtask_id: String,
 }
+
+#[derive(Serialize, Deserialize, ToSchema, Debug, Clone)]
+pub struct ConnectBlockTask {
+    pub blocking_task_id: String,
+    pub blocked_task_id: String,
+}

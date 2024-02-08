@@ -459,6 +459,27 @@ pub async fn insert_subtask_connection<'a>(
     Ok(())
 }
 
+pub struct InsertBlockTaskConnectionArgs<'a> {
+    pub blocking_task_id: &'a str,
+    pub blocked_task_id: &'a str,
+    pub user_id: &'a str,
+}
+pub async fn insert_block_task_connection<'a>(
+    db: &mut Connection,
+    args: InsertBlockTaskConnectionArgs<'a>,
+) -> AppResult<()> {
+    sqlx::query!(
+        "INSERT INTO blocking_tasks(blocking_task_id, blocked_task_id, user_id) VALUES ($1, $2, $3) RETURNING *;",
+        args.blocking_task_id,
+        args.blocked_task_id,
+        args.user_id
+    )
+    .fetch_one(&mut *db)
+    .await?;
+
+    Ok(())
+}
+
 pub async fn check_subtask_connection<'a>(
     db: &mut Connection,
     args: &InsertSubTaskConnectionArgs<'a>,
@@ -492,11 +513,31 @@ pub async fn check_subtask_connection<'a>(
         return Err(anyhow!("タスクの循環は許可されていません").into());
     }
 
-    if tasks.len() == 2 {
-        Ok(())
-    } else {
-        Err(anyhow!("サーバーエラー").into())
+    Ok(())
+}
+
+// TODO: subtaskと共通化できる？
+pub async fn check_insert_block_task_connection<'a>(
+    db: &mut Connection,
+    args: &InsertBlockTaskConnectionArgs<'a>,
+) -> AppResult<()> {
+    // ログインユーザーが指定されたタスクを持っているかを確認する
+    let tasks = sqlx::query!(
+        "SELECT * FROM tasks WHERE id IN ($1, $2) AND user_id = $3;",
+        args.blocking_task_id,
+        args.blocked_task_id,
+        args.user_id,
+    )
+    .fetch_all(&mut *db)
+    .await?;
+
+    if tasks.len() != 2 {
+        return Err(anyhow!("タスクが存在しません").into());
     }
+
+    // TODO: 循環の確認
+
+    Ok(())
 }
 
 pub struct DeleteSubTaskConnectionArgs<'a> {
