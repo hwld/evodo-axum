@@ -535,6 +535,19 @@ pub async fn check_insert_block_task_connection<'a>(
         return Err(anyhow!("タスクが存在しません").into());
     }
 
+    if is_subtask(
+        &mut *db,
+        IsSubtaskArgs {
+            parent_task_id: args.blocking_task_id,
+            task_id: args.blocked_task_id,
+            user_id: args.user_id,
+        },
+    )
+    .await?
+    {
+        return Err(anyhow!("サブタスクをブロックすることはできません").into());
+    };
+
     // TODO: 循環の確認
 
     Ok(())
@@ -589,6 +602,40 @@ pub async fn detect_circular_connection<'a>(
         parent_task_id,
         user_id,
         subtask_id,
+    )
+    .fetch_all(&mut *db)
+    .await?;
+
+    Ok(!result.is_empty())
+}
+
+pub struct IsSubtaskArgs<'a> {
+    pub parent_task_id: &'a str,
+    pub task_id: &'a str,
+    pub user_id: &'a str,
+}
+pub async fn is_subtask<'a>(db: &mut Connection, args: IsSubtaskArgs<'a>) -> AppResult<bool> {
+    let result = sqlx::query!(
+        r#"
+        WITH RECURSIVE subtasks AS (
+            SELECT subtask_id, parent_task_id
+            FROM subtask_connections
+            WHERE parent_task_id = $1 AND user_id = $2
+
+            UNION
+
+            SELECT sc.subtask_id, s.parent_task_id
+            FROM subtask_connections sc
+            JOIN subtasks s ON sc.parent_task_id = s.subtask_id
+        )
+
+        SELECT DISTINCT subtask_id
+        FROM subtasks
+        WHERE subtask_id = $3
+        "#,
+        args.parent_task_id,
+        args.user_id,
+        args.task_id,
     )
     .fetch_all(&mut *db)
     .await?;

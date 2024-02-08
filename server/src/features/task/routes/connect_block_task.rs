@@ -79,7 +79,7 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn 他人タスクをブロックタスクにできない(db: Db) -> AppResult<()> {
+    async fn 他人のタスクをブロックタスクにできない(db: Db) -> AppResult<()> {
         let test = AppTest::new(&db).await?;
         let user = test.login(None).await?;
 
@@ -129,5 +129,47 @@ mod tests {
         assert!(block.is_empty());
 
         Ok(())
+    }
+
+    #[sqlx::test]
+    async fn メインタスクはサブタスクをブロックできない(
+        db: Db,
+    ) -> AppResult<()> {
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
+
+        let main = task_factory::create_with_user(&db, &user.id).await?;
+        let sub1 = task_factory::create_default_subtask(&db, &user.id, &main.id).await?;
+        let sub11 = task_factory::create_default_subtask(&db, &user.id, &sub1.id).await?;
+        let _sub12 = task_factory::create_default_subtask(&db, &user.id, &sub1.id).await?;
+        let _sub111 = task_factory::create_default_subtask(&db, &user.id, &sub11.id).await?;
+        let sub112 = task_factory::create_default_subtask(&db, &user.id, &sub11.id).await?;
+
+        let res = test
+            .server()
+            .post(&TaskPaths::connect_block_task())
+            .json(&ConnectBlockTask {
+                blocking_task_id: main.id.clone(),
+                blocked_task_id: sub112.id.clone(),
+            })
+            .await;
+        res.assert_status_not_ok();
+
+        let blocks = sqlx::query!("SELECT * FROM blocking_tasks;")
+            .fetch_all(&db)
+            .await?;
+        assert!(blocks.is_empty());
+
+        Ok(())
+    }
+
+    #[sqlx::test]
+    async fn ブロックタスクを循環させることはできない() -> AppResult<()> {
+        todo!()
+    }
+
+    #[sqlx::test]
+    async fn ブロックタスクとサブタスクを循環させることはできない() -> AppResult<()> {
+        todo!()
     }
 }

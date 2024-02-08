@@ -66,6 +66,7 @@ pub struct DeleteTaskResponse {
     pub task_id: String,
 }
 
+// TODO: parent_task_idじゃなくてmain_task_idとかにしたい・・・。
 #[derive(Serialize, Deserialize, ToSchema, Debug, Clone)]
 pub struct ConnectSubtask {
     pub parent_task_id: String,
