@@ -6,10 +6,14 @@ import {
   generateSubtaskEdge,
   buildTaskNodes,
   buildTaskNodeEdges,
-} from "./util";
+  blockTaskHandle,
+  generateBlockTaskEdgeId,
+  generateBlockTaskEdge,
+} from "../util";
 import { useConnectSubtask } from "./use-connect-subtask";
 import { api } from "~/api/index.client";
 import { toast } from "sonner";
+import { useConnectBlockTask } from "./use-connect-block-task";
 
 type UseConnectSubtaskArgs = {
   setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
@@ -17,6 +21,7 @@ type UseConnectSubtaskArgs = {
 export const useConnectTaskNode = ({ setEdges }: UseConnectSubtaskArgs) => {
   const flow = useReactFlow();
   const connectSubtack = useConnectSubtask();
+  const connectBlockTask = useConnectBlockTask();
 
   const handleConnect = useCallback(
     (connection: Connection) => {
@@ -59,9 +64,50 @@ export const useConnectTaskNode = ({ setEdges }: UseConnectSubtaskArgs) => {
         setEdges((old) => {
           return [...old, generateSubtaskEdge({ parentTaskId, subtaskId })];
         });
+      } else if (connection.sourceHandle === blockTaskHandle) {
+        const blockingTaskId = connection.source;
+        const blockedTaskId = connection.target;
+
+        const newEdgeId = generateBlockTaskEdgeId({
+          blockingTaskId,
+          blockedTaskId,
+        });
+        if (flow.getEdges().find((e) => e.id === newEdgeId)) {
+          return;
+        }
+
+        const oldEdges = flow.getEdges();
+        connectBlockTask.mutate(
+          {
+            blocking_task_id: blockingTaskId,
+            blocked_task_id: blockedTaskId,
+          },
+          {
+            onSuccess: async () => {
+              try {
+                const nodes = await api.get("/task-nodes");
+                flow.setNodes(buildTaskNodes(nodes));
+                flow.setEdges(buildTaskNodeEdges(nodes));
+              } catch (e) {
+                console.error(e);
+                toast.error("タスクを読み込めませんでした。");
+              }
+            },
+            onError: () => {
+              setEdges(oldEdges);
+            },
+          }
+        );
+
+        setEdges((old) => {
+          return [
+            ...old,
+            generateBlockTaskEdge({ blockingTaskId, blockedTaskId }),
+          ];
+        });
       }
     },
-    [connectSubtack, flow, setEdges]
+    [connectBlockTask, connectSubtack, flow, setEdges]
   );
 
   return { handleConnect };

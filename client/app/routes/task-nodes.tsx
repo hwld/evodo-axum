@@ -9,9 +9,9 @@ import { requireUserSession } from "~/session.server";
 import { AppControl } from "~/components/app-control/app-control";
 import { SessionProvider } from "~/features/auth/use-session";
 import { NodeView } from "~/components/node-view";
-import { useConnectTaskNode } from "~/features/task-node/use-connect-task-node";
+import { useConnectTaskNode } from "~/features/task-node/use-connect-task-node/use-connect-task-node";
 import { buildTaskNodeEdges, buildTaskNodes } from "~/features/task-node/util";
-import { useUpdateTaskNodeEdge } from "~/features/task-node/use-update-task-node-edge";
+import { useUpdateTaskNodeEdge } from "~/features/task-node/use-update-task-node-edge/use-update-task-node-edge";
 import { toast } from "sonner";
 import { api } from "~/api/index.client";
 

@@ -11,6 +11,14 @@ export const generateSubtaskEdgeId = ({
   return `subtask-${parentTaskId}-${subtaskId}`;
 };
 
+type BlockTaskConnection = { blockingTaskId: string; blockedTaskId: string };
+export const generateBlockTaskEdgeId = ({
+  blockingTaskId,
+  blockedTaskId,
+}: BlockTaskConnection) => {
+  return `blockTask-${blockingTaskId}-${blockedTaskId}`;
+};
+
 export const subtaskHandle = "sub";
 export const blockTaskHandle = "block";
 
@@ -23,6 +31,19 @@ export const generateSubtaskEdge = ({
     source: parentTaskId,
     target: subtaskId,
     sourceHandle: subtaskHandle,
+    targetHandle: "",
+  };
+};
+
+export const generateBlockTaskEdge = ({
+  blockingTaskId,
+  blockedTaskId,
+}: BlockTaskConnection): Edge => {
+  return {
+    id: generateBlockTaskEdgeId({ blockingTaskId, blockedTaskId }),
+    source: blockingTaskId,
+    target: blockedTaskId,
+    sourceHandle: blockTaskHandle,
     targetHandle: "",
   };
 };
@@ -67,12 +88,23 @@ export const buildTaskNodes = (taskNodes: TaskNode[]): Node<TaskNodeData>[] => {
 export const buildTaskNodeEdges = (taskNodes: TaskNode[]): Edge[] => {
   return taskNodes
     .map(({ task }): Edge[] => {
-      return task.subtask_ids.map((subtaskId): Edge => {
+      const subtaskEdges = task.subtask_ids.map((subtaskId): Edge => {
         return generateSubtaskEdge({
           parentTaskId: task.id,
           subtaskId: subtaskId,
         });
       });
+
+      const blockTaskEdges = task.blocked_task_ids.map(
+        (blockedTaskId): Edge => {
+          return generateBlockTaskEdge({
+            blockingTaskId: task.id,
+            blockedTaskId,
+          });
+        }
+      );
+
+      return [...subtaskEdges, ...blockTaskEdges];
     })
     .flat();
 };
