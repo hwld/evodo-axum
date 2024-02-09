@@ -13,7 +13,7 @@ use crate::{
         auth::Auth,
         task::{
             db::{
-                find_all_descendant_task_ids, is_all_blocking_tasks_done,
+                find_all_unblocked_descendant_task_ids, is_all_blocking_tasks_done,
                 update_all_ancestors_task_status, update_task_status, update_tasks_status,
                 TaskAndUser, UpdateTaskStatusArgs, UpdateTasksStatusArgs,
             },
@@ -54,8 +54,8 @@ pub async fn handler(
     )
     .await?;
 
-    //　子孫タスクをすべて更新する
-    let descendants = find_all_descendant_task_ids(
+    //　ブロッキングタスクにブロックされていない子孫タスクをすべて更新する
+    let descendants = find_all_unblocked_descendant_task_ids(
         &mut tx,
         TaskAndUser {
             task_id: &updated_task.id,
@@ -531,6 +531,166 @@ mod tests {
         )
         .await?;
         assert_eq!(task.status, TaskStatus::Todo);
+
+        Ok(())
+    }
+
+    #[sqlx::test]
+    async fn ブロッキングタスクが完了状態ではないサブタスクの状態は更新されない(
+        db: Db,
+    ) -> AppResult<()> {
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
+
+        let main = task_factory::create_with_user(&db, &user.id).await?;
+        assert_eq!(main.status, TaskStatus::Todo);
+        let sub = task_factory::create_default_subtask(&db, &user.id, &main.id).await?;
+        assert_eq!(sub.status, TaskStatus::Todo);
+        let blocking = task_factory::create_with_user(&db, &user.id).await?;
+        task_factory::create_blocking_connection(&db, &user.id, &blocking.id, &sub.id).await?;
+
+        let res = test
+            .server()
+            .put(&TaskPaths::one_update_task_status(&main.id))
+            .json(&UpdateTaskStatus {
+                status: TaskStatus::Done,
+            })
+            .await;
+        res.assert_status_ok();
+
+        let mut conn = db.acquire().await?;
+        let main = find_task(
+            &mut conn,
+            FindTaskArgs {
+                task_id: &main.id,
+                user_id: &user.id,
+            },
+        )
+        .await?;
+        assert_eq!(main.status, TaskStatus::Done);
+
+        let sub = find_task(
+            &mut conn,
+            FindTaskArgs {
+                task_id: &sub.id,
+                user_id: &user.id,
+            },
+        )
+        .await?;
+        assert_eq!(sub.status, TaskStatus::Todo);
+
+        Ok(())
+    }
+
+    #[sqlx::test]
+    async fn すべてのブロッキングタスクが完了状態ではない場合はサブタスクの状態は更新されない(
+        db: Db,
+    ) -> AppResult<()> {
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
+
+        let main = task_factory::create_with_user(&db, &user.id).await?;
+        assert_eq!(main.status, TaskStatus::Todo);
+        let sub = task_factory::create_default_subtask(&db, &user.id, &main.id).await?;
+        assert_eq!(sub.status, TaskStatus::Todo);
+        let blocking1 = task_factory::create(
+            &db,
+            Task {
+                status: TaskStatus::Done,
+                user_id: user.id.clone(),
+                ..Default::default()
+            },
+        )
+        .await?;
+        task_factory::create_blocking_connection(&db, &user.id, &blocking1.id, &sub.id).await?;
+        let blocking2 = task_factory::create_with_user(&db, &user.id).await?;
+        task_factory::create_blocking_connection(&db, &user.id, &blocking2.id, &sub.id).await?;
+
+        let res = test
+            .server()
+            .put(&TaskPaths::one_update_task_status(&main.id))
+            .json(&UpdateTaskStatus {
+                status: TaskStatus::Done,
+            })
+            .await;
+        res.assert_status_ok();
+
+        let mut conn = db.acquire().await?;
+        let main = find_task(
+            &mut conn,
+            FindTaskArgs {
+                task_id: &main.id,
+                user_id: &user.id,
+            },
+        )
+        .await?;
+        assert_eq!(main.status, TaskStatus::Done);
+
+        let sub = find_task(
+            &mut conn,
+            FindTaskArgs {
+                task_id: &sub.id,
+                user_id: &user.id,
+            },
+        )
+        .await?;
+        assert_eq!(sub.status, TaskStatus::Todo);
+
+        Ok(())
+    }
+
+    #[sqlx::test]
+    async fn ブロッキングタスクが完了状態のサブタスクは更新される(
+        db: Db,
+    ) -> AppResult<()> {
+        let test = AppTest::new(&db).await?;
+        let user = test.login(None).await?;
+
+        let main = task_factory::create_with_user(&db, &user.id).await?;
+        assert_eq!(main.status, TaskStatus::Todo);
+        let sub = task_factory::create_default_subtask(&db, &user.id, &main.id).await?;
+        assert_eq!(sub.status, TaskStatus::Todo);
+        let blocking = task_factory::create(
+            &db,
+            Task {
+                status: TaskStatus::Done,
+                user_id: user.id.clone(),
+                ..Default::default()
+            },
+        )
+        .await?;
+        assert_eq!(blocking.status, TaskStatus::Done);
+        task_factory::create_blocking_connection(&db, &user.id, &blocking.id, &sub.id).await?;
+
+        let res = test
+            .server()
+            .put(&TaskPaths::one_update_task_status(&main.id))
+            .json(&UpdateTaskStatus {
+                status: TaskStatus::Done,
+            })
+            .await;
+        res.assert_status_ok();
+
+        let mut conn = db.acquire().await?;
+        let main = find_task(
+            &mut conn,
+            FindTaskArgs {
+                task_id: &main.id,
+                user_id: &user.id,
+            },
+        )
+        .await?;
+        assert_eq!(main.status, TaskStatus::Done);
+
+        let sub = find_task(
+            &mut conn,
+            FindTaskArgs {
+                task_id: &sub.id,
+                user_id: &user.id,
+            },
+        )
+        .await?;
+        assert_eq!(sub.status, TaskStatus::Done);
 
         Ok(())
     }

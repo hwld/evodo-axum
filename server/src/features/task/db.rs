@@ -140,7 +140,7 @@ pub async fn find_parent_task_ids<'a>(
     Ok(parent_ids)
 }
 
-pub async fn find_all_descendant_task_ids<'a>(
+pub async fn find_all_unblocked_descendant_task_ids<'a>(
     db: &mut Connection,
     args: TaskAndUser<'a>,
 ) -> AppResult<Vec<String>> {
@@ -158,8 +158,16 @@ pub async fn find_all_descendant_task_ids<'a>(
             JOIN descendants d ON s.parent_task_id = d.subtask_id
         )
 
-        SELECT DISTINCT subtask_id
-        FROM descendants
+        SELECT DISTINCT d.subtask_id
+        FROM descendants d
+        LEFT OUTER JOIN (
+            SELECT DISTINCT subtask_id
+            FROM descendants d
+            LEFT OUTER JOIN blocking_tasks b ON (d.subtask_id = b.blocked_task_id)
+            LEFT OUTER JOIN tasks t ON (b.blocking_task_id = t.id)
+            WHERE t.status IS NOT NULL AND t.status = 'Todo'
+        ) as undone ON (d.subtask_id == undone.subtask_id)
+        WHERE undone.subtask_id IS NULL
         "#,
         args.task_id,
         args.user_id,
@@ -167,7 +175,7 @@ pub async fn find_all_descendant_task_ids<'a>(
     .fetch_all(&mut *db)
     .await?;
 
-    let ids: Vec<String> = result.into_iter().filter_map(|r| r.subtask_id).collect();
+    let ids: Vec<String> = result.into_iter().map(|r| r.subtask_id).collect();
     Ok(ids)
 }
 
