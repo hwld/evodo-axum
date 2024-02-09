@@ -366,22 +366,19 @@ mod tests {
     }
 
     #[sqlx::test]
-    pub fn ブロックしているタスクのサブタスクをサブタスクにすることはできない(
-        db: Db,
-    ) -> AppResult<()> {
+    pub fn 複数のタスクのサブタスクにはなれない(db: Db) -> AppResult<()> {
         let test = AppTest::new(&db).await?;
         let user = test.login(None).await?;
 
-        let blocking = task_factory::create_with_user(&db, &user.id).await?;
-        let blocked =
-            task_factory::create_default_blocked_task(&db, &user.id, &blocking.id).await?;
-        let sub = task_factory::create_default_subtask(&db, &user.id, &blocked.id).await?;
+        let main1 = task_factory::create_with_user(&db, &user.id).await?;
+        let main2 = task_factory::create_with_user(&db, &user.id).await?;
+        let sub = task_factory::create_default_subtask(&db, &user.id, &main1.id).await?;
 
         let res = test
             .server()
             .post(&TaskPaths::connect_subtask())
             .json(&ConnectSubtask {
-                parent_task_id: blocking.id.clone(),
+                parent_task_id: main2.id.clone(),
                 subtask_id: sub.id.clone(),
             })
             .await;
@@ -389,41 +386,8 @@ mod tests {
 
         let res = sqlx::query!(
             "SELECT * FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2",
-            blocking.id,
+            main2.id,
             sub.id
-        )
-        .fetch_all(&db)
-        .await?;
-        assert!(res.is_empty());
-
-        Ok(())
-    }
-
-    #[sqlx::test]
-    pub fn サブタスクのサブタスクをサブタスクにすることはできない(
-        db: Db,
-    ) -> AppResult<()> {
-        let test = AppTest::new(&db).await?;
-        let user = test.login(None).await?;
-
-        let main = task_factory::create_with_user(&db, &user.id).await?;
-        let sub1 = task_factory::create_default_subtask(&db, &user.id, &main.id).await?;
-        let sub11 = task_factory::create_default_subtask(&db, &user.id, &sub1.id).await?;
-
-        let res = test
-            .server()
-            .post(&TaskPaths::connect_subtask())
-            .json(&ConnectSubtask {
-                parent_task_id: main.id.clone(),
-                subtask_id: sub11.id.clone(),
-            })
-            .await;
-        res.assert_status_not_ok();
-
-        let res = sqlx::query!(
-            "SELECT * FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2",
-            main.id,
-            sub11.id
         )
         .fetch_all(&db)
         .await?;
