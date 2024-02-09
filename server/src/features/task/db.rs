@@ -140,43 +140,83 @@ pub async fn find_parent_task_ids<'a>(
     Ok(parent_ids)
 }
 
-pub async fn find_all_unblocked_descendant_task_ids<'a>(
+pub async fn update_all_unblocked_descendant_tasks<'a>(
     db: &mut Connection,
-    args: TaskAndUser<'a>,
-) -> AppResult<Vec<String>> {
-    let result = sqlx::query!(
-        r#"
-        WITH RECURSIVE descendants AS (
-            SELECT subtask_id, parent_task_id
-            FROM subtask_connections
-            WHERE parent_task_id = $1 AND user_id = $2
-
-            UNION
-
-            SELECT s.subtask_id, d.parent_task_id
-            FROM subtask_connections s
-            JOIN descendants d ON s.parent_task_id = d.subtask_id
-        )
-
-        SELECT DISTINCT d.subtask_id
-        FROM descendants d
-        LEFT OUTER JOIN (
+    args: UpdateTaskStatusArgs<'a>,
+) -> AppResult<()> {
+    let descendant_ids: Vec<String> = if args.status == &TaskStatus::Todo {
+        // TODOに変更する場合は何もチェックしない
+        let result = sqlx::query!(
+            r#"
+            WITH RECURSIVE descendants AS (
+                SELECT subtask_id, parent_task_id
+                FROM subtask_connections
+                WHERE parent_task_id = $1 AND user_id = $2
+    
+                UNION
+    
+                SELECT s.subtask_id, d.parent_task_id
+                FROM subtask_connections s
+                JOIN descendants d ON s.parent_task_id = d.subtask_id
+            )
+    
             SELECT DISTINCT subtask_id
+            FROM descendants
+            "#,
+            args.id,
+            args.user_id,
+        )
+        .fetch_all(&mut *db)
+        .await?;
+
+        result.into_iter().filter_map(|r| r.subtask_id).collect()
+    } else {
+        // Doneに変更する場合は、ブロックされていないタスクだけを対象にする
+        let result = sqlx::query!(
+            r#"
+            WITH RECURSIVE descendants AS (
+                SELECT subtask_id, parent_task_id
+                FROM subtask_connections
+                WHERE parent_task_id = $1 AND user_id = $2
+    
+                UNION
+    
+                SELECT s.subtask_id, d.parent_task_id
+                FROM subtask_connections s
+                JOIN descendants d ON s.parent_task_id = d.subtask_id
+            )
+    
+            SELECT DISTINCT d.subtask_id
             FROM descendants d
-            LEFT OUTER JOIN blocking_tasks b ON (d.subtask_id = b.blocked_task_id)
-            LEFT OUTER JOIN tasks t ON (b.blocking_task_id = t.id)
-            WHERE t.status IS NOT NULL AND t.status = 'Todo'
-        ) as undone ON (d.subtask_id == undone.subtask_id)
-        WHERE undone.subtask_id IS NULL
-        "#,
-        args.task_id,
-        args.user_id,
+            LEFT OUTER JOIN (
+                SELECT DISTINCT subtask_id
+                FROM descendants d
+                LEFT OUTER JOIN blocking_tasks b ON (d.subtask_id = b.blocked_task_id)
+                LEFT OUTER JOIN tasks t ON (b.blocking_task_id = t.id)
+                WHERE t.status IS NOT NULL AND t.status = 'Todo'
+            ) as undone ON (d.subtask_id == undone.subtask_id)
+            WHERE undone.subtask_id IS NULL
+            "#,
+            args.id,
+            args.user_id,
+        )
+        .fetch_all(&mut *db)
+        .await?;
+
+        result.into_iter().map(|r| r.subtask_id).collect()
+    };
+
+    update_tasks_status(
+        &mut *db,
+        UpdateTasksStatusArgs {
+            status: args.status,
+            user_id: args.user_id,
+            task_ids: &descendant_ids,
+        },
     )
-    .fetch_all(&mut *db)
     .await?;
 
-    let ids: Vec<String> = result.into_iter().map(|r| r.subtask_id).collect();
-    Ok(ids)
+    Ok(())
 }
 
 pub async fn is_all_tasks_done(db: &mut Connection, task_ids: &Vec<String>) -> AppResult<bool> {
