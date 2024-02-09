@@ -76,6 +76,24 @@ pub mod task_factory {
         Ok(subtask)
     }
 
+    pub async fn create_blocking_connection(
+        db: &Db,
+        user_id: &str,
+        blocking_task_id: &str,
+        blocked_task_id: &str,
+    ) -> AppResult<()> {
+        sqlx::query!(
+            "INSERT INTO blocking_tasks(blocking_task_id, blocked_task_id, user_id) VALUES($1, $2, $3);",
+            blocking_task_id,
+            blocked_task_id,
+            user_id,
+        )
+        .execute(db)
+        .await?;
+
+        Ok(())
+    }
+
     pub async fn create_blocked_task(
         db: &Db,
         blocking_task_id: &str,
@@ -83,14 +101,7 @@ pub mod task_factory {
     ) -> AppResult<Task> {
         create(db, task.clone()).await?;
 
-        sqlx::query!(
-            "INSERT INTO blocking_tasks(blocking_task_id, blocked_task_id, user_id) VALUES($1, $2, $3);",
-            blocking_task_id,
-            task.id,
-            task.user_id,
-        )
-        .execute(db)
-        .await?;
+        create_blocking_connection(db, &task.user_id, blocking_task_id, &task.id).await?;
 
         Ok(task)
     }

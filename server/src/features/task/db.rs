@@ -539,6 +539,19 @@ pub async fn check_subtask_connection<'a>(
         return Err(anyhow!("タスクの循環は許可されていません").into());
     }
 
+    // 子孫タスクではないことを確認する
+    if is_descendant_task(
+        &mut *db,
+        IsDescendantTaskArgs {
+            parent_task_id: args.parent_task_id,
+            task_id: args.subtask_id,
+        },
+    )
+    .await?
+    {
+        return Err(anyhow!("子孫タスクをサブタスクにすることはできません").into());
+    }
+
     Ok(())
 }
 
@@ -756,4 +769,53 @@ pub async fn is_all_blocking_tasks_done(db: &mut Connection, task_id: &str) -> A
     .await?;
 
     Ok(result.non_done_status_count == 0)
+}
+
+pub struct IsDescendantTaskArgs<'a> {
+    pub parent_task_id: &'a str,
+    pub task_id: &'a str,
+}
+pub async fn is_descendant_task<'a>(
+    db: &mut Connection,
+    args: IsDescendantTaskArgs<'a>,
+) -> AppResult<bool> {
+    let result = sqlx::query!(
+        r#"
+        WITH RECURSIVE descendants AS (
+            -- 非再帰
+            SELECT parent_task_id, subtask_id as child_task_id
+            FROM subtask_connections
+            WHERE parent_task_id = $1
+
+            UNION
+
+            SELECT blocking_task_id as parent_task_id, blocked_task_id as child_task_id
+            FROM blocking_tasks
+            WHERE blocking_task_id = $1
+
+            UNION
+
+            -- 再帰
+            SELECT d.parent_task_id, s.subtask_id as child_task_id
+            FROM subtask_connections s
+            JOIN descendants d ON s.parent_task_id = d.child_task_id
+
+            UNION
+
+            SELECT d.parent_task_id, b.blocked_task_id as child_task_id
+            FROM blocking_tasks b
+            JOIN descendants d ON b.blocking_task_id = d.child_task_id
+        )
+
+        SELECT *
+        FROM descendants
+        WHERE child_task_id = $2
+        "#,
+        args.parent_task_id,
+        args.task_id
+    )
+    .fetch_all(&mut *db)
+    .await?;
+
+    Ok(!result.is_empty())
 }
