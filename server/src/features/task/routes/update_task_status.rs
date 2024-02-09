@@ -14,8 +14,8 @@ use crate::{
         task::{
             db::{
                 find_all_unblocked_descendant_task_ids, is_all_blocking_tasks_done,
-                update_all_ancestors_task_status, update_task_status, update_tasks_status,
-                TaskAndUser, UpdateTaskStatusArgs, UpdateTasksStatusArgs,
+                update_task_status, update_tasks_and_ancestors_status, update_tasks_status,
+                TaskAndUser, TasksAndUser, UpdateTaskStatusArgs, UpdateTasksStatusArgs,
             },
             UpdateTaskStatus,
         },
@@ -73,11 +73,11 @@ pub async fn handler(
     )
     .await?;
 
-    // すべての祖先タスクを更新する
-    update_all_ancestors_task_status(
+    // メインタスクと、すべての祖先タスクを更新する
+    update_tasks_and_ancestors_status(
         &mut tx,
-        TaskAndUser {
-            task_id: &id,
+        TasksAndUser {
+            task_ids: &vec![id.clone()],
             user_id: &user.id,
         },
     )
@@ -567,7 +567,7 @@ mod tests {
             },
         )
         .await?;
-        assert_eq!(main.status, TaskStatus::Done);
+        assert_eq!(main.status, TaskStatus::Todo);
 
         let sub = find_task(
             &mut conn,
@@ -624,7 +624,7 @@ mod tests {
             },
         )
         .await?;
-        assert_eq!(main.status, TaskStatus::Done);
+        assert_eq!(main.status, TaskStatus::Todo);
 
         let sub = find_task(
             &mut conn,
