@@ -1,14 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
-import React, { useCallback, useRef } from "react";
-import { Node, NodeChange, applyNodeChanges } from "reactflow";
+import { useCallback, useRef } from "react";
+import { NodeChange, applyNodeChanges, useReactFlow } from "reactflow";
 import { api } from "~/api/index.client";
-import { TaskNodeData } from "./task-node";
 import { toast } from "sonner";
 
-type UseUpdateTaskNodeArgs = {
-  setNodes: React.Dispatch<React.SetStateAction<Node<TaskNodeData>[]>>;
-};
-export const useUpdateTaskNode = ({ setNodes }: UseUpdateTaskNodeArgs) => {
+export const useUpdateTaskNode = () => {
+  const flow = useReactFlow();
+
   const mutation = useMutation({
     mutationFn: ({ id, x, y }: { id: string; x: number; y: number }) => {
       return api.put("/task-node-info/:id", { x: x, y: y }, { params: { id } });
@@ -47,9 +45,9 @@ export const useUpdateTaskNode = ({ setNodes }: UseUpdateTaskNodeArgs) => {
         });
       });
 
-      setNodes((nodes) => applyNodeChanges(changes, nodes));
+      flow.setNodes((nodes) => applyNodeChanges(changes, nodes));
     },
-    [debounceCall, mutation, setNodes]
+    [debounceCall, flow, mutation]
   );
 
   return { handleNodesChange };

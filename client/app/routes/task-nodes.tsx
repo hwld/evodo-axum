@@ -32,12 +32,10 @@ export default function TaskNodesPage() {
     buildTaskNodes(taskNodes)
   );
   const [edges, setEdges] = useState<Edge[]>(buildTaskNodeEdges(taskNodes));
-
-  const { handleConnect } = useConnectTaskNode({ setEdges });
+  const { handleConnect } = useConnectTaskNode();
   const { handleEdgeUpdateStart, handleEdgeUpdate, handleEdgeUpdateEnd } =
     useUpdateTaskNodeEdge();
-
-  const { handleNodesChange } = useUpdateTaskNode({ setNodes });
+  const { handleNodesChange } = useUpdateTaskNode();
 
   const handleEdgesChange: OnEdgesChange = useCallback((changes) => {
     setEdges((old) => applyEdgeChanges(changes, old));
