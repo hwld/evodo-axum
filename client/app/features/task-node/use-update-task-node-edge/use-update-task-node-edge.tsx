@@ -7,6 +7,8 @@ import {
   generateSubtaskEdgeId,
   blockTaskHandle,
   generateBlockTaskEdgeId,
+  generateSubtaskEdge,
+  generateBlockTaskEdge,
 } from "../util";
 import { useReconnectBlockTask } from "./use-reconnect-block-task";
 import { useDisconnectBlockTask } from "./use-disconnect-block-task";
@@ -49,11 +51,17 @@ export const useUpdateTaskNodeEdge = ({
         reconnectSubtask.mutate({
           old_parent_task_id: oldEdge.source,
           old_subtask_id: oldEdge.target,
-          new_parent_task_id: newConnection.source,
-          new_subtask_id: newConnection.target,
+          new_parent_task_id: newParentTaskId,
+          new_subtask_id: newSubtaskId,
         });
 
-        setEdges((eds) => eds.filter((e) => e.id !== oldEdge.id));
+        setEdges((eds) => [
+          ...eds.filter((e) => e.id !== oldEdge.id),
+          generateSubtaskEdge({
+            parentTaskId: newParentTaskId,
+            subtaskId: newSubtaskId,
+          }),
+        ]);
       } else if (newConnection.sourceHandle === blockTaskHandle) {
         const newBlockingTaskId = newConnection.source;
         const newBlockedTaskId = newConnection.target;
@@ -69,11 +77,17 @@ export const useUpdateTaskNodeEdge = ({
         reconnectBlockTask.mutate({
           old_blocking_task_id: oldEdge.source,
           old_blocked_task_id: oldEdge.target,
-          new_blocking_task_id: newConnection.source,
-          new_blocked_task_id: newConnection.target,
+          new_blocking_task_id: newBlockingTaskId,
+          new_blocked_task_id: newBlockedTaskId,
         });
 
-        setEdges((eds) => eds.filter((e) => e.id !== oldEdge.id));
+        setEdges((eds) => [
+          ...eds.filter((e) => e.id !== oldEdge.id),
+          generateBlockTaskEdge({
+            blockingTaskId: newBlockingTaskId,
+            blockedTaskId: newBlockedTaskId,
+          }),
+        ]);
       }
     },
     [flow, reconnectBlockTask, reconnectSubtask, setEdges]
