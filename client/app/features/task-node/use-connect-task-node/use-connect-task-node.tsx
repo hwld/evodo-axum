@@ -4,15 +4,11 @@ import {
   subtaskHandle,
   generateSubtaskEdgeId,
   generateSubtaskEdge,
-  buildTaskNodes,
-  buildTaskNodeEdges,
   blockTaskHandle,
   generateBlockTaskEdgeId,
   generateBlockTaskEdge,
 } from "../util";
 import { useConnectSubtask } from "./use-connect-subtask";
-import { api } from "~/api/index.client";
-import { toast } from "sonner";
 import { useConnectBlockTask } from "./use-connect-block-task";
 
 type UseConnectSubtaskArgs = {
@@ -38,28 +34,10 @@ export const useConnectTaskNode = ({ setEdges }: UseConnectSubtaskArgs) => {
           return;
         }
 
-        const oldEdges = flow.getEdges();
-        connectSubtack.mutate(
-          {
-            parent_task_id: parentTaskId,
-            subtask_id: subtaskId,
-          },
-          {
-            onSuccess: async () => {
-              try {
-                const nodes = await api.get("/task-nodes");
-                flow.setNodes(buildTaskNodes(nodes));
-                flow.setEdges(buildTaskNodeEdges(nodes));
-              } catch (e) {
-                console.error(e);
-                toast.error("タスクを読み込めませんでした。");
-              }
-            },
-            onError: () => {
-              setEdges(oldEdges);
-            },
-          }
-        );
+        connectSubtack.mutate({
+          parent_task_id: parentTaskId,
+          subtask_id: subtaskId,
+        });
 
         setEdges((old) => {
           return [...old, generateSubtaskEdge({ parentTaskId, subtaskId })];
@@ -76,28 +54,10 @@ export const useConnectTaskNode = ({ setEdges }: UseConnectSubtaskArgs) => {
           return;
         }
 
-        const oldEdges = flow.getEdges();
-        connectBlockTask.mutate(
-          {
-            blocking_task_id: blockingTaskId,
-            blocked_task_id: blockedTaskId,
-          },
-          {
-            onSuccess: async () => {
-              try {
-                const nodes = await api.get("/task-nodes");
-                flow.setNodes(buildTaskNodes(nodes));
-                flow.setEdges(buildTaskNodeEdges(nodes));
-              } catch (e) {
-                console.error(e);
-                toast.error("タスクを読み込めませんでした。");
-              }
-            },
-            onError: () => {
-              setEdges(oldEdges);
-            },
-          }
-        );
+        connectBlockTask.mutate({
+          blocking_task_id: blockingTaskId,
+          blocked_task_id: blockedTaskId,
+        });
 
         setEdges((old) => {
           return [

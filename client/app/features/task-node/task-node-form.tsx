@@ -3,18 +3,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { schemas } from "~/api/schema";
 import { z } from "zod";
 import { useCreateTaskNode } from "./use-create-task-node";
-import { Node, useViewport } from "reactflow";
-import { TaskNodeData } from "./task-node";
+import { useViewport } from "reactflow";
 import { useEffect, useRef } from "react";
 import { useMergedRef } from "@mantine/hooks";
 import { CommandIcon } from "lucide-react";
-import { generateTaskNode } from "./util";
 
 const createTaskNodeSchema = schemas.CreateTaskNode.pick({ task: true });
 type CreateTaskNode = z.infer<typeof createTaskNodeSchema>;
 
-type Props = { onAddNode: (node: Node<TaskNodeData>) => void };
-export const TaskNodeForm = ({ onAddNode }: Props) => {
+export const TaskNodeForm = () => {
   const viewport = useViewport();
 
   const createMutation = useCreateTaskNode();
@@ -39,8 +36,7 @@ export const TaskNodeForm = ({ onAddNode }: Props) => {
         y: (-y + window.innerHeight / 2) / zoom,
       },
       {
-        onSuccess: (data) => {
-          onAddNode(generateTaskNode(data));
+        onSuccess: () => {
           reset();
         },
       }

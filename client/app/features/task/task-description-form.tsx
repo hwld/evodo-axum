@@ -50,8 +50,10 @@ export const TaskDescriptionForm: React.FC<Props> = ({ defaultTask }) => {
       toast.error("タスクを更新できませんでした。");
     },
     onSuccess: (data) => {
-      revalidator.revalidate();
       form.reset({ description: data.description });
+    },
+    onSettled: () => {
+      revalidator.revalidate();
     },
   });
 

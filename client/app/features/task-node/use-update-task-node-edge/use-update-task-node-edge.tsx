@@ -5,13 +5,9 @@ import { useReconnectSubtask } from "./use-reconnect-subtask";
 import {
   subtaskHandle,
   generateSubtaskEdgeId,
-  buildTaskNodes,
-  buildTaskNodeEdges,
   blockTaskHandle,
   generateBlockTaskEdgeId,
 } from "../util";
-import { api } from "~/api/index.client";
-import { toast } from "sonner";
 import { useReconnectBlockTask } from "./use-reconnect-block-task";
 import { useDisconnectBlockTask } from "./use-disconnect-block-task";
 
@@ -50,30 +46,12 @@ export const useUpdateTaskNodeEdge = ({
           return;
         }
 
-        reconnectSubtask.mutate(
-          {
-            old_parent_task_id: oldEdge.source,
-            old_subtask_id: oldEdge.target,
-            new_parent_task_id: newConnection.source,
-            new_subtask_id: newConnection.target,
-          },
-          {
-            onSuccess: async () => {
-              try {
-                const taskNodes = await api.get("/task-nodes");
-                flow.setNodes(buildTaskNodes(taskNodes));
-                flow.setEdges(buildTaskNodeEdges(taskNodes));
-              } catch (e) {
-                console.error(e);
-                toast.error("タスクの読み込みに失敗しました。");
-              }
-            },
-            onError: () => {
-              const cacheOldEdge = oldEdge;
-              setEdges((eds) => [...eds, cacheOldEdge]);
-            },
-          }
-        );
+        reconnectSubtask.mutate({
+          old_parent_task_id: oldEdge.source,
+          old_subtask_id: oldEdge.target,
+          new_parent_task_id: newConnection.source,
+          new_subtask_id: newConnection.target,
+        });
 
         setEdges((eds) => eds.filter((e) => e.id !== oldEdge.id));
       } else if (newConnection.sourceHandle === blockTaskHandle) {
@@ -88,30 +66,12 @@ export const useUpdateTaskNodeEdge = ({
           return;
         }
 
-        reconnectBlockTask.mutate(
-          {
-            old_blocking_task_id: oldEdge.source,
-            old_blocked_task_id: oldEdge.target,
-            new_blocking_task_id: newConnection.source,
-            new_blocked_task_id: newConnection.target,
-          },
-          {
-            onSuccess: async () => {
-              try {
-                const taskNodes = await api.get("/task-nodes");
-                flow.setNodes(buildTaskNodes(taskNodes));
-                flow.setEdges(buildTaskNodeEdges(taskNodes));
-              } catch (e) {
-                console.error(e);
-                toast.error("タスクの読み込みに失敗しました。");
-              }
-            },
-            onError: () => {
-              const cacheOldEdge = oldEdge;
-              setEdges((eds) => [...eds, cacheOldEdge]);
-            },
-          }
-        );
+        reconnectBlockTask.mutate({
+          old_blocking_task_id: oldEdge.source,
+          old_blocked_task_id: oldEdge.target,
+          new_blocking_task_id: newConnection.source,
+          new_blocked_task_id: newConnection.target,
+        });
 
         setEdges((eds) => eds.filter((e) => e.id !== oldEdge.id));
       }
@@ -127,53 +87,22 @@ export const useUpdateTaskNodeEdge = ({
       }
 
       if (edge.sourceHandle === subtaskHandle) {
-        disconnectSubtask.mutate(
-          {
-            parent_task_id: edge.source,
-            subtask_id: edge.target,
-          },
-          {
-            onSuccess: async () => {
-              try {
-                const taskNodes = await api.get("/task-nodes");
-                flow.setNodes(buildTaskNodes(taskNodes));
-              } catch (e) {
-                console.error(e);
-                toast.error("タスクの読み込みに失敗しました。");
-              }
-            },
-            onError: () => {
-              const cacheEdge = edge;
-              setEdges((eds) => [...eds, cacheEdge]);
-            },
-          }
-        );
+        disconnectSubtask.mutate({
+          parent_task_id: edge.source,
+          subtask_id: edge.target,
+        });
 
         setEdges((eds) => eds.filter((e) => e.id !== edge.id));
       } else if (edge.sourceHandle === blockTaskHandle) {
-        disconnectBlockTask.mutate(
-          { blocking_task_id: edge.source, blocked_task_id: edge.target },
-          {
-            onSuccess: async () => {
-              try {
-                const taskNodes = await api.get("/task-nodes");
-                flow.setNodes(buildTaskNodes(taskNodes));
-              } catch (e) {
-                console.error(e);
-                toast.error("タスクの読み込みに失敗しました。");
-              }
-            },
-            onError: () => {
-              const cacheEdge = edge;
-              setEdges((eds) => [...eds, cacheEdge]);
-            },
-          }
-        );
+        disconnectBlockTask.mutate({
+          blocking_task_id: edge.source,
+          blocked_task_id: edge.target,
+        });
 
         setEdges((eds) => eds.filter((e) => e.id !== edge.id));
       }
     },
-    [disconnectBlockTask, disconnectSubtask, flow, setEdges]
+    [disconnectBlockTask, disconnectSubtask, setEdges]
   );
 
   const handleEdgeUpdateStart = useCallback(() => {

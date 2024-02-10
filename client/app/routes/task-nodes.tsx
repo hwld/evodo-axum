@@ -12,30 +12,31 @@ import { NodeView } from "~/components/node-view";
 import { useConnectTaskNode } from "~/features/task-node/use-connect-task-node/use-connect-task-node";
 import { buildTaskNodeEdges, buildTaskNodes } from "~/features/task-node/util";
 import { useUpdateTaskNodeEdge } from "~/features/task-node/use-update-task-node-edge/use-update-task-node-edge";
-import { toast } from "sonner";
-import { api } from "~/api/index.client";
+import { serverFetch } from "~/api/index.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const session = await requireUserSession(request);
+  const taskNodes = await serverFetch.get("/task-nodes", {
+    headers: { cookie: request.headers.get("cookie") },
+  });
 
-  return json({ session });
+  return json({ session, taskNodes });
 };
 
 const nodeTypes = { task: TaskNode } as const;
 
 export default function TaskNodesPage() {
-  const { session } = useLoaderData<typeof loader>();
+  const { session, taskNodes } = useLoaderData<typeof loader>();
 
-  const [nodes, setNodes] = useState<Node<TaskNodeData>[]>([]);
-  const [edges, setEdges] = useState<Edge[]>([]);
+  const [nodes, setNodes] = useState<Node<TaskNodeData>[]>(
+    buildTaskNodes(taskNodes)
+  );
+  const [edges, setEdges] = useState<Edge[]>(buildTaskNodeEdges(taskNodes));
 
   const { handleConnect } = useConnectTaskNode({ setEdges });
   const { handleEdgeUpdateStart, handleEdgeUpdate, handleEdgeUpdateEnd } =
     useUpdateTaskNodeEdge({ setEdges });
 
-  const handleAddTaskNode = useCallback((node: Node<TaskNodeData>) => {
-    setNodes((nodes) => [...nodes, { ...node, type: "task" }]);
-  }, []);
   const { handleNodesChange } = useUpdateTaskNode({ setNodes });
 
   const handleEdgesChange: OnEdgesChange = useCallback((changes) => {
@@ -43,19 +44,9 @@ export default function TaskNodesPage() {
   }, []);
 
   useEffect(() => {
-    const fetchNodes = async () => {
-      try {
-        const nodes = await api.get("/task-nodes");
-        setNodes(buildTaskNodes(nodes));
-        setEdges(buildTaskNodeEdges(nodes));
-      } catch (e) {
-        console.error(e);
-        toast.error("タスクを読み込めませんでした。");
-      }
-    };
-
-    fetchNodes();
-  }, []);
+    setNodes(buildTaskNodes(taskNodes));
+    setEdges(buildTaskNodeEdges(taskNodes));
+  }, [taskNodes]);
 
   return (
     <SessionProvider session={session}>
@@ -75,7 +66,7 @@ export default function TaskNodesPage() {
             <AppControl />
           </Panel>
           <Panel position="bottom-center">
-            <TaskNodeForm onAddNode={handleAddTaskNode} />
+            <TaskNodeForm />
           </Panel>
         </NodeView>
         <Outlet />

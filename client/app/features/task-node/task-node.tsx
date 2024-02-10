@@ -6,26 +6,18 @@ import {
   ShieldHalfIcon,
   SplitIcon,
 } from "lucide-react";
-import { Handle, NodeProps, Position, useReactFlow } from "reactflow";
+import { Handle, NodeProps, Position } from "reactflow";
 import { useUpdateTaskStatus } from "../task/use-update-task-status";
 import { Checkbox, CheckboxIndicator } from "@radix-ui/react-checkbox";
 import { useId, useState } from "react";
 import { cn } from "~/lib/utils";
 import { Task } from "../task";
-import {
-  blockTaskHandle,
-  buildTaskNodeEdges,
-  buildTaskNodes,
-  subtaskHandle,
-} from "./util";
+import { blockTaskHandle, subtaskHandle } from "./util";
 import { Card } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
 import clsx from "clsx";
 import { UpdateTaskDialog } from "./update-task-dialog";
 import { TaskNodeMenu } from "./task-node-menu";
-import { useRevalidator } from "@remix-run/react";
-import { toast } from "sonner";
-import { api } from "~/api/index.client";
 
 export type TaskNodeData = {
   title: string;
@@ -36,9 +28,7 @@ export type TaskNodeData = {
 
 type Props = NodeProps<TaskNodeData>;
 export const TaskNode: React.FC<Props> = ({ data }) => {
-  const revalidator = useRevalidator();
   const checkboxId = useId();
-  const flow = useReactFlow<TaskNodeData>();
   const isChecked = data.status === "Done";
 
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
@@ -53,26 +43,10 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
   };
 
   const handleUpdateStatus = () => {
-    updateMutation.mutate(
-      {
-        taskId: data.taskId,
-        status: data.status === "Todo" ? "Done" : "Todo",
-      },
-      {
-        onSuccess: async () => {
-          try {
-            const taskNodes = await api.get("/task-nodes");
-            flow.setNodes(buildTaskNodes(taskNodes));
-            flow.setEdges(buildTaskNodeEdges(taskNodes));
-          } catch (e) {
-            console.error(e);
-            toast.error("タスクの読み込みに失敗しました。");
-          }
-
-          revalidator.revalidate();
-        },
-      }
-    );
+    updateMutation.mutate({
+      taskId: data.taskId,
+      status: data.status === "Todo" ? "Done" : "Todo",
+    });
   };
 
   return (

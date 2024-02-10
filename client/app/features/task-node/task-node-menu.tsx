@@ -3,11 +3,6 @@ import { PanelRightOpenIcon, XIcon } from "lucide-react";
 import { ComponentProps, ReactNode, useState } from "react";
 import { DeleteTaskDialog } from "../task/delete-task-dialog";
 import { useDeleteTask } from "./use-delete-task-node";
-import { useReactFlow } from "reactflow";
-import { TaskNodeData } from "./task-node";
-import { api } from "~/api/index.client";
-import { buildTaskNodeEdges, buildTaskNodes } from "./util";
-import { toast } from "sonner";
 import {
   NavLink,
   NavLinkProps,
@@ -17,7 +12,6 @@ import {
 
 type Props = { taskId: string; className?: string };
 export const TaskNodeMenu: React.FC<Props> = ({ taskId, className }) => {
-  const flow = useReactFlow<TaskNodeData>();
   const navigate = useNavigate();
   const matches = useMatches();
 
@@ -31,16 +25,7 @@ export const TaskNodeMenu: React.FC<Props> = ({ taskId, className }) => {
     deleteMutation.mutate(
       { taskId },
       {
-        onSuccess: async () => {
-          try {
-            const nodes = await api.get("/task-nodes");
-            flow.setNodes(buildTaskNodes(nodes));
-            flow.setEdges(buildTaskNodeEdges(nodes));
-          } catch (e) {
-            console.error(e);
-            toast.error("タスクを読み込めませんでした。");
-          }
-
+        onSuccess: () => {
           if (matches.some(({ id }) => id === "routes/task-nodes.$node-id")) {
             navigate("/task-nodes", { replace: true });
           }
