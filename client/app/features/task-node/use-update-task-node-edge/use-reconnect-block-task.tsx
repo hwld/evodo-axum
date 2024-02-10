@@ -1,11 +1,15 @@
 import { useRevalidator } from "@remix-run/react";
 import { useMutation } from "@tanstack/react-query";
+import { useCallback } from "react";
+import { Edge, useReactFlow } from "reactflow";
 import { toast } from "sonner";
 import { z } from "zod";
 import { api } from "~/api/index.client";
 import { schemas } from "~/api/schema";
+import { generateBlockTaskEdge, generateBlockTaskEdgeId } from "../util";
 
 export const useReconnectBlockTask = () => {
+  const flow = useReactFlow();
   const revalidator = useRevalidator();
 
   const mutation = useMutation({
@@ -21,5 +25,42 @@ export const useReconnectBlockTask = () => {
       revalidator.revalidate();
     },
   });
-  return mutation;
+
+  const reconnectBlockTask = useCallback(
+    ({
+      oldBlockTaskEdge,
+      newBlockingTaskId,
+      newBlockedTaskId,
+    }: {
+      oldBlockTaskEdge: Edge;
+      newBlockingTaskId: string;
+      newBlockedTaskId: string;
+    }) => {
+      const id = generateBlockTaskEdgeId({
+        blockingTaskId: newBlockingTaskId,
+        blockedTaskId: newBlockedTaskId,
+      });
+      if (flow.getEdges().find((e) => e.id === id)) {
+        return;
+      }
+
+      mutation.mutate({
+        old_blocking_task_id: oldBlockTaskEdge.source,
+        old_blocked_task_id: oldBlockTaskEdge.target,
+        new_blocking_task_id: newBlockingTaskId,
+        new_blocked_task_id: newBlockedTaskId,
+      });
+
+      flow.setEdges((eds) => [
+        ...eds.filter((e) => e.id !== oldBlockTaskEdge.id),
+        generateBlockTaskEdge({
+          blockingTaskId: newBlockingTaskId,
+          blockedTaskId: newBlockedTaskId,
+        }),
+      ]);
+    },
+    [flow, mutation]
+  );
+
+  return { reconnectBlockTask };
 };

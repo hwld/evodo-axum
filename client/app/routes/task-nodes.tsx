@@ -35,7 +35,7 @@ export default function TaskNodesPage() {
 
   const { handleConnect } = useConnectTaskNode({ setEdges });
   const { handleEdgeUpdateStart, handleEdgeUpdate, handleEdgeUpdateEnd } =
-    useUpdateTaskNodeEdge({ setEdges });
+    useUpdateTaskNodeEdge();
 
   const { handleNodesChange } = useUpdateTaskNode({ setNodes });
 

@@ -1,32 +1,19 @@
-import { Connection, Edge, useReactFlow } from "reactflow";
+import { Connection, Edge } from "reactflow";
 import { useCallback, useRef } from "react";
 import { useDisconnectSubtask } from "./use-disconnect-subtask";
 import { useReconnectSubtask } from "./use-reconnect-subtask";
-import {
-  subtaskHandle,
-  generateSubtaskEdgeId,
-  blockTaskHandle,
-  generateBlockTaskEdgeId,
-  generateSubtaskEdge,
-  generateBlockTaskEdge,
-} from "../util";
+import { subtaskHandle, blockTaskHandle } from "../util";
 import { useReconnectBlockTask } from "./use-reconnect-block-task";
 import { useDisconnectBlockTask } from "./use-disconnect-block-task";
 
-type UseUpdateTaskNodeEdgeArgs = {
-  setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
-};
-export const useUpdateTaskNodeEdge = ({
-  setEdges,
-}: UseUpdateTaskNodeEdgeArgs) => {
-  const flow = useReactFlow();
+export const useUpdateTaskNodeEdge = () => {
   const edgeUpdateSuccessful = useRef(true);
-  const reconnectSubtask = useReconnectSubtask();
-  const disconnectSubtask = useDisconnectSubtask();
-  const reconnectBlockTask = useReconnectBlockTask();
-  const disconnectBlockTask = useDisconnectBlockTask();
+  const { reconnectSubtask } = useReconnectSubtask();
+  const { disconnectSubtask } = useDisconnectSubtask();
+  const { reconnectBlockTask } = useReconnectBlockTask();
+  const { disconnectBlockTask } = useDisconnectBlockTask();
 
-  const updateEdge = useCallback(
+  const reconnect = useCallback(
     (oldEdge: Edge, newConnection: Connection) => {
       if (
         !(newConnection.source && newConnection.target) ||
@@ -36,64 +23,23 @@ export const useUpdateTaskNodeEdge = ({
       }
 
       if (newConnection.sourceHandle === subtaskHandle) {
-        const newParentTaskId = newConnection.source;
-        const newSubtaskId = newConnection.target;
-
-        const id = generateSubtaskEdgeId({
-          parentTaskId: newParentTaskId,
-          subtaskId: newSubtaskId,
+        reconnectSubtask({
+          oldSubtaskEdge: oldEdge,
+          newParentTaskId: newConnection.source,
+          newSubtaskId: newConnection.target,
         });
-        // Edgeの重複を確認する
-        if (flow.getEdges().find((e) => e.id === id)) {
-          return;
-        }
-
-        reconnectSubtask.mutate({
-          old_parent_task_id: oldEdge.source,
-          old_subtask_id: oldEdge.target,
-          new_parent_task_id: newParentTaskId,
-          new_subtask_id: newSubtaskId,
-        });
-
-        setEdges((eds) => [
-          ...eds.filter((e) => e.id !== oldEdge.id),
-          generateSubtaskEdge({
-            parentTaskId: newParentTaskId,
-            subtaskId: newSubtaskId,
-          }),
-        ]);
       } else if (newConnection.sourceHandle === blockTaskHandle) {
-        const newBlockingTaskId = newConnection.source;
-        const newBlockedTaskId = newConnection.target;
-
-        const id = generateBlockTaskEdgeId({
-          blockingTaskId: newBlockingTaskId,
-          blockedTaskId: newBlockedTaskId,
+        reconnectBlockTask({
+          oldBlockTaskEdge: oldEdge,
+          newBlockingTaskId: newConnection.source,
+          newBlockedTaskId: newConnection.target,
         });
-        if (flow.getEdges().find((e) => e.id === id)) {
-          return;
-        }
-
-        reconnectBlockTask.mutate({
-          old_blocking_task_id: oldEdge.source,
-          old_blocked_task_id: oldEdge.target,
-          new_blocking_task_id: newBlockingTaskId,
-          new_blocked_task_id: newBlockedTaskId,
-        });
-
-        setEdges((eds) => [
-          ...eds.filter((e) => e.id !== oldEdge.id),
-          generateBlockTaskEdge({
-            blockingTaskId: newBlockingTaskId,
-            blockedTaskId: newBlockedTaskId,
-          }),
-        ]);
       }
     },
-    [flow, reconnectBlockTask, reconnectSubtask, setEdges]
+    [reconnectBlockTask, reconnectSubtask]
   );
 
-  const disconnectEdge = useCallback(
+  const disconnect = useCallback(
     (edge: Edge) => {
       // 更新が完了していたら何もしない
       if (edgeUpdateSuccessful.current) {
@@ -101,49 +47,32 @@ export const useUpdateTaskNodeEdge = ({
       }
 
       if (edge.sourceHandle === subtaskHandle) {
-        disconnectSubtask.mutate({
-          parent_task_id: edge.source,
-          subtask_id: edge.target,
-        });
-
-        setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+        disconnectSubtask(edge);
       } else if (edge.sourceHandle === blockTaskHandle) {
-        disconnectBlockTask.mutate({
-          blocking_task_id: edge.source,
-          blocked_task_id: edge.target,
-        });
-
-        setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+        disconnectBlockTask(edge);
       }
     },
-    [disconnectBlockTask, disconnectSubtask, setEdges]
+    [disconnectBlockTask, disconnectSubtask]
   );
 
   const handleEdgeUpdateStart = useCallback(() => {
     edgeUpdateSuccessful.current = false;
   }, []);
 
-  const updateSuccessful = useCallback((callback: () => void) => {
-    callback();
-    edgeUpdateSuccessful.current = true;
-  }, []);
-
   const handleEdgeUpdate = useCallback(
     (oldEdge: Edge, newConnection: Connection) => {
-      updateSuccessful(() => {
-        updateEdge(oldEdge, newConnection);
-      });
+      reconnect(oldEdge, newConnection);
+      edgeUpdateSuccessful.current = true;
     },
-    [updateEdge, updateSuccessful]
+    [reconnect]
   );
 
   const handleEdgeUpdateEnd = useCallback(
     (_: unknown, edge: Edge) => {
-      updateSuccessful(() => {
-        disconnectEdge(edge);
-      });
+      disconnect(edge);
+      edgeUpdateSuccessful.current = true;
     },
-    [disconnectEdge, updateSuccessful]
+    [disconnect]
   );
 
   return { handleEdgeUpdateStart, handleEdgeUpdate, handleEdgeUpdateEnd };
