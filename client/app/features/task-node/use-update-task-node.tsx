@@ -1,11 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
-import { NodeChange, applyNodeChanges, useReactFlow } from "@xyflow/react";
+import { NodeChange, applyNodeChanges } from "@xyflow/react";
 import { api } from "~/api/index.client";
 import { toast } from "sonner";
+import { useTaskNodeViewAction } from "./task-node-view-provider";
 
 export const useUpdateTaskNode = () => {
-  const flow = useReactFlow();
+  const { setTaskNodes } = useTaskNodeViewAction();
 
   const mutation = useMutation({
     mutationFn: ({ id, x, y }: { id: string; x: number; y: number }) => {
@@ -45,9 +46,9 @@ export const useUpdateTaskNode = () => {
         });
       });
 
-      flow.setNodes((nodes) => applyNodeChanges(changes, nodes));
+      setTaskNodes((nodes) => applyNodeChanges(changes, nodes));
     },
-    [debounceCall, flow, mutation]
+    [debounceCall, mutation, setTaskNodes]
   );
 
   return { handleNodesChange };

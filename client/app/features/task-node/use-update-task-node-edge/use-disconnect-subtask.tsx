@@ -1,14 +1,15 @@
 import { useRevalidator } from "@remix-run/react";
 import { useMutation } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { Edge, useReactFlow } from "@xyflow/react";
+import { Edge } from "@xyflow/react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { api } from "~/api/index.client";
 import { schemas } from "~/api/schema";
+import { useTaskNodeViewAction } from "../task-node-view-provider";
 
 export const useDisconnectSubtask = () => {
-  const flow = useReactFlow();
+  const { setTaskNodeEdges } = useTaskNodeViewAction();
   const revalidator = useRevalidator();
 
   const mutation = useMutation({
@@ -31,9 +32,9 @@ export const useDisconnectSubtask = () => {
         subtask_id: edge.target,
       });
 
-      flow.setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+      setTaskNodeEdges((eds) => eds.filter((e) => e.id !== edge.id));
     },
-    [flow, mutation]
+    [mutation, setTaskNodeEdges]
   );
 
   return { disconnectSubtask };

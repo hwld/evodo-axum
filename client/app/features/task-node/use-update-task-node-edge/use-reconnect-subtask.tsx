@@ -7,9 +7,11 @@ import { z } from "zod";
 import { api } from "~/api/index.client";
 import { schemas } from "~/api/schema";
 import { generateSubtaskEdge, generateSubtaskEdgeId } from "../util";
+import { useTaskNodeViewAction } from "../task-node-view-provider";
 
 export const useReconnectSubtask = () => {
   const flow = useReactFlow();
+  const { setTaskNodeEdges } = useTaskNodeViewAction();
   const revalidator = useRevalidator();
 
   const mutation = useMutation({
@@ -51,7 +53,7 @@ export const useReconnectSubtask = () => {
         new_subtask_id: newSubtaskId,
       });
 
-      flow.setEdges((eds) => [
+      setTaskNodeEdges((eds) => [
         ...eds.filter((e) => e.id !== oldSubtaskEdge.id),
         generateSubtaskEdge({
           parentTaskId: newParentTaskId,
@@ -59,7 +61,7 @@ export const useReconnectSubtask = () => {
         }),
       ]);
     },
-    [flow, mutation]
+    [flow, mutation, setTaskNodeEdges]
   );
 
   return { reconnectSubtask };

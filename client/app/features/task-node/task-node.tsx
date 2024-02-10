@@ -19,14 +19,14 @@ import clsx from "clsx";
 import { UpdateTaskDialog } from "./update-task-dialog";
 import { TaskNodeMenu } from "./task-node-menu";
 
-export type TaskNodeData = {
+export type TaskNodeViewData = {
   title: string;
   taskId: string;
   status: Task["status"];
   type: "normal" | "main" | "sub";
 };
 
-type Props = NodeProps<TaskNodeData>;
+type Props = NodeProps<TaskNodeViewData>;
 export const TaskNode: React.FC<Props> = ({ data }) => {
   const checkboxId = useId();
   const isChecked = data.status === "Done";

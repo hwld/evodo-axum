@@ -7,9 +7,11 @@ import { z } from "zod";
 import { api } from "~/api/index.client";
 import { schemas } from "~/api/schema";
 import { generateBlockTaskEdge, generateBlockTaskEdgeId } from "../util";
+import { useTaskNodeViewAction } from "../task-node-view-provider";
 
 export const useConnectBlockTask = () => {
   const flow = useReactFlow();
+  const { setTaskNodeEdges } = useTaskNodeViewAction();
   const revalidator = useRevalidator();
 
   const mutation = useMutation({
@@ -46,14 +48,14 @@ export const useConnectBlockTask = () => {
         blocked_task_id: blockedTaskId,
       });
 
-      flow.setEdges((old) => {
+      setTaskNodeEdges((old) => {
         return [
           ...old,
           generateBlockTaskEdge({ blockingTaskId, blockedTaskId }),
         ];
       });
     },
-    [flow, mutation]
+    [flow, mutation, setTaskNodeEdges]
   );
 
   return { connectBlockTask };

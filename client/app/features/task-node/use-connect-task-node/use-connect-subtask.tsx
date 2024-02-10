@@ -7,9 +7,11 @@ import { z } from "zod";
 import { api } from "~/api/index.client";
 import { schemas } from "~/api/schema";
 import { generateSubtaskEdge, generateSubtaskEdgeId } from "../util";
+import { useTaskNodeViewAction } from "../task-node-view-provider";
 
 export const useConnectSubtask = () => {
   const flow = useReactFlow();
+  const { setTaskNodeEdges } = useTaskNodeViewAction();
   const revalidator = useRevalidator();
 
   const mutation = useMutation({
@@ -45,11 +47,11 @@ export const useConnectSubtask = () => {
         subtask_id: subtaskId,
       });
 
-      flow.setEdges((old) => {
+      setTaskNodeEdges((old) => {
         return [...old, generateSubtaskEdge({ parentTaskId, subtaskId })];
       });
     },
-    [flow, mutation]
+    [flow, mutation, setTaskNodeEdges]
   );
 
   return { connectSubtask };
