@@ -1,6 +1,6 @@
 import { Link } from "@remix-run/react";
 import { AlertTriangleIcon } from "lucide-react";
-import { Node, useNodesState } from "reactflow";
+import { Node, useNodesState } from "@xyflow/react";
 import { Button } from "~/components/ui/button";
 import { Node as NodeComponent } from "~/components/ui/node";
 import { NoopNode } from "~/components/noop-node";

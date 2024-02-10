@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
-import { NodeChange, applyNodeChanges, useReactFlow } from "reactflow";
+import { NodeChange, applyNodeChanges, useReactFlow } from "@xyflow/react";
 import { api } from "~/api/index.client";
 import { toast } from "sonner";
 

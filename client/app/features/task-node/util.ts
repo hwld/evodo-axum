@@ -1,4 +1,4 @@
-import { Edge, Node } from "reactflow";
+import { Edge, Node } from "@xyflow/react";
 import { z } from "zod";
 import { schemas } from "~/api/schema";
 import { TaskNodeData } from "./task-node";

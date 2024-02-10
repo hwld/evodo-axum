@@ -1,4 +1,4 @@
-import { Node, useNodesState } from "reactflow";
+import { Node, useNodesState } from "@xyflow/react";
 import { AppDescriptionNode } from "~/components/app-description-node";
 import { AppTitleNode } from "~/components/app-title-node";
 import { NodeView } from "~/components/node-view";

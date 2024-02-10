@@ -1,7 +1,7 @@
 import { useRevalidator } from "@remix-run/react";
 import { useMutation } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { Edge, useReactFlow } from "reactflow";
+import { Edge, useReactFlow } from "@xyflow/react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { api } from "~/api/index.client";

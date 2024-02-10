@@ -1,5 +1,5 @@
 import { LoaderFunctionArgs, json } from "@remix-run/node";
-import { Node, useNodesState } from "reactflow";
+import { Node, useNodesState } from "@xyflow/react";
 import { SignupFormNode } from "~/features/auth/signup-form-node";
 import { Node as NodeComponent } from "~/components/ui/node";
 import { UserPlusIcon } from "lucide-react";

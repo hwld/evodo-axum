@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { schemas } from "~/api/schema";
 import { z } from "zod";
 import { useCreateTaskNode } from "./use-create-task-node";
-import { useViewport } from "reactflow";
+import { useViewport } from "@xyflow/react";
 import { useEffect, useRef } from "react";
 import { useMergedRef } from "@mantine/hooks";
 import { CommandIcon } from "lucide-react";

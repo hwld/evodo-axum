@@ -1,11 +1,12 @@
 // eslint-disable-next-line import/no-named-as-default
-import ReactFlow, {
+import {
+  ReactFlow,
   Background,
   Controls,
   MiniMap,
   Panel,
   ReactFlowProps,
-} from "reactflow";
+} from "@xyflow/react";
 import { AppLogo } from "./app-logo";
 
 type Props = ReactFlowProps;

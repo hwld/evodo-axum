@@ -6,7 +6,7 @@ import {
   ShieldHalfIcon,
   SplitIcon,
 } from "lucide-react";
-import { Handle, NodeProps, Position } from "reactflow";
+import { Handle, NodeProps, Position } from "@xyflow/react";
 import { useUpdateTaskStatus } from "../task/use-update-task-status";
 import { Checkbox, CheckboxIndicator } from "@radix-ui/react-checkbox";
 import { useId, useState } from "react";

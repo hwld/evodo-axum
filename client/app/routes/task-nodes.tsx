@@ -1,5 +1,11 @@
 import { LoaderFunctionArgs, json } from "@remix-run/node";
-import { Edge, Node, OnEdgesChange, Panel, applyEdgeChanges } from "reactflow";
+import {
+  Edge,
+  Node,
+  OnEdgesChange,
+  Panel,
+  applyEdgeChanges,
+} from "@xyflow/react";
 import { TaskNodeForm } from "~/features/task-node/task-node-form";
 import { Outlet, useLoaderData } from "@remix-run/react";
 import { TaskNode, TaskNodeData } from "~/features/task-node/task-node";

@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { Connection } from "reactflow";
+import { Connection } from "@xyflow/react";
 import { subtaskHandle, blockTaskHandle } from "../util";
 import { useConnectSubtask } from "./use-connect-subtask";
 import { useConnectBlockTask } from "./use-connect-block-task";

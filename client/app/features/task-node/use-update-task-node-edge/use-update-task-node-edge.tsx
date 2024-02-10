@@ -1,4 +1,4 @@
-import { Connection, Edge } from "reactflow";
+import { Connection, Edge } from "@xyflow/react";
 import { useCallback, useRef } from "react";
 import { useDisconnectSubtask } from "./use-disconnect-subtask";
 import { useReconnectSubtask } from "./use-reconnect-subtask";
