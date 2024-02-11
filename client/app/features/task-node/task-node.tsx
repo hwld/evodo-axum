@@ -127,7 +127,7 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
           type="source"
           id={subtaskHandle}
           position={Position.Right}
-          className="!-right-[0px] !left-full !top-[50%] !size-[20px] !rounded-full !bg-primary-foreground !border !border-neutral-300 shadow"
+          className="!-right-[0px] !transform-none !left-full !top-0 !size-[20px] !rounded-full !bg-primary-foreground !border !border-neutral-300 shadow"
         />
       </div>
       <Separator
@@ -142,7 +142,7 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
           type="source"
           id={blockTaskHandle}
           position={Position.Right}
-          className="!-right-[0px] !left-full !top-[50%] !size-[20px] !rounded-full !bg-primary-foreground !border !border-neutral-300 shadow"
+          className="!-right-[0px] !left-full !transform-none !top-0 !size-[20px] !rounded-full !bg-primary-foreground !border !border-neutral-300 shadow"
         />
       </div>
 
@@ -154,7 +154,7 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
       <Handle
         type="target"
         position={Position.Left}
-        className="!-left-[10px] !size-5 !rounded-full !bg-primary-foreground !border !border-neutral-300 shadow"
+        className="!-left-[10px] !size-5 !top-[50%] !-translate-y-1/2 !rounded-full !bg-primary-foreground !border !border-neutral-300 shadow"
       />
     </Card>
   );
