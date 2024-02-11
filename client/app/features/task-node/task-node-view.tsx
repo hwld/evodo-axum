@@ -43,6 +43,7 @@ export const TaskNodeView: React.FC = () => {
       onEdgeUpdateEnd={handleEdgeUpdateEnd}
       onConnect={handleConnect}
       defaultEdgeOptions={{ focusable: false }}
+      zoomOnDoubleClick={false}
     >
       <Panel position="top-center">
         <AppControl />
