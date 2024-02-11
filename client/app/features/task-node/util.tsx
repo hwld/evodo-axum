@@ -1,9 +1,21 @@
 import { Edge, Node } from "@xyflow/react";
 import { z } from "zod";
 import { schemas } from "~/api/schema";
-import { TaskNode as TaskNodeComponent, TaskNodeViewData } from "./task-node";
+import { TaskNode as TaskNodeComponent } from "./task-node";
+import { SubtaskEdge } from "./subtask-edge";
+import { BlockTaskEdge } from "./block-task-edge";
+import { Task } from "../task";
+
+export type TaskNodeViewData = {
+  title: string;
+  taskId: string;
+  status: Task["status"];
+  type: "normal" | "main" | "sub";
+  isBlocked: boolean;
+};
 
 export const nodeTypes = { task: TaskNodeComponent } as const;
+export const edgeTypes = { sub: SubtaskEdge, block: BlockTaskEdge } as const;
 
 type SubtaskConnection = { parentTaskId: string; subtaskId: string };
 export const generateSubtaskEdgeId = ({
@@ -29,6 +41,7 @@ export const generateSubtaskEdge = ({
   subtaskId,
 }: SubtaskConnection): Edge => {
   return {
+    type: "sub",
     id: generateSubtaskEdgeId({ parentTaskId, subtaskId }),
     source: parentTaskId,
     target: subtaskId,
@@ -42,6 +55,7 @@ export const generateBlockTaskEdge = ({
   blockedTaskId,
 }: BlockTaskConnection): Edge => {
   return {
+    type: "block",
     id: generateBlockTaskEdgeId({ blockingTaskId, blockedTaskId }),
     source: blockingTaskId,
     target: blockedTaskId,
@@ -54,8 +68,10 @@ export const generateTaskNode = ({
   task,
   node_info,
   type = "normal",
+  isBlocked,
 }: TaskNodeData & {
   type?: "main" | "sub" | "normal";
+  isBlocked: boolean;
 }): Node<TaskNodeViewData> => {
   return {
     type: "task",
@@ -65,29 +81,69 @@ export const generateTaskNode = ({
       title: task.title,
       taskId: task.id,
       status: task.status,
+      isBlocked,
     },
     position: { x: node_info.x, y: node_info.y },
   };
+};
+
+const calcAllBlockedTasks = (
+  tasks: TaskNodeData[],
+  blockedIds: Set<string> = new Set()
+): Set<string> => {
+  let result: string[] = [];
+  if (blockedIds.size === 0) {
+    // 直近のブロックされているタスクを取得する
+    result = tasks
+      .filter(({ task }) => task.status === "Todo")
+      .map(({ task }) => task.blocked_task_ids)
+      .flat();
+  } else {
+    // ブロックされているタスクのサブタスクを取得する
+    result = tasks
+      .filter(({ task }) => {
+        return blockedIds.has(task.id);
+      })
+      .map(({ task }) => {
+        return task.subtask_ids;
+      })
+      .flat();
+  }
+
+  const blockedSet = new Set(result);
+  if (blockedSet.size === 0) {
+    return new Set();
+  }
+
+  return new Set([...blockedSet, ...calcAllBlockedTasks(tasks, blockedSet)]);
 };
 
 export type TaskNodeData = z.infer<typeof schemas.TaskNode>;
 export const buildTaskNodes = (
   taskNodes: TaskNodeData[]
 ): Node<TaskNodeViewData>[] => {
-  const allSubtasks = taskNodes.map(({ task }) => task.subtask_ids).flat();
+  const allSubtasks = new Set(
+    taskNodes.map(({ task }) => task.subtask_ids).flat()
+  );
+  const blockedTasks = calcAllBlockedTasks(taskNodes);
 
   return taskNodes.map(({ task, node_info }): Node<TaskNodeViewData> => {
     const getType = () => {
       if (task.subtask_ids.length > 0) {
         return "main";
-      } else if (allSubtasks.includes(task.id)) {
+      } else if (allSubtasks.has(task.id)) {
         return "sub";
       } else {
         return "normal";
       }
     };
 
-    return generateTaskNode({ task, node_info, type: getType() });
+    return generateTaskNode({
+      task,
+      node_info,
+      type: getType(),
+      isBlocked: blockedTasks.has(task.id),
+    });
   });
 };
 

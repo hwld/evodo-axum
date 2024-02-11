@@ -5,7 +5,7 @@ import { useUpdateTaskNode } from "~/features/task-node/use-update-task-node";
 import { AppControl } from "~/components/app-control/app-control";
 import { NodeView } from "~/components/node-view";
 import { useConnectTaskNode } from "~/features/task-node/use-connect-task-node/use-connect-task-node";
-import { nodeTypes } from "~/features/task-node/util";
+import { edgeTypes, nodeTypes } from "~/features/task-node/util";
 import { useUpdateTaskNodeEdge } from "~/features/task-node/use-update-task-node-edge/use-update-task-node-edge";
 import {
   useTaskNodeView,
@@ -33,6 +33,7 @@ export const TaskNodeView: React.FC = () => {
   return (
     <NodeView
       nodeTypes={nodeTypes}
+      edgeTypes={edgeTypes}
       nodes={taskNodes}
       edges={taskNodeEdges}
       onNodesChange={handleNodesChange}
@@ -41,6 +42,7 @@ export const TaskNodeView: React.FC = () => {
       onEdgeUpdate={handleEdgeUpdate}
       onEdgeUpdateEnd={handleEdgeUpdateEnd}
       onConnect={handleConnect}
+      defaultEdgeOptions={{ focusable: false }}
     >
       <Panel position="top-center">
         <AppControl />

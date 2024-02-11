@@ -11,20 +11,12 @@ import { useUpdateTaskStatus } from "../task/use-update-task-status";
 import { Checkbox, CheckboxIndicator } from "@radix-ui/react-checkbox";
 import { useId, useState } from "react";
 import { cn } from "~/lib/utils";
-import { Task } from "../task";
-import { blockTaskHandle, subtaskHandle } from "./util";
+import { TaskNodeViewData, blockTaskHandle, subtaskHandle } from "./util";
 import { Card } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
 import clsx from "clsx";
 import { UpdateTaskDialog } from "./update-task-dialog";
 import { TaskNodeMenu } from "./task-node-menu";
-
-export type TaskNodeViewData = {
-  title: string;
-  taskId: string;
-  status: Task["status"];
-  type: "normal" | "main" | "sub";
-};
 
 type Props = NodeProps<TaskNodeViewData>;
 export const TaskNode: React.FC<Props> = ({ data }) => {
@@ -52,7 +44,8 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
   return (
     <Card
       className={cn(
-        "group justify-items-start gap-[2px] content-start min-w-[250px] max-w-[450px] break-all relative grid grid-cols-[1fr_5px_25px] grid-rows-[20px_5px_20px_1fr] p-2 transition-colors",
+        "group justify-items-start gap-[2px] content-start min-w-[250px] max-w-[450px] break-all relative grid grid-cols-[1fr_5px_25px] grid-rows-[20px_5px_20px_1fr] p-2",
+        data.isBlocked && "border-red-500",
         isChecked && "border-green-500"
       )}
     >
@@ -87,6 +80,7 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
       <Separator
         className={cn(
           "col-start-1 row-start-2 transition-colors self-center",
+          data.isBlocked && "bg-red-500",
           isChecked && "bg-green-500"
         )}
       />
@@ -117,6 +111,7 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
         orientation="vertical"
         className={cn(
           "row-start-1 row-span-4 col-start-2 justify-self-center",
+          data.isBlocked && "bg-red-500",
           isChecked && "bg-green-500"
         )}
       />
@@ -133,6 +128,7 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
       <Separator
         className={cn(
           "row-start-2 col-start-3 self-center",
+          data.isBlocked && "bg-red-500",
           isChecked && "bg-green-500"
         )}
       />

@@ -1,5 +1,4 @@
 import { Edge, Node, ReactFlowProvider } from "@xyflow/react";
-import { TaskNodeViewData } from "~/features/task-node/task-node";
 import {
   ReactNode,
   createContext,
@@ -10,6 +9,7 @@ import {
 } from "react";
 import {
   TaskNodeData,
+  TaskNodeViewData,
   buildTaskNodeEdges,
   buildTaskNodes,
 } from "~/features/task-node/util";
