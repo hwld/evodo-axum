@@ -94,15 +94,20 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
           onCheckedChange={handleTriggerUpdateStatus}
           id={checkboxId}
           className={clsx(
-            "shrink-0 size-[20px] border-2 rounded flex items-center justify-center data-[state=checked]:border-green-500 data-[state=checked]:bg-green-50 text-green-500 transition-colors relative hover:bg-green-50 hover:data-[state=checked]:text-green-400 hover:data-[state=checked]:border-green-400"
+            "shrink-0 size-[20px] border-2 rounded flex items-center justify-center data-[state=checked]:border-green-500 data-[state=checked]:bg-green-50 text-green-500 transition-colors relative enabled:hover:bg-green-50 enabled:hover:data-[state=checked]:text-green-400 enabled:hover:data-[state=checked]:border-green-400 disabled:cursor-not-allowed peer"
           )}
-          disabled={updateMutation.isPending}
+          disabled={updateMutation.isPending || data.isBlocked}
         >
           <CheckboxIndicator>
             <CheckIcon size={13} strokeWidth={3} />
           </CheckboxIndicator>
         </Checkbox>
-        <label className={clsx("pl-1 cursor-pointer")} htmlFor={checkboxId}>
+        <label
+          className={clsx(
+            "pl-1 cursor-pointer peer-disabled:cursor-not-allowed"
+          )}
+          htmlFor={checkboxId}
+        >
           {data.title}
         </label>
       </div>
