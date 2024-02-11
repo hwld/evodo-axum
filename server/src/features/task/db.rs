@@ -172,9 +172,23 @@ pub async fn update_all_unblocked_descendant_tasks<'a>(
         result.into_iter().filter_map(|r| r.subtask_id).collect()
     } else {
         // Doneに変更する場合は、ブロックされていないタスクだけを対象にする
+        // ブロックされているタスクの子孫も除外したいんだけど、いい感じの方法が思いつかなかった。
+        // とりあえずブロックされてるタスクを子孫も含めて全部取得して、そこに入ってないタスクを取得する
         let result = sqlx::query!(
             r#"
-            WITH RECURSIVE descendants AS (
+            WITH RECURSIVE all_blocked_tasks AS (
+                SELECT blocking_task_id, blocked_task_id
+                FROM blocking_tasks b
+                JOIN tasks t ON (b.blocking_task_id = t.id)
+                WHERE t.status = 'Todo'
+
+                UNION
+
+                SELECT blocking_task_id, subtask_id as blocked_task_id
+                FROM subtask_connections s
+                JOIN all_blocked_tasks a ON (s.parent_task_id = a.blocked_task_id)
+            )
+            , descendants AS (
                 SELECT subtask_id, parent_task_id
                 FROM subtask_connections
                 WHERE parent_task_id = $1 AND user_id = $2
@@ -188,14 +202,8 @@ pub async fn update_all_unblocked_descendant_tasks<'a>(
     
             SELECT DISTINCT d.subtask_id
             FROM descendants d
-            LEFT OUTER JOIN (
-                SELECT DISTINCT subtask_id
-                FROM descendants d
-                LEFT OUTER JOIN blocking_tasks b ON (d.subtask_id = b.blocked_task_id)
-                LEFT OUTER JOIN tasks t ON (b.blocking_task_id = t.id)
-                WHERE t.status IS NOT NULL AND t.status = 'Todo'
-            ) as undone ON (d.subtask_id == undone.subtask_id)
-            WHERE undone.subtask_id IS NULL
+            LEFT OUTER JOIN all_blocked_tasks a ON (d.subtask_id = a.blocked_task_id)
+            WHERE a.blocked_task_id IS NULL
             "#,
             args.id,
             args.user_id,
@@ -203,7 +211,7 @@ pub async fn update_all_unblocked_descendant_tasks<'a>(
         .fetch_all(&mut *db)
         .await?;
 
-        result.into_iter().map(|r| r.subtask_id).collect()
+        result.into_iter().filter_map(|r| r.subtask_id).collect()
     };
 
     update_tasks_status(

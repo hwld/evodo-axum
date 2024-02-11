@@ -587,10 +587,12 @@ mod tests {
 
         let main = task_factory::create_with_user(&db, &user.id).await?;
         assert_eq!(main.status, TaskStatus::Todo);
-        let sub = task_factory::create_default_subtask(&db, &user.id, &main.id).await?;
-        assert_eq!(sub.status, TaskStatus::Todo);
+        let sub1 = task_factory::create_default_subtask(&db, &user.id, &main.id).await?;
+        assert_eq!(sub1.status, TaskStatus::Todo);
+        let sub11 = task_factory::create_default_subtask(&db, &user.id, &sub1.id).await?;
+        assert_eq!(sub11.status, TaskStatus::Todo);
         let blocking = task_factory::create_with_user(&db, &user.id).await?;
-        task_factory::create_blocking_connection(&db, &user.id, &blocking.id, &sub.id).await?;
+        task_factory::create_blocking_connection(&db, &user.id, &blocking.id, &sub1.id).await?;
 
         let res = test
             .server()
@@ -612,15 +614,25 @@ mod tests {
         .await?;
         assert_eq!(main.status, TaskStatus::Todo);
 
-        let sub = find_task(
+        let sub1 = find_task(
             &mut conn,
             FindTaskArgs {
-                task_id: &sub.id,
+                task_id: &sub1.id,
                 user_id: &user.id,
             },
         )
         .await?;
-        assert_eq!(sub.status, TaskStatus::Todo);
+        assert_eq!(sub1.status, TaskStatus::Todo);
+
+        let sub11 = find_task(
+            &mut conn,
+            FindTaskArgs {
+                task_id: &sub11.id,
+                user_id: &user.id,
+            },
+        )
+        .await?;
+        assert_eq!(sub11.status, TaskStatus::Todo);
 
         Ok(())
     }
