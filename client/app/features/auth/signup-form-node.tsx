@@ -45,8 +45,8 @@ export const SignupFormNode: React.FC = () => {
                   <FormLabel>ユーザー名</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="ユーザー名を入力してください..."
                       autoComplete="off"
+                      placeholder="ユーザー名を入力してください..."
                       className={cn(
                         fieldState.error &&
                           "border-destructive focus-visible:ring-destructive"
