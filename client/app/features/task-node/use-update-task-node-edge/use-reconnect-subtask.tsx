@@ -24,8 +24,8 @@ export const useReconnectSubtask = () => {
 
       const message = isErrorFromPath(
         endpoints,
-        "post",
-        "/subtask/connect",
+        "put",
+        "/subtask/reconnect",
         err
       )
         ? getErrorMessage(err.response.data.error_type)

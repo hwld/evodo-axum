@@ -24,8 +24,8 @@ export const useReconnectBlockTask = () => {
 
       const message = isErrorFromPath(
         endpoints,
-        "post",
-        "/block-task/connect",
+        "put",
+        "/block-task/reconnect",
         err
       )
         ? getErrorMessage(err.response.data.error_type)
