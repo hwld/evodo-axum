@@ -122,7 +122,7 @@ mod tests {
         res.assert_status_ok();
 
         let deleted = sqlx::query!(
-            "SELECT * FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2;",
+            "SELECT * FROM sub_tasks WHERE main_task_id = $1 AND sub_task_id = $2;",
             task1.id,
             task2.id
         )
@@ -131,7 +131,7 @@ mod tests {
         assert!(deleted.is_empty());
 
         let created = sqlx::query!(
-            "SELECT * FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2",
+            "SELECT * FROM sub_tasks WHERE main_task_id = $1 AND sub_task_id = $2",
             task2.id,
             task3.id
         )
@@ -165,7 +165,7 @@ mod tests {
         res.assert_status_not_ok();
 
         let old = sqlx::query!(
-            "SELECT * FROM subtask_connections WHERE parent_task_id= $1 AND subtask_id = $2",
+            "SELECT * FROM sub_tasks WHERE main_task_id= $1 AND sub_task_id = $2",
             task3.id,
             task4.id
         )
@@ -174,7 +174,7 @@ mod tests {
         assert_eq!(old.len(), 1);
 
         let subtasks = sqlx::query!(
-            "SELECT * FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2",
+            "SELECT * FROM sub_tasks WHERE main_task_id = $1 AND sub_task_id = $2",
             task3.id,
             task2.id
         )
@@ -211,19 +211,23 @@ mod tests {
         res.assert_status_not_ok();
 
         let old_connection = sqlx::query!(
-            "SELECT * FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2 AND user_id = $3",
+            "SELECT * FROM sub_tasks WHERE main_task_id = $1 AND sub_task_id = $2 AND user_id = $3",
             other_task1.id,
             other_task2.id,
             other_user.id
-        ).fetch_all(&db).await?;
+        )
+        .fetch_all(&db)
+        .await?;
         assert_eq!(old_connection.len(), 1);
 
         let new_connection = sqlx::query!(
-            "SELECT * FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2 AND user_id = $3",
+            "SELECT * FROM sub_tasks WHERE main_task_id = $1 AND sub_task_id = $2 AND user_id = $3",
             other_task2.id,
             my_task.id,
             user.id
-        ).fetch_all(&db).await?;
+        )
+        .fetch_all(&db)
+        .await?;
         assert!(new_connection.is_empty());
 
         Ok(())
@@ -250,7 +254,7 @@ mod tests {
         res.assert_status_not_ok();
 
         let new_subtask = sqlx::query!(
-            "SELECT * FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $1;",
+            "SELECT * FROM sub_tasks WHERE main_task_id = $1 AND sub_task_id = $1;",
             task.id
         )
         .fetch_optional(&db)

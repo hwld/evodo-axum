@@ -74,7 +74,7 @@ mod tests {
             .await;
         res.assert_status_ok();
 
-        let subtasks = sqlx::query!("SELECT * FROM subtask_connections;")
+        let subtasks = sqlx::query!("SELECT * FROM sub_tasks;")
             .fetch_all(&db)
             .await?;
         assert!(subtasks.is_empty());
@@ -104,7 +104,7 @@ mod tests {
             .await;
         res.assert_status_not_ok();
 
-        let subtasks = sqlx::query!("SELECT * FROM subtask_connections;")
+        let subtasks = sqlx::query!("SELECT * FROM sub_tasks;")
             .fetch_all(&db)
             .await?;
         assert!(!subtasks.is_empty());

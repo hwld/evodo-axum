@@ -115,14 +115,14 @@ mod tests {
             .await;
 
         let fetched_subtask = sqlx::query!(
-            "SELECT * FROM subtask_connections WHERE parent_task_id = $1;",
+            "SELECT * FROM sub_tasks WHERE main_task_id = $1;",
             parent_task.id
         )
         .fetch_one(&db)
         .await?;
         res.assert_status_ok();
 
-        assert_eq!(subtask.id, fetched_subtask.subtask_id);
+        assert_eq!(subtask.id, fetched_subtask.sub_task_id);
 
         Ok(())
     }
@@ -146,7 +146,7 @@ mod tests {
             .await;
         res.assert_status_not_ok();
 
-        let subtasks = sqlx::query!("SELECT * FROM subtask_connections;")
+        let subtasks = sqlx::query!("SELECT * FROM sub_tasks;")
             .fetch_all(&db)
             .await?;
 
@@ -176,7 +176,7 @@ mod tests {
         res.assert_status_not_ok();
 
         let subtasks = sqlx::query!(
-            "SELECT * FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2;",
+            "SELECT * FROM sub_tasks WHERE main_task_id = $1 AND sub_task_id = $2;",
             task2.id,
             task1.id
         )
@@ -209,7 +209,7 @@ mod tests {
         res.assert_status_not_ok();
 
         let subtasks = sqlx::query!(
-            "SELECT * FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2",
+            "SELECT * FROM sub_tasks WHERE main_task_id = $1 AND sub_task_id = $2",
             task5.id,
             task2.id
         )
@@ -236,7 +236,7 @@ mod tests {
             .await;
         res.assert_status_not_ok();
 
-        let subtasks = sqlx::query!("SELECT * FROM subtask_connections;")
+        let subtasks = sqlx::query!("SELECT * FROM sub_tasks;")
             .fetch_all(&db)
             .await?;
         assert_eq!(subtasks.len(), 0);
@@ -368,7 +368,7 @@ mod tests {
         res.assert_status_not_ok();
 
         let subtasks = sqlx::query!(
-            "SELECT * FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2",
+            "SELECT * FROM sub_tasks WHERE main_task_id = $1 AND sub_task_id = $2",
             sub.id,
             blocking.id
         )
@@ -401,7 +401,7 @@ mod tests {
         res.assert_status_not_ok();
 
         let res = sqlx::query!(
-            "SELECT * FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2",
+            "SELECT * FROM sub_tasks WHERE main_task_id = $1 AND sub_task_id = $2",
             blocking.id,
             blocked.id
         )
@@ -432,7 +432,7 @@ mod tests {
         res.assert_status_not_ok();
 
         let res = sqlx::query!(
-            "SELECT * FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2",
+            "SELECT * FROM sub_tasks WHERE main_task_id = $1 AND sub_task_id = $2",
             main2.id,
             sub.id
         )

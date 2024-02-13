@@ -18,9 +18,9 @@ pub async fn find_task<'a>(
 ) -> anyhow::Result<Task> {
     let raw_task = sqlx::query!(
         r#"
-        SELECT t.*, s.parent_task_id, s.subtask_id, b.blocked_task_id
+        SELECT t.*, s.main_task_id, s.sub_task_id, b.blocked_task_id
         FROM tasks t 
-        LEFT OUTER JOIN subtask_connections s ON (t.id = s.parent_task_id AND t.user_id = s.user_id)
+        LEFT OUTER JOIN sub_tasks s ON (t.id = s.main_task_id AND t.user_id = s.user_id)
         LEFT OUTER JOIN blocking_tasks b ON (t.id = b.blocking_task_id AND t.user_id = b.user_id)
         WHERE t.user_id = $1 AND t.id = $2;
         "#,
@@ -44,8 +44,8 @@ pub async fn find_task<'a>(
             subtask_ids: Vec::new(),
             blocked_task_ids: Vec::new(),
         });
-        if let Some(subtask_id) = raw.subtask_id {
-            task.subtask_ids.push(subtask_id);
+        if let Some(sub_task_id) = raw.sub_task_id {
+            task.subtask_ids.push(sub_task_id);
         }
         if let Some(blocked_task_id) = raw.blocked_task_id {
             task.blocked_task_ids.push(blocked_task_id);
@@ -69,9 +69,9 @@ pub async fn find_task<'a>(
 pub async fn find_tasks(db: &mut Connection, user_id: &str) -> anyhow::Result<Vec<Task>> {
     let raw_tasks = sqlx::query!(
         r#"
-        SELECT t.*, s.parent_task_id, s.subtask_id, b.blocked_task_id
+        SELECT t.*, s.main_task_id, s.sub_task_id, b.blocked_task_id
         FROM tasks t 
-        LEFT OUTER JOIN subtask_connections s ON (t.id = s.parent_task_id AND t.user_id = s.user_id)
+        LEFT OUTER JOIN sub_tasks s ON (t.id = s.main_task_id AND t.user_id = s.user_id)
         LEFT OUTER JOIN blocking_tasks b ON (t.id = b.blocking_task_id AND t.user_id = b.user_id)
         WHERE t.user_id = $1;
         "#,
@@ -93,7 +93,7 @@ pub async fn find_tasks(db: &mut Connection, user_id: &str) -> anyhow::Result<Ve
             subtask_ids: Vec::new(),
             blocked_task_ids: Vec::new(),
         });
-        if let Some(subtask_id) = raw.subtask_id {
+        if let Some(subtask_id) = raw.sub_task_id {
             task.subtask_ids.push(subtask_id);
         }
         if let Some(blocked_task_id) = raw.blocked_task_id {
@@ -125,10 +125,10 @@ pub async fn find_parent_task_ids<'a>(
     let parent_ids = sqlx::query!(
         r#"
         SELECT id
-        FROM subtask_connections sc 
+        FROM sub_tasks sc 
             LEFT OUTER JOIN tasks t 
-            ON (t.id = sc.parent_task_id AND t.user_id = sc.user_id)
-        WHERE sc.subtask_id = $1 AND t.user_id = $2;
+            ON (t.id = sc.main_task_id AND t.user_id = sc.user_id)
+        WHERE sc.sub_task_id = $1 AND t.user_id = $2;
         "#,
         args.subtask_id,
         args.user_id,
@@ -149,18 +149,18 @@ pub async fn update_all_unblocked_descendant_tasks<'a>(
         let result = sqlx::query!(
             r#"
             WITH RECURSIVE descendants AS (
-                SELECT subtask_id, parent_task_id
-                FROM subtask_connections
-                WHERE parent_task_id = $1 AND user_id = $2
+                SELECT sub_task_id, main_task_id
+                FROM sub_tasks
+                WHERE main_task_id = $1 AND user_id = $2
     
                 UNION
     
-                SELECT s.subtask_id, d.parent_task_id
-                FROM subtask_connections s
-                JOIN descendants d ON s.parent_task_id = d.subtask_id
+                SELECT s.sub_task_id, d.main_task_id
+                FROM sub_tasks s
+                JOIN descendants d ON s.main_task_id = d.sub_task_id
             )
     
-            SELECT DISTINCT subtask_id
+            SELECT DISTINCT sub_task_id
             FROM descendants
             "#,
             args.id,
@@ -169,7 +169,7 @@ pub async fn update_all_unblocked_descendant_tasks<'a>(
         .fetch_all(&mut *db)
         .await?;
 
-        result.into_iter().filter_map(|r| r.subtask_id).collect()
+        result.into_iter().filter_map(|r| r.sub_task_id).collect()
     } else {
         // Doneに変更する場合は、ブロックされていないタスクだけを対象にする
         // ブロックされているタスクの子孫も除外したいんだけど、いい感じの方法が思いつかなかった。
@@ -184,25 +184,25 @@ pub async fn update_all_unblocked_descendant_tasks<'a>(
 
                 UNION
 
-                SELECT blocking_task_id, subtask_id as blocked_task_id
-                FROM subtask_connections s
-                JOIN all_blocked_tasks a ON (s.parent_task_id = a.blocked_task_id)
+                SELECT blocking_task_id, sub_task_id as blocked_task_id
+                FROM sub_tasks s
+                JOIN all_blocked_tasks a ON (s.main_task_id = a.blocked_task_id)
             )
             , descendants AS (
-                SELECT subtask_id, parent_task_id
-                FROM subtask_connections
-                WHERE parent_task_id = $1 AND user_id = $2
+                SELECT sub_task_id, main_task_id
+                FROM sub_tasks
+                WHERE main_task_id = $1 AND user_id = $2
     
                 UNION
     
-                SELECT s.subtask_id, d.parent_task_id
-                FROM subtask_connections s
-                JOIN descendants d ON s.parent_task_id = d.subtask_id
+                SELECT s.sub_task_id, d.main_task_id
+                FROM sub_tasks s
+                JOIN descendants d ON s.main_task_id = d.sub_task_id
             )
     
-            SELECT DISTINCT d.subtask_id
+            SELECT DISTINCT d.sub_task_id
             FROM descendants d
-            LEFT OUTER JOIN all_blocked_tasks a ON (d.subtask_id = a.blocked_task_id)
+            LEFT OUTER JOIN all_blocked_tasks a ON (d.sub_task_id = a.blocked_task_id)
             WHERE a.blocked_task_id IS NULL
             "#,
             args.id,
@@ -211,7 +211,7 @@ pub async fn update_all_unblocked_descendant_tasks<'a>(
         .fetch_all(&mut *db)
         .await?;
 
-        result.into_iter().filter_map(|r| r.subtask_id).collect()
+        result.into_iter().filter_map(|r| r.sub_task_id).collect()
     };
 
     update_tasks_status(
@@ -542,7 +542,7 @@ pub async fn insert_subtask_connection<'a>(
     args: InsertSubTaskConnectionArgs<'a>,
 ) -> anyhow::Result<()> {
     sqlx::query!(
-        "INSERT INTO subtask_connections(parent_task_id, subtask_id, user_id) VALUES($1, $2, $3) RETURNING *;",
+        "INSERT INTO sub_tasks(main_task_id, sub_task_id, user_id) VALUES($1, $2, $3) RETURNING *;",
         args.parent_task_id,
         args.subtask_id,
         args.user_id,
@@ -711,7 +711,7 @@ pub async fn delete_subtask_connection<'a>(
     args: DeleteSubTaskConnectionArgs<'a>,
 ) -> anyhow::Result<()> {
     sqlx::query!(
-        "DELETE FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2 AND user_id = $3 RETURNING *",
+        "DELETE FROM sub_tasks WHERE main_task_id = $1 AND sub_task_id = $2 AND user_id = $3 RETURNING *",
         args.parent_task_id,
         args.subtask_id,
         args.user_id
@@ -754,9 +754,9 @@ pub async fn detect_circular_connection<'a>(
         r#"
         WITH RECURSIVE ancestors AS (
             -- 非再帰
-            SELECT subtask_id as child_id, parent_task_id as parent_id
-            FROM subtask_connections
-            WHERE subtask_id = $1 AND user_id = $2
+            SELECT sub_task_id as child_id, main_task_id as parent_id
+            FROM sub_tasks
+            WHERE sub_task_id = $1 AND user_id = $2
 
             UNION
 
@@ -766,9 +766,9 @@ pub async fn detect_circular_connection<'a>(
 
             UNION
             -- 再帰
-            SELECT s.subtask_id, s.parent_task_id
-            FROM subtask_connections s
-            JOIN ancestors a ON s.subtask_id = a.parent_id
+            SELECT s.sub_task_id, s.main_task_id
+            FROM sub_tasks s
+            JOIN ancestors a ON s.sub_task_id = a.parent_id
 
             UNION
 
@@ -800,20 +800,20 @@ pub async fn is_subtask<'a>(db: &mut Connection, args: IsSubtaskArgs<'a>) -> any
     let result = sqlx::query!(
         r#"
         WITH RECURSIVE subtasks AS (
-            SELECT subtask_id, parent_task_id
-            FROM subtask_connections
-            WHERE parent_task_id = $1 AND user_id = $2
+            SELECT sub_task_id, main_task_id
+            FROM sub_tasks
+            WHERE main_task_id = $1 AND user_id = $2
 
             UNION
 
-            SELECT sc.subtask_id, s.parent_task_id
-            FROM subtask_connections sc
-            JOIN subtasks s ON sc.parent_task_id = s.subtask_id
+            SELECT sc.sub_task_id, s.main_task_id
+            FROM sub_tasks sc
+            JOIN subtasks s ON sc.main_task_id = s.sub_task_id
         )
 
-        SELECT DISTINCT subtask_id
+        SELECT DISTINCT sub_task_id
         FROM subtasks
-        WHERE subtask_id = $3
+        WHERE sub_task_id = $3
         "#,
         args.parent_task_id,
         args.user_id,
@@ -834,28 +834,28 @@ pub async fn is_all_blocking_tasks_done(
         WITH RECURSIVE ancestors AS (
             -- 非再帰
             -- サブタスクの親のステータスは関係ないのでNULLにする
-            SELECT parent_task_id, subtask_id as child_task_id, NULL as parent_task_status
-            FROM subtask_connections
-            WHERE subtask_id = $1
+            SELECT main_task_id, sub_task_id as child_task_id, NULL as parent_task_status
+            FROM sub_tasks
+            WHERE sub_task_id = $1
 
             UNION
 
-            SELECT blocking_task_id as parent_task_id, blocked_task_id as child_task_id, status
+            SELECT blocking_task_id as main_task_id, blocked_task_id as child_task_id, status
             FROM blocking_tasks b JOIN tasks t ON b.blocking_task_id = t.id
             WHERE blocked_task_id = $1
 
             UNION
 
             -- 再帰
-            SELECT s.parent_task_id, a.child_task_id, NULL as status
-            FROM subtask_connections s
-            JOIN ancestors a ON s.subtask_id = a.parent_task_id
+            SELECT s.main_task_id, a.child_task_id, NULL as status
+            FROM sub_tasks s
+            JOIN ancestors a ON s.sub_task_id = a.main_task_id
 
             UNION
 
             SELECT b.blocking_task_id, a.child_task_id, t.status
             FROM blocking_tasks b
-            JOIN ancestors a ON b.blocked_task_id = a.parent_task_id
+            JOIN ancestors a ON b.blocked_task_id = a.main_task_id
             JOIN tasks t ON b.blocking_task_id = t.id
         )
 
@@ -872,12 +872,9 @@ pub async fn is_all_blocking_tasks_done(
 }
 
 pub async fn has_main_task(db: &mut Connection, task_id: &str) -> anyhow::Result<bool> {
-    let result = sqlx::query!(
-        "SELECT * FROM subtask_connections WHERE subtask_id = $1",
-        task_id
-    )
-    .fetch_all(&mut *db)
-    .await?;
+    let result = sqlx::query!("SELECT * FROM sub_tasks WHERE sub_task_id = $1", task_id)
+        .fetch_all(&mut *db)
+        .await?;
 
     Ok(!result.is_empty())
 }
