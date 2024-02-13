@@ -1,6 +1,7 @@
-use anyhow::anyhow;
-
-use crate::app::{AppResult, Connection};
+use crate::{
+    app::Connection,
+    features::task::{db::SubtaskConnectionError, usecases::connect_subtask::ConnectSubtaskError},
+};
 
 use super::{
     connect_subtask::{self, ConnectSubtaskArgs},
@@ -14,7 +15,16 @@ pub struct ReconnectSubtaskArgs<'a> {
     pub new_subtask_id: &'a str,
     pub user_id: &'a str,
 }
-pub async fn action<'a>(db: &mut Connection, args: ReconnectSubtaskArgs<'a>) -> AppResult<()> {
+
+pub enum ReconnectSubtaskError {
+    Connect(SubtaskConnectionError),
+    Unknown(anyhow::Error),
+}
+
+pub async fn action<'a>(
+    db: &mut Connection,
+    args: ReconnectSubtaskArgs<'a>,
+) -> Result<(), ReconnectSubtaskError> {
     disconnect_subtask::action(
         db,
         DisconnectSubtaskArgs {
@@ -23,9 +33,9 @@ pub async fn action<'a>(db: &mut Connection, args: ReconnectSubtaskArgs<'a>) -> 
             user_id: args.user_id,
         },
     )
-    .await?;
+    .await
+    .map_err(ReconnectSubtaskError::Unknown)?;
 
-    // TODO
     connect_subtask::action(
         db,
         ConnectSubtaskArgs {
@@ -35,7 +45,13 @@ pub async fn action<'a>(db: &mut Connection, args: ReconnectSubtaskArgs<'a>) -> 
         },
     )
     .await
-    .map_err(|_| anyhow!("error"))?;
+    .map_err(|e| {
+        use ReconnectSubtaskError::{Connect, Unknown};
+        match e {
+            ConnectSubtaskError::CheckError(err) => Connect(err),
+            ConnectSubtaskError::Unknown(err) => Unknown(err),
+        }
+    })?;
 
     Ok(())
 }

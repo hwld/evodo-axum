@@ -1,7 +1,7 @@
-use crate::app::{AppResult, Connection};
+use crate::{app::Connection, features::task::db::BlockTaskConnectionError};
 
 use super::{
-    connect_block_task::{self, ConnectBlockTaskArgs},
+    connect_block_task::{self, ConnectBlockTaskArgs, ConnectBlockTaskError},
     disconnect_block_task::{self, DisconnectBlockTaskArgs},
 };
 
@@ -12,7 +12,16 @@ pub struct ReconnectBlockTaskArgs<'a> {
     pub new_blocked_task_id: &'a str,
     pub user_id: &'a str,
 }
-pub async fn action<'a>(db: &mut Connection, args: ReconnectBlockTaskArgs<'a>) -> AppResult<()> {
+
+pub enum ReconnectBlockTaskError {
+    Connect(BlockTaskConnectionError),
+    Unknown(anyhow::Error),
+}
+
+pub async fn action<'a>(
+    db: &mut Connection,
+    args: ReconnectBlockTaskArgs<'a>,
+) -> Result<(), ReconnectBlockTaskError> {
     disconnect_block_task::action(
         db,
         DisconnectBlockTaskArgs {
@@ -21,7 +30,8 @@ pub async fn action<'a>(db: &mut Connection, args: ReconnectBlockTaskArgs<'a>) -
             user_id: args.user_id,
         },
     )
-    .await?;
+    .await
+    .map_err(ReconnectBlockTaskError::Unknown)?;
 
     connect_block_task::action(
         db,
@@ -31,7 +41,15 @@ pub async fn action<'a>(db: &mut Connection, args: ReconnectBlockTaskArgs<'a>) -
             user_id: args.user_id,
         },
     )
-    .await?;
+    .await
+    .map_err(|e| {
+        use ReconnectBlockTaskError::{Connect, Unknown};
+
+        match e {
+            ConnectBlockTaskError::CheckError(err) => Connect(err),
+            ConnectBlockTaskError::Unknown(err) => Unknown(err),
+        }
+    })?;
 
     Ok(())
 }

@@ -1,5 +1,9 @@
+use anyhow::anyhow;
 use axum::{extract::State, Json};
 use axum_login::AuthSession;
+use http::StatusCode;
+use serde::Serialize;
+use utoipa::ToSchema;
 
 use crate::{
     app::{AppResult, AppState},
@@ -7,14 +11,36 @@ use crate::{
     features::{
         auth::Auth,
         task::{
-            usecases::reconnect_subtask::{self, ReconnectSubtaskArgs},
+            db::SubtaskConnectionError,
+            usecases::reconnect_subtask::{self, ReconnectSubtaskArgs, ReconnectSubtaskError},
             ReconnectSubtask,
         },
     },
 };
 
+#[derive(Debug, Serialize, ToSchema)]
+pub enum ReconnectSubtaskErrorType {
+    TaskNotFound,
+    BlockedByMainTask,
+    CircularTask,
+    MultipleMainTask,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ReconnectSubtaskErrorBody {
+    error_type: ReconnectSubtaskErrorType,
+}
+
 #[tracing::instrument(err)]
-#[utoipa::path(put, tag = super::TAG, path = super::TaskPaths::reconnect_subtask(), responses((status = 200)))]
+#[utoipa::path(
+    put,
+    tag = super::TAG,
+    path = super::TaskPaths::reconnect_subtask(),
+    responses(
+        (status = 200),
+        (status = 400, body = ReconnectSubtaskErrorBody)
+    )
+)]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     State(AppState { db }): State<AppState>,
@@ -26,7 +52,7 @@ pub async fn handler(
 
     let mut tx = db.begin().await?;
 
-    reconnect_subtask::action(
+    let result = reconnect_subtask::action(
         &mut tx,
         ReconnectSubtaskArgs {
             old_parent_task_id: &payload.old_parent_task_id,
@@ -36,7 +62,28 @@ pub async fn handler(
             user_id: &user.id,
         },
     )
-    .await?;
+    .await;
+    if let Err(e) = result {
+        use ReconnectSubtaskError::{Connect, Unknown};
+        use ReconnectSubtaskErrorType::{
+            BlockedByMainTask, CircularTask, MultipleMainTask, TaskNotFound,
+        };
+
+        let error_type = match e {
+            Connect(SubtaskConnectionError::TaskNotFound) => TaskNotFound,
+            Connect(SubtaskConnectionError::BlockedByMainTask) => BlockedByMainTask,
+            Connect(SubtaskConnectionError::CircularTask) => CircularTask,
+            Connect(SubtaskConnectionError::MultipleMainTask) => MultipleMainTask,
+            Connect(SubtaskConnectionError::Unknown(_)) | Unknown(_) => {
+                return Err(anyhow!("Unknown").into())
+            }
+        };
+
+        return Err(AppError::with_json(
+            StatusCode::BAD_REQUEST,
+            ReconnectSubtaskErrorBody { error_type },
+        ));
+    }
 
     tx.commit().await?;
 

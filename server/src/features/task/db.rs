@@ -642,11 +642,18 @@ pub async fn check_subtask_connection<'a>(
     Ok(())
 }
 
+pub enum BlockTaskConnectionError {
+    TaskNotFound,
+    IsSubtask,
+    CircularTask,
+    Unknown(anyhow::Error),
+}
+
 // TODO: subtaskと共通化できる？
 pub async fn check_insert_block_task_connection<'a>(
     db: &mut Connection,
     args: &InsertBlockTaskConnectionArgs<'a>,
-) -> anyhow::Result<()> {
+) -> Result<(), BlockTaskConnectionError> {
     // ログインユーザーが指定されたタスクを持っているかを確認する
     let tasks = sqlx::query!(
         "SELECT * FROM tasks WHERE id IN ($1, $2) AND user_id = $3;",
@@ -655,10 +662,11 @@ pub async fn check_insert_block_task_connection<'a>(
         args.user_id,
     )
     .fetch_all(&mut *db)
-    .await?;
+    .await
+    .map_err(|e| BlockTaskConnectionError::Unknown(e.into()))?;
 
     if tasks.len() != 2 {
-        return Err(anyhow!("タスクが存在しません"));
+        return Err(BlockTaskConnectionError::TaskNotFound);
     }
 
     if is_subtask(
@@ -669,9 +677,10 @@ pub async fn check_insert_block_task_connection<'a>(
             user_id: args.user_id,
         },
     )
-    .await?
+    .await
+    .map_err(BlockTaskConnectionError::Unknown)?
     {
-        return Err(anyhow!("サブタスクをブロックすることはできません"));
+        return Err(BlockTaskConnectionError::IsSubtask);
     };
 
     // タスク同士が循環していないかを確認する。
@@ -683,9 +692,10 @@ pub async fn check_insert_block_task_connection<'a>(
             user_id: args.user_id,
         },
     )
-    .await?
+    .await
+    .map_err(BlockTaskConnectionError::Unknown)?
     {
-        return Err(anyhow!("タスクの循環は許可されていません"));
+        return Err(BlockTaskConnectionError::CircularTask);
     }
 
     Ok(())

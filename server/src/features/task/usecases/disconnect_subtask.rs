@@ -1,5 +1,5 @@
 use crate::{
-    app::{AppResult, Connection},
+    app::Connection,
     features::task::db::{
         delete_subtask_connection, find_parent_task_ids, update_tasks_and_ancestors_status,
         DeleteSubTaskConnectionArgs, FindParentTaskIdsArgs, TasksAndUser,
@@ -11,7 +11,10 @@ pub struct DisconnectSubtaskArgs<'a> {
     pub subtask_id: &'a str,
     pub user_id: &'a str,
 }
-pub async fn action<'a>(db: &mut Connection, args: DisconnectSubtaskArgs<'a>) -> AppResult<()> {
+pub async fn action<'a>(
+    db: &mut Connection,
+    args: DisconnectSubtaskArgs<'a>,
+) -> anyhow::Result<()> {
     // 後でサブタスクの親すべてを更新する必要があるので、subtask_connectionを削除する前に親を取得しておく
     let parent_ids = find_parent_task_ids(
         &mut *db,

@@ -1,5 +1,9 @@
+use anyhow::anyhow;
 use axum::{extract::State, Json};
 use axum_login::AuthSession;
+use http::StatusCode;
+use serde::Serialize;
+use utoipa::ToSchema;
 
 use crate::{
     app::{AppResult, AppState},
@@ -7,14 +11,35 @@ use crate::{
     features::{
         auth::Auth,
         task::{
-            usecases::connect_block_task::{self, ConnectBlockTaskArgs},
+            db::BlockTaskConnectionError,
+            usecases::connect_block_task::{self, ConnectBlockTaskArgs, ConnectBlockTaskError},
             ConnectBlockTask,
         },
     },
 };
 
+#[derive(Debug, Serialize, ToSchema)]
+pub enum ConnectBlockTaskErrorType {
+    TaskNotFound,
+    IsSubtask,
+    CircularTask,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ConnectBlockTaskErrorBody {
+    error_type: ConnectBlockTaskErrorType,
+}
+
 #[tracing::instrument(err)]
-#[utoipa::path(post, tag = super::TAG, path = super::TaskPaths::connect_block_task(), responses((status = 200)))]
+#[utoipa::path(
+    post,
+    tag = super::TAG,
+    path = super::TaskPaths::connect_block_task(),
+    responses(
+        (status = 200),
+        (status = 400, body = ConnectBlockTaskErrorBody)
+    )
+)]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     State(AppState { db }): State<AppState>,
@@ -26,7 +51,7 @@ pub async fn handler(
 
     let mut tx = db.begin().await?;
 
-    connect_block_task::action(
+    if let Err(e) = connect_block_task::action(
         &mut tx,
         ConnectBlockTaskArgs {
             blocking_task_id: &payload.blocking_task_id,
@@ -34,7 +59,25 @@ pub async fn handler(
             user_id: &user.id,
         },
     )
-    .await?;
+    .await
+    {
+        use ConnectBlockTaskError::{CheckError, Unknown};
+        use ConnectBlockTaskErrorType::{CircularTask, IsSubtask, TaskNotFound};
+
+        let error_type = match e {
+            CheckError(BlockTaskConnectionError::TaskNotFound) => TaskNotFound,
+            CheckError(BlockTaskConnectionError::IsSubtask) => IsSubtask,
+            CheckError(BlockTaskConnectionError::CircularTask) => CircularTask,
+            CheckError(BlockTaskConnectionError::Unknown(_)) | Unknown(_) => {
+                return Err(anyhow!("Unknown").into())
+            }
+        };
+
+        return Err(AppError::with_json(
+            StatusCode::BAD_REQUEST,
+            ConnectBlockTaskErrorBody { error_type },
+        ));
+    };
 
     tx.commit().await?;
 

@@ -1,5 +1,5 @@
 use crate::{
-    app::{AppResult, Connection},
+    app::Connection,
     features::task::db::{delete_block_task_connection, DeleteBlockTaskConnectionArgs},
 };
 
@@ -8,7 +8,10 @@ pub struct DisconnectBlockTaskArgs<'a> {
     pub blocked_task_id: &'a str,
     pub user_id: &'a str,
 }
-pub async fn action<'a>(db: &mut Connection, args: DisconnectBlockTaskArgs<'a>) -> AppResult<()> {
+pub async fn action<'a>(
+    db: &mut Connection,
+    args: DisconnectBlockTaskArgs<'a>,
+) -> anyhow::Result<()> {
     delete_block_task_connection(
         db,
         DeleteBlockTaskConnectionArgs {

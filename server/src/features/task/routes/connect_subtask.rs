@@ -32,7 +32,10 @@ pub struct ConnectSubtaskErrorBody {
 }
 
 #[tracing::instrument(err)]
-#[utoipa::path(post, tag = super::TAG, path = super::TaskPaths::connect_subtask(),
+#[utoipa::path(
+    post,
+    tag = super::TAG,
+    path = super::TaskPaths::connect_subtask(),
     responses(
         (status = 200),
         (status = 400, body = ConnectSubtaskErrorBody)
@@ -69,10 +72,7 @@ pub async fn handler(
             CheckError(SubtaskConnectionError::CircularTask) => CircularTask,
             CheckError(SubtaskConnectionError::MultipleMainTask) => MultipleMainTask,
             CheckError(SubtaskConnectionError::BlockedByMainTask) => BlockedByMainTask,
-            CheckError(SubtaskConnectionError::Unknown(_)) => {
-                return Err(anyhow!("Unknown").into());
-            }
-            Unknown(_) => {
+            CheckError(SubtaskConnectionError::Unknown(_)) | Unknown(_) => {
                 return Err(anyhow!("Unknown").into());
             }
         };

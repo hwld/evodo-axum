@@ -17,6 +17,14 @@ const ConnectBlockTask = z.object({
   blocked_task_id: z.string(),
   blocking_task_id: z.string(),
 });
+const ConnectBlockTaskErrorType = z.enum([
+  "TaskNotFound",
+  "IsSubtask",
+  "CircularTask",
+]);
+const ConnectBlockTaskErrorBody = z.object({
+  error_type: ConnectBlockTaskErrorType,
+});
 const DisconnectBlockTask = z.object({
   blocked_task_id: z.string(),
   blocking_task_id: z.string(),
@@ -26,6 +34,14 @@ const ReconnectBlockTask = z.object({
   new_blocking_task_id: z.string(),
   old_blocked_task_id: z.string(),
   old_blocking_task_id: z.string(),
+});
+const ReconnectBlockTaskErrorType = z.enum([
+  "TaskNotFound",
+  "IsSubtask",
+  "CircularTask",
+]);
+const ReconnectBlockTaskErrorBody = z.object({
+  error_type: ReconnectBlockTaskErrorType,
 });
 const ConnectSubtask = z.object({
   parent_task_id: z.string(),
@@ -49,6 +65,15 @@ const ReconnectSubtask = z.object({
   new_subtask_id: z.string(),
   old_parent_task_id: z.string(),
   old_subtask_id: z.string(),
+});
+const ReconnectSubtaskErrorType = z.enum([
+  "TaskNotFound",
+  "BlockedByMainTask",
+  "CircularTask",
+  "MultipleMainTask",
+]);
+const ReconnectSubtaskErrorBody = z.object({
+  error_type: ReconnectSubtaskErrorType,
 });
 const UpdateTaskNodeInfo = z.object({ x: z.number(), y: z.number() });
 const TaskNodeInfo = z.object({
@@ -90,13 +115,19 @@ export const schemas = {
   CreateUser,
   SignupSessionResponse,
   ConnectBlockTask,
+  ConnectBlockTaskErrorType,
+  ConnectBlockTaskErrorBody,
   DisconnectBlockTask,
   ReconnectBlockTask,
+  ReconnectBlockTaskErrorType,
+  ReconnectBlockTaskErrorBody,
   ConnectSubtask,
   ConnectSubtaskErrorType,
   ConnectSubtaskErrorBody,
   DisconnectSubtask,
   ReconnectSubtask,
+  ReconnectSubtaskErrorType,
+  ReconnectSubtaskErrorBody,
   UpdateTaskNodeInfo,
   TaskNodeInfo,
   TaskStatus,
@@ -178,6 +209,12 @@ export const endpoints = makeApi([
       },
     ],
     response: z.void(),
+    errors: [
+      {
+        status: 400,
+        schema: ConnectBlockTaskErrorBody,
+      },
+    ],
   },
   {
     method: "delete",
@@ -204,6 +241,12 @@ export const endpoints = makeApi([
       },
     ],
     response: z.void(),
+    errors: [
+      {
+        status: 400,
+        schema: ReconnectBlockTaskErrorBody,
+      },
+    ],
   },
   {
     method: "post",
@@ -249,6 +292,12 @@ export const endpoints = makeApi([
       },
     ],
     response: z.void(),
+    errors: [
+      {
+        status: 400,
+        schema: ReconnectSubtaskErrorBody,
+      },
+    ],
   },
   {
     method: "put",
