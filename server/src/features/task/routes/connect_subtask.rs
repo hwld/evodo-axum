@@ -59,24 +59,20 @@ pub async fn handler(
     )
     .await
     {
-        // TODO: なんとかならない？
+        use ConnectSubtaskError::{CheckError, Unknown};
+        use ConnectSubtaskErrorType::{
+            BlockedByMainTask, CircularTask, MultipleMainTask, TaskNotFound,
+        };
+
         let error_type = match e {
-            ConnectSubtaskError::CheckError(SubtaskConnectionError::TaskNotFound) => {
-                ConnectSubtaskErrorType::TaskNotFound
-            }
-            ConnectSubtaskError::CheckError(SubtaskConnectionError::CircularTask) => {
-                ConnectSubtaskErrorType::CircularTask
-            }
-            ConnectSubtaskError::CheckError(SubtaskConnectionError::MultipleMainTask) => {
-                ConnectSubtaskErrorType::MultipleMainTask
-            }
-            ConnectSubtaskError::CheckError(SubtaskConnectionError::BlockedByMainTask) => {
-                ConnectSubtaskErrorType::BlockedByMainTask
-            }
-            ConnectSubtaskError::CheckError(SubtaskConnectionError::Unknown(_)) => {
+            CheckError(SubtaskConnectionError::TaskNotFound) => TaskNotFound,
+            CheckError(SubtaskConnectionError::CircularTask) => CircularTask,
+            CheckError(SubtaskConnectionError::MultipleMainTask) => MultipleMainTask,
+            CheckError(SubtaskConnectionError::BlockedByMainTask) => BlockedByMainTask,
+            CheckError(SubtaskConnectionError::Unknown(_)) => {
                 return Err(anyhow!("Unknown").into());
             }
-            ConnectSubtaskError::Unknown(_) => {
+            Unknown(_) => {
                 return Err(anyhow!("Unknown").into());
             }
         };
