@@ -23,7 +23,7 @@ use crate::{
 #[derive(Debug, Serialize, ToSchema)]
 pub enum ReconnectBlockTaskErrorType {
     TaskNotFound,
-    IsSubtask,
+    IsSubTask,
     CircularTask,
 }
 
@@ -66,12 +66,12 @@ pub async fn handler(
     .await;
     if let Err(e) = result {
         use ReconnectBlockTaskError::{Connect, Unknown};
-        use ReconnectBlockTaskErrorType::{CircularTask, IsSubtask, TaskNotFound};
+        use ReconnectBlockTaskErrorType::{CircularTask, IsSubTask, TaskNotFound};
 
         let error_type = match e {
             Connect(BlockTaskConnectionError::TaskNotFound) => TaskNotFound,
             Connect(BlockTaskConnectionError::CircularTask) => CircularTask,
-            Connect(BlockTaskConnectionError::IsSubtask) => IsSubtask,
+            Connect(BlockTaskConnectionError::IsSubTask) => IsSubTask,
             Connect(BlockTaskConnectionError::Unknown(_)) | Unknown(_) => {
                 return Err(anyhow!("Unknown").into());
             }

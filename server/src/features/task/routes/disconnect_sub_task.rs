@@ -7,18 +7,18 @@ use crate::{
     features::{
         auth::Auth,
         task::{
-            usecases::disconnect_subtask::{self, DisconnectSubtaskArgs},
-            DisconnectSubtask,
+            usecases::disconnect_sub_task::{self, DisconnectSubTaskArgs},
+            DisconnectSubTask,
         },
     },
 };
 
 #[tracing::instrument(err)]
-#[utoipa::path(delete, tag = super::TAG, path = super::TaskPaths::disconnect_subtask(), responses(( status = 200)))]
+#[utoipa::path(delete, tag = super::TAG, path = super::TaskPaths::disconnect_sub_task(), responses(( status = 200)))]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     State(AppState { db }): State<AppState>,
-    Json(payload): Json<DisconnectSubtask>,
+    Json(payload): Json<DisconnectSubTask>,
 ) -> AppResult<()> {
     let Some(user) = auth_session.user else {
         return Err(AppError::unauthorized());
@@ -26,11 +26,11 @@ pub async fn handler(
 
     let mut tx = db.begin().await?;
 
-    disconnect_subtask::action(
+    disconnect_sub_task::action(
         &mut tx,
-        DisconnectSubtaskArgs {
+        DisconnectSubTaskArgs {
             parent_task_id: &payload.parent_task_id,
-            subtask_id: &payload.subtask_id,
+            sub_task_id: &payload.sub_task_id,
             user_id: &user.id,
         },
     )
@@ -50,7 +50,7 @@ mod tests {
                 db::{find_task, FindTaskArgs},
                 routes::TaskPaths,
                 test::task_factory,
-                DisconnectSubtask, Task, TaskStatus,
+                DisconnectSubTask, Task, TaskStatus,
             },
             user::test::user_factory,
         },
@@ -62,22 +62,22 @@ mod tests {
         let user = test.login(None).await?;
 
         let task = task_factory::create_with_user(&db, &user.id).await?;
-        let subtask = task_factory::create_default_subtask(&db, &user.id, &task.id).await?;
+        let sub_task = task_factory::create_default_sub_task(&db, &user.id, &task.id).await?;
 
         let res = test
             .server()
-            .delete(&TaskPaths::disconnect_subtask())
-            .json(&DisconnectSubtask {
+            .delete(&TaskPaths::disconnect_sub_task())
+            .json(&DisconnectSubTask {
                 parent_task_id: task.id,
-                subtask_id: subtask.id,
+                sub_task_id: sub_task.id,
             })
             .await;
         res.assert_status_ok();
 
-        let subtasks = sqlx::query!("SELECT * FROM sub_tasks;")
+        let sub_tasks = sqlx::query!("SELECT * FROM sub_tasks;")
             .fetch_all(&db)
             .await?;
-        assert!(subtasks.is_empty());
+        assert!(sub_tasks.is_empty());
 
         Ok(())
     }
@@ -90,24 +90,24 @@ mod tests {
 
         let other_user = user_factory::create_default(&db).await?;
         let other_user_task = task_factory::create_with_user(&db, &other_user.id).await?;
-        let other_user_subtask =
-            task_factory::create_default_subtask(&db, &other_user.id, &other_user_task.id).await?;
+        let other_user_sub_task =
+            task_factory::create_default_sub_task(&db, &other_user.id, &other_user_task.id).await?;
 
         test.login(None).await?;
         let res = test
             .server()
-            .delete(&TaskPaths::disconnect_subtask())
-            .json(&DisconnectSubtask {
+            .delete(&TaskPaths::disconnect_sub_task())
+            .json(&DisconnectSubTask {
                 parent_task_id: other_user_task.id,
-                subtask_id: other_user_subtask.id,
+                sub_task_id: other_user_sub_task.id,
             })
             .await;
         res.assert_status_not_ok();
 
-        let subtasks = sqlx::query!("SELECT * FROM sub_tasks;")
+        let sub_tasks = sqlx::query!("SELECT * FROM sub_tasks;")
             .fetch_all(&db)
             .await?;
-        assert!(!subtasks.is_empty());
+        assert!(!sub_tasks.is_empty());
 
         Ok(())
     }
@@ -128,7 +128,7 @@ mod tests {
             },
         )
         .await?;
-        let _done_sub = task_factory::create_subtask(
+        let _done_sub = task_factory::create_sub_task(
             &db,
             &parent.id,
             Task {
@@ -138,7 +138,7 @@ mod tests {
             },
         )
         .await?;
-        let todo_sub = task_factory::create_subtask(
+        let todo_sub = task_factory::create_sub_task(
             &db,
             &parent.id,
             Task {
@@ -151,10 +151,10 @@ mod tests {
 
         let res = test
             .server()
-            .delete(&TaskPaths::disconnect_subtask())
-            .json(&DisconnectSubtask {
+            .delete(&TaskPaths::disconnect_sub_task())
+            .json(&DisconnectSubTask {
                 parent_task_id: parent.id.clone(),
-                subtask_id: todo_sub.id.clone(),
+                sub_task_id: todo_sub.id.clone(),
             })
             .await;
         res.assert_status_ok();

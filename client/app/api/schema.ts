@@ -19,7 +19,7 @@ const ConnectBlockTask = z.object({
 });
 const ConnectBlockTaskErrorType = z.enum([
   "TaskNotFound",
-  "IsSubtask",
+  "IsSubTask",
   "CircularTask",
 ]);
 const ConnectBlockTaskErrorBody = z.object({
@@ -37,43 +37,43 @@ const ReconnectBlockTask = z.object({
 });
 const ReconnectBlockTaskErrorType = z.enum([
   "TaskNotFound",
-  "IsSubtask",
+  "IsSubTask",
   "CircularTask",
 ]);
 const ReconnectBlockTaskErrorBody = z.object({
   error_type: ReconnectBlockTaskErrorType,
 });
-const ConnectSubtask = z.object({
+const ConnectSubTask = z.object({
   parent_task_id: z.string(),
-  subtask_id: z.string(),
+  sub_task_id: z.string(),
 });
-const ConnectSubtaskErrorType = z.enum([
+const ConnectSubTaskErrorType = z.enum([
   "TaskNotFound",
   "CircularTask",
   "MultipleMainTask",
   "BlockedByMainTask",
 ]);
-const ConnectSubtaskErrorBody = z.object({
-  error_type: ConnectSubtaskErrorType,
+const ConnectSubTaskErrorBody = z.object({
+  error_type: ConnectSubTaskErrorType,
 });
-const DisconnectSubtask = z.object({
+const DisconnectSubTask = z.object({
   parent_task_id: z.string(),
-  subtask_id: z.string(),
+  sub_task_id: z.string(),
 });
-const ReconnectSubtask = z.object({
+const ReconnectSubTask = z.object({
   new_parent_task_id: z.string(),
-  new_subtask_id: z.string(),
+  new_sub_task_id: z.string(),
   old_parent_task_id: z.string(),
-  old_subtask_id: z.string(),
+  old_sub_task_id: z.string(),
 });
-const ReconnectSubtaskErrorType = z.enum([
+const ReconnectSubTaskErrorType = z.enum([
   "TaskNotFound",
   "BlockedByMainTask",
   "CircularTask",
   "MultipleMainTask",
 ]);
-const ReconnectSubtaskErrorBody = z.object({
-  error_type: ReconnectSubtaskErrorType,
+const ReconnectSubTaskErrorBody = z.object({
+  error_type: ReconnectSubTaskErrorType,
 });
 const UpdateTaskNodeInfo = z.object({ x: z.number(), y: z.number() });
 const TaskNodeInfo = z.object({
@@ -89,7 +89,7 @@ const Task = z.object({
   description: z.string(),
   id: z.string(),
   status: TaskStatus,
-  subtask_ids: z.array(z.string()),
+  sub_task_ids: z.array(z.string()),
   title: z.string(),
   updated_at: z.string(),
   user_id: z.string(),
@@ -121,13 +121,13 @@ export const schemas = {
   ReconnectBlockTask,
   ReconnectBlockTaskErrorType,
   ReconnectBlockTaskErrorBody,
-  ConnectSubtask,
-  ConnectSubtaskErrorType,
-  ConnectSubtaskErrorBody,
-  DisconnectSubtask,
-  ReconnectSubtask,
-  ReconnectSubtaskErrorType,
-  ReconnectSubtaskErrorBody,
+  ConnectSubTask,
+  ConnectSubTaskErrorType,
+  ConnectSubTaskErrorBody,
+  DisconnectSubTask,
+  ReconnectSubTask,
+  ReconnectSubTaskErrorType,
+  ReconnectSubTaskErrorBody,
   UpdateTaskNodeInfo,
   TaskNodeInfo,
   TaskStatus,
@@ -250,52 +250,52 @@ export const endpoints = makeApi([
   },
   {
     method: "post",
-    path: "/subtask/connect",
+    path: "/sub-task/connect",
     requestFormat: "json",
     parameters: [
       {
         name: "body",
         type: "Body",
-        schema: ConnectSubtask,
+        schema: ConnectSubTask,
       },
     ],
     response: z.void(),
     errors: [
       {
         status: 400,
-        schema: ConnectSubtaskErrorBody,
+        schema: ConnectSubTaskErrorBody,
       },
     ],
   },
   {
     method: "delete",
-    path: "/subtask/disconnect",
+    path: "/sub-task/disconnect",
     requestFormat: "json",
     parameters: [
       {
         name: "body",
         type: "Body",
-        schema: DisconnectSubtask,
+        schema: DisconnectSubTask,
       },
     ],
     response: z.void(),
   },
   {
     method: "put",
-    path: "/subtask/reconnect",
+    path: "/sub-task/reconnect",
     requestFormat: "json",
     parameters: [
       {
         name: "body",
         type: "Body",
-        schema: ReconnectSubtask,
+        schema: ReconnectSubTask,
       },
     ],
     response: z.void(),
     errors: [
       {
         status: 400,
-        schema: ReconnectSubtaskErrorBody,
+        schema: ReconnectSubTaskErrorBody,
       },
     ],
   },

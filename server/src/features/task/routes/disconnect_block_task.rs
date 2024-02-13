@@ -70,10 +70,10 @@ mod tests {
             .await;
         res.assert_status_ok();
 
-        let subtasks = sqlx::query!("SELECT * FROM blocking_tasks;")
+        let sub_tasks = sqlx::query!("SELECT * FROM blocking_tasks;")
             .fetch_all(&db)
             .await?;
-        assert!(subtasks.is_empty());
+        assert!(sub_tasks.is_empty());
 
         Ok(())
     }
@@ -101,10 +101,10 @@ mod tests {
             .await;
         res.assert_status_not_ok();
 
-        let subtasks = sqlx::query!("SELECT * FROM blocking_tasks;")
+        let sub_tasks = sqlx::query!("SELECT * FROM blocking_tasks;")
             .fetch_all(&db)
             .await?;
-        assert!(!subtasks.is_empty());
+        assert!(!sub_tasks.is_empty());
 
         Ok(())
     }

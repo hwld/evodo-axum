@@ -14,7 +14,7 @@ pub mod task_factory {
                 user_id: "user_id".into(),
                 title: "title".into(),
                 description: "description".into(),
-                subtask_ids: Vec::new(),
+                sub_task_ids: Vec::new(),
                 blocked_task_ids: Vec::new(),
                 created_at: "".into(),
                 updated_at: "".into(),
@@ -47,7 +47,7 @@ pub mod task_factory {
         create(db, task).await
     }
 
-    pub async fn create_subtask(db: &Db, parent_task_id: &str, task: Task) -> AppResult<Task> {
+    pub async fn create_sub_task(db: &Db, parent_task_id: &str, task: Task) -> AppResult<Task> {
         create(db, task.clone()).await?;
 
         sqlx::query!(
@@ -62,18 +62,18 @@ pub mod task_factory {
         Ok(task)
     }
 
-    pub async fn create_default_subtask(
+    pub async fn create_default_sub_task(
         db: &Db,
         user_id: &str,
         parent_task_id: &str,
     ) -> AppResult<Task> {
-        let subtask = Task {
+        let sub_task = Task {
             user_id: user_id.into(),
             ..Default::default()
         };
 
-        let subtask = create_subtask(db, parent_task_id, subtask).await?;
-        Ok(subtask)
+        let sub_task = create_sub_task(db, parent_task_id, sub_task).await?;
+        Ok(sub_task)
     }
 
     pub async fn create_blocking_connection(

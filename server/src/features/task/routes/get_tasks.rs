@@ -67,8 +67,8 @@ mod tests {
         let task11 = task_factory::create_default_blocked_task(&db, &user.id, &task1.id).await?;
         let task12 = task_factory::create_default_blocked_task(&db, &user.id, &task1.id).await?;
         let task13 = task_factory::create_default_blocked_task(&db, &user.id, &task1.id).await?;
-        let task14 = task_factory::create_default_subtask(&db, &user.id, &task1.id).await?;
-        let task15 = task_factory::create_default_subtask(&db, &user.id, &task1.id).await?;
+        let task14 = task_factory::create_default_sub_task(&db, &user.id, &task1.id).await?;
+        let task15 = task_factory::create_default_sub_task(&db, &user.id, &task1.id).await?;
 
         let tasks: Vec<Task> = test.server().get(&TaskPaths::tasks()).await.json();
         assert_eq!(tasks.len(), 6);
@@ -79,10 +79,10 @@ mod tests {
             .iter()
             .all(|d| t1.blocked_task_ids.contains(d)));
 
-        assert_eq!(t1.subtask_ids.len(), 2);
+        assert_eq!(t1.sub_task_ids.len(), 2);
         assert!([&task14.id, &task15.id]
             .iter()
-            .all(|i| t1.subtask_ids.contains(i)));
+            .all(|i| t1.sub_task_ids.contains(i)));
 
         Ok(())
     }

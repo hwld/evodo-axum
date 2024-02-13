@@ -1,11 +1,11 @@
 import { useCallback } from "react";
 import { Connection } from "@xyflow/react";
-import { subtaskHandle, blockTaskHandle } from "../util";
-import { useConnectSubtask } from "./use-connect-subtask";
+import { subTaskHandle, blockTaskHandle } from "../util";
+import { useConnectSubTask } from "./use-connect-sub-task";
 import { useConnectBlockTask } from "./use-connect-block-task";
 
 export const useConnectTaskNode = () => {
-  const { connectSubtask } = useConnectSubtask();
+  const { connectSubTask } = useConnectSubTask();
   const { connectBlockTask } = useConnectBlockTask();
 
   const handleConnect = useCallback(
@@ -14,10 +14,10 @@ export const useConnectTaskNode = () => {
         return;
       }
 
-      if (connection.sourceHandle === subtaskHandle) {
-        connectSubtask({
+      if (connection.sourceHandle === subTaskHandle) {
+        connectSubTask({
           parentTaskId: connection.source,
-          subtaskId: connection.target,
+          subTaskId: connection.target,
         });
       } else if (connection.sourceHandle === blockTaskHandle) {
         connectBlockTask({
@@ -26,7 +26,7 @@ export const useConnectTaskNode = () => {
         });
       }
     },
-    [connectBlockTask, connectSubtask]
+    [connectBlockTask, connectSubTask]
   );
 
   return { handleConnect };

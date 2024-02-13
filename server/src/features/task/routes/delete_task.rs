@@ -35,7 +35,7 @@ pub async fn handler(
     let parent_ids = find_parent_task_ids(
         &mut tx,
         FindParentTaskIdsArgs {
-            subtask_id: &id,
+            sub_task_id: &id,
             user_id: &user.id,
         },
     )
@@ -138,7 +138,7 @@ mod tests {
             },
         )
         .await?;
-        let _done_sub = task_factory::create_subtask(
+        let _done_sub = task_factory::create_sub_task(
             &db,
             &parent.id,
             Task {
@@ -148,7 +148,7 @@ mod tests {
             },
         )
         .await?;
-        let todo_sub = task_factory::create_subtask(
+        let todo_sub = task_factory::create_sub_task(
             &db,
             &parent.id,
             Task {

@@ -16,7 +16,7 @@ pub struct Task {
     pub title: String,
     pub description: String,
     pub user_id: String,
-    pub subtask_ids: Vec<String>,
+    pub sub_task_ids: Vec<String>,
     pub blocked_task_ids: Vec<String>,
     pub created_at: String,
     pub updated_at: String,
@@ -66,23 +66,23 @@ pub struct DeleteTaskResponse {
 
 // TODO: parent_task_idじゃなくてmain_task_idとかにしたい・・・。
 #[derive(Serialize, Deserialize, ToSchema, Debug, Clone)]
-pub struct ConnectSubtask {
+pub struct ConnectSubTask {
     pub parent_task_id: String,
-    pub subtask_id: String,
+    pub sub_task_id: String,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Debug)]
-pub struct ReconnectSubtask {
+pub struct ReconnectSubTask {
     pub old_parent_task_id: String,
-    pub old_subtask_id: String,
+    pub old_sub_task_id: String,
     pub new_parent_task_id: String,
-    pub new_subtask_id: String,
+    pub new_sub_task_id: String,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Debug)]
-pub struct DisconnectSubtask {
+pub struct DisconnectSubTask {
     pub parent_task_id: String,
-    pub subtask_id: String,
+    pub sub_task_id: String,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Debug, Clone)]

@@ -1,15 +1,15 @@
 import { Connection, Edge } from "@xyflow/react";
 import { useCallback, useRef } from "react";
-import { useDisconnectSubtask } from "./use-disconnect-subtask";
-import { useReconnectSubtask } from "./use-reconnect-subtask";
-import { subtaskHandle, blockTaskHandle } from "../util";
+import { useDisconnectSubTask } from "./use-disconnect-sub-task";
+import { useReconnectSubTask } from "./use-reconnect-sub-task";
+import { subTaskHandle, blockTaskHandle } from "../util";
 import { useReconnectBlockTask } from "./use-reconnect-block-task";
 import { useDisconnectBlockTask } from "./use-disconnect-block-task";
 
 export const useUpdateTaskNodeEdge = () => {
   const edgeUpdateSuccessful = useRef(true);
-  const { reconnectSubtask } = useReconnectSubtask();
-  const { disconnectSubtask } = useDisconnectSubtask();
+  const { reconnectSubTask } = useReconnectSubTask();
+  const { disconnectSubTask } = useDisconnectSubTask();
   const { reconnectBlockTask } = useReconnectBlockTask();
   const { disconnectBlockTask } = useDisconnectBlockTask();
 
@@ -22,11 +22,11 @@ export const useUpdateTaskNodeEdge = () => {
         return;
       }
 
-      if (newConnection.sourceHandle === subtaskHandle) {
-        reconnectSubtask({
-          oldSubtaskEdge: oldEdge,
+      if (newConnection.sourceHandle === subTaskHandle) {
+        reconnectSubTask({
+          oldSubTaskEdge: oldEdge,
           newParentTaskId: newConnection.source,
-          newSubtaskId: newConnection.target,
+          newSubTaskId: newConnection.target,
         });
       } else if (newConnection.sourceHandle === blockTaskHandle) {
         reconnectBlockTask({
@@ -36,7 +36,7 @@ export const useUpdateTaskNodeEdge = () => {
         });
       }
     },
-    [reconnectBlockTask, reconnectSubtask]
+    [reconnectBlockTask, reconnectSubTask]
   );
 
   const disconnect = useCallback(
@@ -46,13 +46,13 @@ export const useUpdateTaskNodeEdge = () => {
         return;
       }
 
-      if (edge.sourceHandle === subtaskHandle) {
-        disconnectSubtask(edge);
+      if (edge.sourceHandle === subTaskHandle) {
+        disconnectSubTask(edge);
       } else if (edge.sourceHandle === blockTaskHandle) {
         disconnectBlockTask(edge);
       }
     },
-    [disconnectBlockTask, disconnectSubtask]
+    [disconnectBlockTask, disconnectSubTask]
   );
 
   const handleEdgeUpdateStart = useCallback(() => {

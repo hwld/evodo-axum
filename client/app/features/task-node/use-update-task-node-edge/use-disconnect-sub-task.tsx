@@ -8,13 +8,13 @@ import { api } from "~/api/index.client";
 import { schemas } from "~/api/schema";
 import { useTaskNodeViewAction } from "../task-node-view-provider";
 
-export const useDisconnectSubtask = () => {
+export const useDisconnectSubTask = () => {
   const { setTaskNodeEdges } = useTaskNodeViewAction();
   const revalidator = useRevalidator();
 
   const mutation = useMutation({
-    mutationFn: (data: z.infer<typeof schemas.DisconnectSubtask>) => {
-      return api.delete("/subtask/disconnect", { ...data });
+    mutationFn: (data: z.infer<typeof schemas.DisconnectSubTask>) => {
+      return api.delete("/sub-task/disconnect", { ...data });
     },
     onError: (err) => {
       console.error(err);
@@ -25,11 +25,11 @@ export const useDisconnectSubtask = () => {
     },
   });
 
-  const disconnectSubtask = useCallback(
+  const disconnectSubTask = useCallback(
     (edge: Edge) => {
       mutation.mutate({
         parent_task_id: edge.source,
-        subtask_id: edge.target,
+        sub_task_id: edge.target,
       });
 
       setTaskNodeEdges((eds) => eds.filter((e) => e.id !== edge.id));
@@ -37,5 +37,5 @@ export const useDisconnectSubtask = () => {
     [mutation, setTaskNodeEdges]
   );
 
-  return { disconnectSubtask };
+  return { disconnectSubTask };
 };

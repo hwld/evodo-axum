@@ -103,10 +103,10 @@ mod tests {
         // t12 --> t122
         // t12 --> t123
         let t1 = task_factory::create_with_user(&db, &user.id).await?;
-        let t12 = task_factory::create_default_subtask(&db, &user.id, &t1.id).await?;
-        let t121 = task_factory::create_default_subtask(&db, &user.id, &t12.id).await?;
-        let t122 = task_factory::create_default_subtask(&db, &user.id, &t12.id).await?;
-        let t123 = task_factory::create_default_subtask(&db, &user.id, &t12.id).await?;
+        let t12 = task_factory::create_default_sub_task(&db, &user.id, &t1.id).await?;
+        let t121 = task_factory::create_default_sub_task(&db, &user.id, &t12.id).await?;
+        let t122 = task_factory::create_default_sub_task(&db, &user.id, &t12.id).await?;
+        let t123 = task_factory::create_default_sub_task(&db, &user.id, &t12.id).await?;
         assert!([&t1, &t12, &t121, &t122, &t123]
             .iter()
             .all(|s| s.status == TaskStatus::Todo));
@@ -206,8 +206,8 @@ mod tests {
         // t1 --> t2
         // t1 --> t3
         let t1 = task_factory::create_with_user(&db, &user.id).await?;
-        let t2 = task_factory::create_default_subtask(&db, &user.id, &t1.id).await?;
-        let t3 = task_factory::create_default_subtask(&db, &user.id, &t1.id).await?;
+        let t2 = task_factory::create_default_sub_task(&db, &user.id, &t1.id).await?;
+        let t3 = task_factory::create_default_sub_task(&db, &user.id, &t1.id).await?;
         assert!([&t1, &t2, &t3].iter().all(|t| t.status == TaskStatus::Todo));
 
         let res = test
@@ -244,7 +244,7 @@ mod tests {
         // parent --> sub2
         // sub1 --> sub11
         let parent = task_factory::create_with_user(&db, &user.id).await?;
-        let sub1 = task_factory::create_subtask(
+        let sub1 = task_factory::create_sub_task(
             &db,
             &parent.id,
             Task {
@@ -254,7 +254,7 @@ mod tests {
             },
         )
         .await?;
-        let sub2 = task_factory::create_subtask(
+        let sub2 = task_factory::create_sub_task(
             &db,
             &parent.id,
             Task {
@@ -264,7 +264,7 @@ mod tests {
             },
         )
         .await?;
-        let sub11 = task_factory::create_subtask(
+        let sub11 = task_factory::create_sub_task(
             &db,
             &sub1.id,
             Task {
@@ -327,7 +327,7 @@ mod tests {
         // parent --> sub2
         // sub1 --> sub11
         let parent = task_factory::create_with_user(&db, &user.id).await?;
-        let sub1 = task_factory::create_subtask(
+        let sub1 = task_factory::create_sub_task(
             &db,
             &parent.id,
             Task {
@@ -337,7 +337,7 @@ mod tests {
             },
         )
         .await?;
-        let sub2 = task_factory::create_subtask(
+        let sub2 = task_factory::create_sub_task(
             &db,
             &parent.id,
             Task {
@@ -347,7 +347,7 @@ mod tests {
             },
         )
         .await?;
-        let sub11 = task_factory::create_subtask(
+        let sub11 = task_factory::create_sub_task(
             &db,
             &sub1.id,
             Task {
@@ -552,7 +552,7 @@ mod tests {
         )
         .await?;
         let main = task_factory::create_default_blocked_task(&db, &user.id, &blocking.id).await?;
-        let sub = task_factory::create_default_subtask(&db, &user.id, &main.id).await?;
+        let sub = task_factory::create_default_sub_task(&db, &user.id, &main.id).await?;
         assert_eq!(sub.status, TaskStatus::Todo);
 
         let res = test
@@ -587,9 +587,9 @@ mod tests {
 
         let main = task_factory::create_with_user(&db, &user.id).await?;
         assert_eq!(main.status, TaskStatus::Todo);
-        let sub1 = task_factory::create_default_subtask(&db, &user.id, &main.id).await?;
+        let sub1 = task_factory::create_default_sub_task(&db, &user.id, &main.id).await?;
         assert_eq!(sub1.status, TaskStatus::Todo);
-        let sub11 = task_factory::create_default_subtask(&db, &user.id, &sub1.id).await?;
+        let sub11 = task_factory::create_default_sub_task(&db, &user.id, &sub1.id).await?;
         assert_eq!(sub11.status, TaskStatus::Todo);
         let blocking = task_factory::create_with_user(&db, &user.id).await?;
         task_factory::create_blocking_connection(&db, &user.id, &blocking.id, &sub1.id).await?;
@@ -646,7 +646,7 @@ mod tests {
 
         let main = task_factory::create_with_user(&db, &user.id).await?;
         assert_eq!(main.status, TaskStatus::Todo);
-        let sub = task_factory::create_default_subtask(&db, &user.id, &main.id).await?;
+        let sub = task_factory::create_default_sub_task(&db, &user.id, &main.id).await?;
         assert_eq!(sub.status, TaskStatus::Todo);
         let blocking1 = task_factory::create(
             &db,
@@ -703,7 +703,7 @@ mod tests {
 
         let main = task_factory::create_with_user(&db, &user.id).await?;
         assert_eq!(main.status, TaskStatus::Todo);
-        let sub = task_factory::create_subtask(
+        let sub = task_factory::create_sub_task(
             &db,
             &main.id,
             Task {
@@ -769,7 +769,7 @@ mod tests {
 
         let main = task_factory::create_with_user(&db, &user.id).await?;
         assert_eq!(main.status, TaskStatus::Todo);
-        let sub = task_factory::create_default_subtask(&db, &user.id, &main.id).await?;
+        let sub = task_factory::create_default_sub_task(&db, &user.id, &main.id).await?;
         assert_eq!(sub.status, TaskStatus::Todo);
         let blocking = task_factory::create(
             &db,

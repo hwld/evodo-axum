@@ -11,15 +11,15 @@ use crate::{
     features::{
         auth::Auth,
         task::{
-            db::SubtaskConnectionError,
-            usecases::reconnect_subtask::{self, ReconnectSubtaskArgs, ReconnectSubtaskError},
-            ReconnectSubtask,
+            db::SubTaskConnectionError,
+            usecases::reconnect_sub_task::{self, ReconnectSubTaskArgs, ReconnectSubTaskError},
+            ReconnectSubTask,
         },
     },
 };
 
 #[derive(Debug, Serialize, ToSchema)]
-pub enum ReconnectSubtaskErrorType {
+pub enum ReconnectSubTaskErrorType {
     TaskNotFound,
     BlockedByMainTask,
     CircularTask,
@@ -27,24 +27,24 @@ pub enum ReconnectSubtaskErrorType {
 }
 
 #[derive(Debug, Serialize, ToSchema)]
-pub struct ReconnectSubtaskErrorBody {
-    error_type: ReconnectSubtaskErrorType,
+pub struct ReconnectSubTaskErrorBody {
+    error_type: ReconnectSubTaskErrorType,
 }
 
 #[tracing::instrument(err)]
 #[utoipa::path(
     put,
     tag = super::TAG,
-    path = super::TaskPaths::reconnect_subtask(),
+    path = super::TaskPaths::reconnect_sub_task(),
     responses(
         (status = 200),
-        (status = 400, body = ReconnectSubtaskErrorBody)
+        (status = 400, body = ReconnectSubTaskErrorBody)
     )
 )]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     State(AppState { db }): State<AppState>,
-    Json(payload): Json<ReconnectSubtask>,
+    Json(payload): Json<ReconnectSubTask>,
 ) -> AppResult<()> {
     let Some(user) = auth_session.user else {
         return Err(AppError::unauthorized());
@@ -52,36 +52,36 @@ pub async fn handler(
 
     let mut tx = db.begin().await?;
 
-    let result = reconnect_subtask::action(
+    let result = reconnect_sub_task::action(
         &mut tx,
-        ReconnectSubtaskArgs {
+        ReconnectSubTaskArgs {
             old_parent_task_id: &payload.old_parent_task_id,
-            old_subtask_id: &payload.old_subtask_id,
+            old_sub_task_id: &payload.old_sub_task_id,
             new_parent_task_id: &payload.new_parent_task_id,
-            new_subtask_id: &payload.new_subtask_id,
+            new_sub_task_id: &payload.new_sub_task_id,
             user_id: &user.id,
         },
     )
     .await;
     if let Err(e) = result {
-        use ReconnectSubtaskError::{Connect, Unknown};
-        use ReconnectSubtaskErrorType::{
+        use ReconnectSubTaskError::{Connect, Unknown};
+        use ReconnectSubTaskErrorType::{
             BlockedByMainTask, CircularTask, MultipleMainTask, TaskNotFound,
         };
 
         let error_type = match e {
-            Connect(SubtaskConnectionError::TaskNotFound) => TaskNotFound,
-            Connect(SubtaskConnectionError::BlockedByMainTask) => BlockedByMainTask,
-            Connect(SubtaskConnectionError::CircularTask) => CircularTask,
-            Connect(SubtaskConnectionError::MultipleMainTask) => MultipleMainTask,
-            Connect(SubtaskConnectionError::Unknown(_)) | Unknown(_) => {
+            Connect(SubTaskConnectionError::TaskNotFound) => TaskNotFound,
+            Connect(SubTaskConnectionError::BlockedByMainTask) => BlockedByMainTask,
+            Connect(SubTaskConnectionError::CircularTask) => CircularTask,
+            Connect(SubTaskConnectionError::MultipleMainTask) => MultipleMainTask,
+            Connect(SubTaskConnectionError::Unknown(_)) | Unknown(_) => {
                 return Err(anyhow!("Unknown").into())
             }
         };
 
         return Err(AppError::with_json(
             StatusCode::BAD_REQUEST,
-            ReconnectSubtaskErrorBody { error_type },
+            ReconnectSubTaskErrorBody { error_type },
         ));
     }
 
@@ -95,7 +95,7 @@ mod tests {
     use crate::{
         app::{tests::AppTest, AppResult, Db},
         features::{
-            task::{routes::TaskPaths, test::task_factory, ReconnectSubtask},
+            task::{routes::TaskPaths, test::task_factory, ReconnectSubTask},
             user::test::user_factory,
         },
     };
@@ -106,17 +106,17 @@ mod tests {
         let user = test.login(None).await?;
 
         let task1 = task_factory::create_with_user(&db, &user.id).await?;
-        let task2 = task_factory::create_default_subtask(&db, &user.id, &task1.id.clone()).await?;
+        let task2 = task_factory::create_default_sub_task(&db, &user.id, &task1.id.clone()).await?;
         let task3 = task_factory::create_with_user(&db, &user.id).await?;
 
         let res = test
             .server()
-            .put(&TaskPaths::reconnect_subtask())
-            .json(&ReconnectSubtask {
+            .put(&TaskPaths::reconnect_sub_task())
+            .json(&ReconnectSubTask {
                 old_parent_task_id: task1.id.clone(),
-                old_subtask_id: task2.id.clone(),
+                old_sub_task_id: task2.id.clone(),
                 new_parent_task_id: task2.id.clone(),
-                new_subtask_id: task3.id.clone(),
+                new_sub_task_id: task3.id.clone(),
             })
             .await;
         res.assert_status_ok();
@@ -148,18 +148,18 @@ mod tests {
         let user = test.login(None).await?;
 
         let task1 = task_factory::create_with_user(&db, &user.id).await?;
-        let task2 = task_factory::create_default_subtask(&db, &user.id, &task1.id).await?;
-        let task3 = task_factory::create_default_subtask(&db, &user.id, &task2.id).await?;
-        let task4 = task_factory::create_default_subtask(&db, &user.id, &task3.id).await?;
+        let task2 = task_factory::create_default_sub_task(&db, &user.id, &task1.id).await?;
+        let task3 = task_factory::create_default_sub_task(&db, &user.id, &task2.id).await?;
+        let task4 = task_factory::create_default_sub_task(&db, &user.id, &task3.id).await?;
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_subtask())
-            .json(&ReconnectSubtask {
+            .post(&TaskPaths::connect_sub_task())
+            .json(&ReconnectSubTask {
                 old_parent_task_id: task3.id.clone(),
-                old_subtask_id: task4.id.clone(),
+                old_sub_task_id: task4.id.clone(),
                 new_parent_task_id: task3.id.clone(),
-                new_subtask_id: task2.id.clone(),
+                new_sub_task_id: task2.id.clone(),
             })
             .await;
         res.assert_status_not_ok();
@@ -173,14 +173,14 @@ mod tests {
         .await?;
         assert_eq!(old.len(), 1);
 
-        let subtasks = sqlx::query!(
+        let sub_tasks = sqlx::query!(
             "SELECT * FROM sub_tasks WHERE main_task_id = $1 AND sub_task_id = $2",
             task3.id,
             task2.id
         )
         .fetch_all(&db)
         .await?;
-        assert!(subtasks.is_empty());
+        assert!(sub_tasks.is_empty());
 
         Ok(())
     }
@@ -194,18 +194,18 @@ mod tests {
         let other_user = user_factory::create_default(&db).await?;
         let other_task1 = task_factory::create_with_user(&db, &other_user.id).await?;
         let other_task2 =
-            task_factory::create_default_subtask(&db, &other_user.id, &other_task1.id).await?;
+            task_factory::create_default_sub_task(&db, &other_user.id, &other_task1.id).await?;
 
         let user = test.login(None).await?;
         let my_task = task_factory::create_with_user(&db, &user.id).await?;
         let res = test
             .server()
-            .put(&TaskPaths::reconnect_subtask())
-            .json(&ReconnectSubtask {
+            .put(&TaskPaths::reconnect_sub_task())
+            .json(&ReconnectSubTask {
                 old_parent_task_id: other_task1.id.clone(),
-                old_subtask_id: other_task2.id.clone(),
+                old_sub_task_id: other_task2.id.clone(),
                 new_parent_task_id: other_task2.id.clone(),
-                new_subtask_id: my_task.id.clone(),
+                new_sub_task_id: my_task.id.clone(),
             })
             .await;
         res.assert_status_not_ok();
@@ -239,27 +239,27 @@ mod tests {
         let user = test.login(None).await?;
 
         let task = task_factory::create_with_user(&db, &user.id).await?;
-        let subtask = task_factory::create_default_subtask(&db, &user.id, &task.id).await?;
+        let sub_task = task_factory::create_default_sub_task(&db, &user.id, &task.id).await?;
 
         let res = test
             .server()
-            .put(&TaskPaths::reconnect_subtask())
-            .json(&ReconnectSubtask {
+            .put(&TaskPaths::reconnect_sub_task())
+            .json(&ReconnectSubTask {
                 old_parent_task_id: task.id.clone(),
-                old_subtask_id: subtask.id.clone(),
+                old_sub_task_id: sub_task.id.clone(),
                 new_parent_task_id: task.id.clone(),
-                new_subtask_id: task.id.clone(),
+                new_sub_task_id: task.id.clone(),
             })
             .await;
         res.assert_status_not_ok();
 
-        let new_subtask = sqlx::query!(
+        let new_sub_task = sqlx::query!(
             "SELECT * FROM sub_tasks WHERE main_task_id = $1 AND sub_task_id = $1;",
             task.id
         )
         .fetch_optional(&db)
         .await?;
-        assert!(new_subtask.is_none());
+        assert!(new_sub_task.is_none());
 
         Ok(())
     }

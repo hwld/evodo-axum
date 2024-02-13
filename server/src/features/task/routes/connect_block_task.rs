@@ -21,7 +21,7 @@ use crate::{
 #[derive(Debug, Serialize, ToSchema)]
 pub enum ConnectBlockTaskErrorType {
     TaskNotFound,
-    IsSubtask,
+    IsSubTask,
     CircularTask,
 }
 
@@ -62,11 +62,11 @@ pub async fn handler(
     .await
     {
         use ConnectBlockTaskError::{CheckError, Unknown};
-        use ConnectBlockTaskErrorType::{CircularTask, IsSubtask, TaskNotFound};
+        use ConnectBlockTaskErrorType::{CircularTask, IsSubTask, TaskNotFound};
 
         let error_type = match e {
             CheckError(BlockTaskConnectionError::TaskNotFound) => TaskNotFound,
-            CheckError(BlockTaskConnectionError::IsSubtask) => IsSubtask,
+            CheckError(BlockTaskConnectionError::IsSubTask) => IsSubTask,
             CheckError(BlockTaskConnectionError::CircularTask) => CircularTask,
             CheckError(BlockTaskConnectionError::Unknown(_)) | Unknown(_) => {
                 return Err(anyhow!("Unknown").into())
@@ -182,11 +182,11 @@ mod tests {
         let user = test.login(None).await?;
 
         let main = task_factory::create_with_user(&db, &user.id).await?;
-        let sub1 = task_factory::create_default_subtask(&db, &user.id, &main.id).await?;
-        let sub11 = task_factory::create_default_subtask(&db, &user.id, &sub1.id).await?;
-        let _sub12 = task_factory::create_default_subtask(&db, &user.id, &sub1.id).await?;
-        let _sub111 = task_factory::create_default_subtask(&db, &user.id, &sub11.id).await?;
-        let sub112 = task_factory::create_default_subtask(&db, &user.id, &sub11.id).await?;
+        let sub1 = task_factory::create_default_sub_task(&db, &user.id, &main.id).await?;
+        let sub11 = task_factory::create_default_sub_task(&db, &user.id, &sub1.id).await?;
+        let _sub12 = task_factory::create_default_sub_task(&db, &user.id, &sub1.id).await?;
+        let _sub111 = task_factory::create_default_sub_task(&db, &user.id, &sub11.id).await?;
+        let sub112 = task_factory::create_default_sub_task(&db, &user.id, &sub11.id).await?;
 
         let res = test
             .server()
@@ -251,7 +251,7 @@ mod tests {
         let blocking = task_factory::create_with_user(&db, &user.id).await?;
         let blocked1 =
             task_factory::create_default_blocked_task(&db, &user.id, &blocking.id).await?;
-        let sub = task_factory::create_default_subtask(&db, &user.id, &blocked1.id).await?;
+        let sub = task_factory::create_default_sub_task(&db, &user.id, &blocked1.id).await?;
 
         let res = test
             .server()

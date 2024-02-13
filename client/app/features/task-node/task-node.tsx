@@ -11,7 +11,7 @@ import { useUpdateTaskStatus } from "../task/use-update-task-status";
 import { Checkbox, CheckboxIndicator } from "@radix-ui/react-checkbox";
 import { useId, useState } from "react";
 import { cn } from "~/lib/utils";
-import { TaskNodeViewData, blockTaskHandle, subtaskHandle } from "./util";
+import { TaskNodeViewData, blockTaskHandle, subTaskHandle } from "./util";
 import { Card } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
 import clsx from "clsx";
@@ -125,7 +125,7 @@ export const TaskNode: React.FC<Props> = ({ data }) => {
         <SplitIcon size={15} />
         <Handle
           type="source"
-          id={subtaskHandle}
+          id={subTaskHandle}
           position={Position.Right}
           className="!-right-[0px] !transform-none !left-full !top-0 !size-[20px] !rounded-full !bg-primary-foreground !border !border-neutral-300 shadow"
         />

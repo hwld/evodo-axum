@@ -11,15 +11,15 @@ use crate::{
     features::{
         auth::Auth,
         task::{
-            db::SubtaskConnectionError,
-            usecases::connect_subtask::{self, ConnectSubtaskArgs, ConnectSubtaskError},
-            ConnectSubtask,
+            db::SubTaskConnectionError,
+            usecases::connect_sub_task::{self, ConnectSubTaskArgs, ConnectSubTaskError},
+            ConnectSubTask,
         },
     },
 };
 
 #[derive(Debug, Serialize, ToSchema)]
-pub enum ConnectSubtaskErrorType {
+pub enum ConnectSubTaskErrorType {
     TaskNotFound,
     CircularTask,
     MultipleMainTask,
@@ -27,24 +27,24 @@ pub enum ConnectSubtaskErrorType {
 }
 
 #[derive(Debug, Serialize, ToSchema)]
-pub struct ConnectSubtaskErrorBody {
-    error_type: ConnectSubtaskErrorType,
+pub struct ConnectSubTaskErrorBody {
+    error_type: ConnectSubTaskErrorType,
 }
 
 #[tracing::instrument(err)]
 #[utoipa::path(
     post,
     tag = super::TAG,
-    path = super::TaskPaths::connect_subtask(),
+    path = super::TaskPaths::connect_sub_task(),
     responses(
         (status = 200),
-        (status = 400, body = ConnectSubtaskErrorBody)
+        (status = 400, body = ConnectSubTaskErrorBody)
     )
 )]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     State(AppState { db }): State<AppState>,
-    Json(payload): Json<ConnectSubtask>,
+    Json(payload): Json<ConnectSubTask>,
 ) -> AppResult<impl IntoResponse> {
     let Some(user) = auth_session.user else {
         return Err(AppError::unauthorized());
@@ -52,34 +52,34 @@ pub async fn handler(
 
     let mut tx = db.begin().await?;
 
-    if let Err(e) = connect_subtask::action(
+    if let Err(e) = connect_sub_task::action(
         &mut tx,
-        ConnectSubtaskArgs {
+        ConnectSubTaskArgs {
             parent_task_id: &payload.parent_task_id,
-            subtask_id: &payload.subtask_id,
+            sub_task_id: &payload.sub_task_id,
             user_id: &user.id,
         },
     )
     .await
     {
-        use ConnectSubtaskError::{CheckError, Unknown};
-        use ConnectSubtaskErrorType::{
+        use ConnectSubTaskError::{CheckError, Unknown};
+        use ConnectSubTaskErrorType::{
             BlockedByMainTask, CircularTask, MultipleMainTask, TaskNotFound,
         };
 
         let error_type = match e {
-            CheckError(SubtaskConnectionError::TaskNotFound) => TaskNotFound,
-            CheckError(SubtaskConnectionError::CircularTask) => CircularTask,
-            CheckError(SubtaskConnectionError::MultipleMainTask) => MultipleMainTask,
-            CheckError(SubtaskConnectionError::BlockedByMainTask) => BlockedByMainTask,
-            CheckError(SubtaskConnectionError::Unknown(_)) | Unknown(_) => {
+            CheckError(SubTaskConnectionError::TaskNotFound) => TaskNotFound,
+            CheckError(SubTaskConnectionError::CircularTask) => CircularTask,
+            CheckError(SubTaskConnectionError::MultipleMainTask) => MultipleMainTask,
+            CheckError(SubTaskConnectionError::BlockedByMainTask) => BlockedByMainTask,
+            CheckError(SubTaskConnectionError::Unknown(_)) | Unknown(_) => {
                 return Err(anyhow!("Unknown").into());
             }
         };
 
         return Err(AppError::with_json(
             StatusCode::BAD_REQUEST,
-            ConnectSubtaskErrorBody { error_type },
+            ConnectSubTaskErrorBody { error_type },
         ));
     };
 
@@ -94,7 +94,7 @@ mod tests {
     use crate::features::task::db::{find_task, FindTaskArgs};
     use crate::features::task::routes::TaskPaths;
     use crate::features::task::test::task_factory::{self};
-    use crate::features::task::{ConnectSubtask, Task, TaskStatus};
+    use crate::features::task::{ConnectSubTask, Task, TaskStatus};
     use crate::features::user::test::user_factory;
 
     #[sqlx::test]
@@ -103,18 +103,18 @@ mod tests {
         let user = test.login(None).await?;
 
         let parent_task = task_factory::create_with_user(&db, &user.id).await?;
-        let subtask = task_factory::create_with_user(&db, &user.id).await?;
+        let sub_task = task_factory::create_with_user(&db, &user.id).await?;
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_subtask())
-            .json(&ConnectSubtask {
+            .post(&TaskPaths::connect_sub_task())
+            .json(&ConnectSubTask {
                 parent_task_id: parent_task.id.clone(),
-                subtask_id: subtask.id.clone(),
+                sub_task_id: sub_task.id.clone(),
             })
             .await;
 
-        let fetched_subtask = sqlx::query!(
+        let fetched_sub_task = sqlx::query!(
             "SELECT * FROM sub_tasks WHERE main_task_id = $1;",
             parent_task.id
         )
@@ -122,7 +122,7 @@ mod tests {
         .await?;
         res.assert_status_ok();
 
-        assert_eq!(subtask.id, fetched_subtask.sub_task_id);
+        assert_eq!(sub_task.id, fetched_sub_task.sub_task_id);
 
         Ok(())
     }
@@ -138,19 +138,19 @@ mod tests {
         test.login(None).await?;
         let res = test
             .server()
-            .post(&TaskPaths::connect_subtask())
-            .json(&ConnectSubtask {
+            .post(&TaskPaths::connect_sub_task())
+            .json(&ConnectSubTask {
                 parent_task_id: other_user_task1.id,
-                subtask_id: other_user_task2.id,
+                sub_task_id: other_user_task2.id,
             })
             .await;
         res.assert_status_not_ok();
 
-        let subtasks = sqlx::query!("SELECT * FROM sub_tasks;")
+        let sub_tasks = sqlx::query!("SELECT * FROM sub_tasks;")
             .fetch_all(&db)
             .await?;
 
-        assert!(subtasks.is_empty());
+        assert!(sub_tasks.is_empty());
 
         Ok(())
     }
@@ -163,26 +163,26 @@ mod tests {
         let user = test.login(None).await?;
 
         let task1 = task_factory::create_with_user(&db, &user.id).await?;
-        let task2 = task_factory::create_default_subtask(&db, &user.id, &task1.id).await?;
+        let task2 = task_factory::create_default_sub_task(&db, &user.id, &task1.id).await?;
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_subtask())
-            .json(&ConnectSubtask {
+            .post(&TaskPaths::connect_sub_task())
+            .json(&ConnectSubTask {
                 parent_task_id: task2.id.clone(),
-                subtask_id: task1.id.clone(),
+                sub_task_id: task1.id.clone(),
             })
             .await;
         res.assert_status_not_ok();
 
-        let subtasks = sqlx::query!(
+        let sub_tasks = sqlx::query!(
             "SELECT * FROM sub_tasks WHERE main_task_id = $1 AND sub_task_id = $2;",
             task2.id,
             task1.id
         )
         .fetch_all(&db)
         .await?;
-        assert!(subtasks.is_empty());
+        assert!(sub_tasks.is_empty());
 
         Ok(())
     }
@@ -193,29 +193,29 @@ mod tests {
         let user = test.login(None).await?;
 
         let task1 = task_factory::create_with_user(&db, &user.id).await?;
-        let task2 = task_factory::create_default_subtask(&db, &user.id, &task1.id).await?;
-        let task3 = task_factory::create_default_subtask(&db, &user.id, &task2.id).await?;
-        let task4 = task_factory::create_default_subtask(&db, &user.id, &task3.id).await?;
-        let task5 = task_factory::create_default_subtask(&db, &user.id, &task4.id).await?;
+        let task2 = task_factory::create_default_sub_task(&db, &user.id, &task1.id).await?;
+        let task3 = task_factory::create_default_sub_task(&db, &user.id, &task2.id).await?;
+        let task4 = task_factory::create_default_sub_task(&db, &user.id, &task3.id).await?;
+        let task5 = task_factory::create_default_sub_task(&db, &user.id, &task4.id).await?;
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_subtask())
-            .json(&ConnectSubtask {
+            .post(&TaskPaths::connect_sub_task())
+            .json(&ConnectSubTask {
                 parent_task_id: task5.id.clone(),
-                subtask_id: task2.id.clone(),
+                sub_task_id: task2.id.clone(),
             })
             .await;
         res.assert_status_not_ok();
 
-        let subtasks = sqlx::query!(
+        let sub_tasks = sqlx::query!(
             "SELECT * FROM sub_tasks WHERE main_task_id = $1 AND sub_task_id = $2",
             task5.id,
             task2.id
         )
         .fetch_all(&db)
         .await?;
-        assert!(subtasks.is_empty());
+        assert!(sub_tasks.is_empty());
 
         Ok(())
     }
@@ -228,18 +228,18 @@ mod tests {
         let task = task_factory::create_with_user(&db, &user.id).await?;
         let res = test
             .server()
-            .post(&TaskPaths::connect_subtask())
-            .json(&ConnectSubtask {
+            .post(&TaskPaths::connect_sub_task())
+            .json(&ConnectSubTask {
                 parent_task_id: task.id.clone(),
-                subtask_id: task.id.clone(),
+                sub_task_id: task.id.clone(),
             })
             .await;
         res.assert_status_not_ok();
 
-        let subtasks = sqlx::query!("SELECT * FROM sub_tasks;")
+        let sub_tasks = sqlx::query!("SELECT * FROM sub_tasks;")
             .fetch_all(&db)
             .await?;
-        assert_eq!(subtasks.len(), 0);
+        assert_eq!(sub_tasks.len(), 0);
 
         Ok(())
     }
@@ -264,10 +264,10 @@ mod tests {
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_subtask())
-            .json(&ConnectSubtask {
+            .post(&TaskPaths::connect_sub_task())
+            .json(&ConnectSubTask {
                 parent_task_id: parent.id.clone(),
-                subtask_id: sub.id.clone(),
+                sub_task_id: sub.id.clone(),
             })
             .await;
         res.assert_status_ok();
@@ -302,7 +302,7 @@ mod tests {
             },
         )
         .await?;
-        let _done_sub = task_factory::create_subtask(
+        let _done_sub = task_factory::create_sub_task(
             &db,
             &parent.id,
             Task {
@@ -324,10 +324,10 @@ mod tests {
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_subtask())
-            .json(&ConnectSubtask {
+            .post(&TaskPaths::connect_sub_task())
+            .json(&ConnectSubTask {
                 parent_task_id: parent.id.clone(),
-                subtask_id: todo_sub.id.clone(),
+                sub_task_id: todo_sub.id.clone(),
             })
             .await;
         res.assert_status_ok();
@@ -355,26 +355,26 @@ mod tests {
 
         let blocking = task_factory::create_with_user(&db, &user.id).await?;
         let main = task_factory::create_default_blocked_task(&db, &user.id, &blocking.id).await?;
-        let sub = task_factory::create_default_subtask(&db, &user.id, &main.id).await?;
+        let sub = task_factory::create_default_sub_task(&db, &user.id, &main.id).await?;
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_subtask())
-            .json(&ConnectSubtask {
+            .post(&TaskPaths::connect_sub_task())
+            .json(&ConnectSubTask {
                 parent_task_id: sub.id.clone(),
-                subtask_id: blocking.id.clone(),
+                sub_task_id: blocking.id.clone(),
             })
             .await;
         res.assert_status_not_ok();
 
-        let subtasks = sqlx::query!(
+        let sub_tasks = sqlx::query!(
             "SELECT * FROM sub_tasks WHERE main_task_id = $1 AND sub_task_id = $2",
             sub.id,
             blocking.id
         )
         .fetch_all(&db)
         .await?;
-        assert!(subtasks.is_empty());
+        assert!(sub_tasks.is_empty());
 
         Ok(())
     }
@@ -392,10 +392,10 @@ mod tests {
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_subtask())
-            .json(&ConnectSubtask {
+            .post(&TaskPaths::connect_sub_task())
+            .json(&ConnectSubTask {
                 parent_task_id: blocking.id.clone(),
-                subtask_id: blocked.id.clone(),
+                sub_task_id: blocked.id.clone(),
             })
             .await;
         res.assert_status_not_ok();
@@ -419,14 +419,14 @@ mod tests {
 
         let main1 = task_factory::create_with_user(&db, &user.id).await?;
         let main2 = task_factory::create_with_user(&db, &user.id).await?;
-        let sub = task_factory::create_default_subtask(&db, &user.id, &main1.id).await?;
+        let sub = task_factory::create_default_sub_task(&db, &user.id, &main1.id).await?;
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_subtask())
-            .json(&ConnectSubtask {
+            .post(&TaskPaths::connect_sub_task())
+            .json(&ConnectSubTask {
                 parent_task_id: main2.id.clone(),
-                subtask_id: sub.id.clone(),
+                sub_task_id: sub.id.clone(),
             })
             .await;
         res.assert_status_not_ok();

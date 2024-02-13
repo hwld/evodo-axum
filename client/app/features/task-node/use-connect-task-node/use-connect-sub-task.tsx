@@ -1,31 +1,33 @@
 import { useRevalidator } from "@remix-run/react";
 import { useMutation } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { Edge, useReactFlow } from "@xyflow/react";
+import { useReactFlow } from "@xyflow/react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { api } from "~/api/index.client";
 import { endpoints, schemas } from "~/api/schema";
-import { generateSubtaskEdge, generateSubtaskEdgeId } from "../util";
+import { generateSubTaskEdge, generateSubTaskEdgeId } from "../util";
 import { useTaskNodeViewAction } from "../task-node-view-provider";
 import { isErrorFromPath } from "@zodios/core";
 
-export const useReconnectSubtask = () => {
+export const useConnectSubTask = () => {
   const flow = useReactFlow();
   const { setTaskNodeEdges } = useTaskNodeViewAction();
   const revalidator = useRevalidator();
 
   const mutation = useMutation({
-    mutationFn: (data: z.infer<typeof schemas.ReconnectSubtask>) => {
-      return api.put("/subtask/reconnect", { ...data });
+    mutationFn: (data: z.infer<typeof schemas.ConnectSubTask>) => {
+      return api.post("/sub-task/connect", {
+        ...data,
+      });
     },
     onError: (err) => {
       console.error(err);
 
       const message = isErrorFromPath(
         endpoints,
-        "put",
-        "/subtask/reconnect",
+        "post",
+        "/sub-task/connect",
         err
       )
         ? getErrorMessage(err.response.data.error_type)
@@ -38,48 +40,42 @@ export const useReconnectSubtask = () => {
     },
   });
 
-  const reconnectSubtask = useCallback(
+  const connectSubTask = useCallback(
     ({
-      oldSubtaskEdge,
-      newParentTaskId,
-      newSubtaskId,
+      parentTaskId,
+      subTaskId,
     }: {
-      oldSubtaskEdge: Edge;
-      newParentTaskId: string;
-      newSubtaskId: string;
+      parentTaskId: string;
+      subTaskId: string;
     }) => {
-      const id = generateSubtaskEdgeId({
-        parentTaskId: newParentTaskId,
-        subtaskId: newSubtaskId,
+      const newEdgeId = generateSubTaskEdgeId({
+        parentTaskId,
+        subTaskId,
       });
-      // Edgeの重複を確認する
-      if (flow.getEdges().find((e) => e.id === id)) {
+      if (flow.getEdges().find((e) => e.id === newEdgeId)) {
         return;
       }
 
       mutation.mutate({
-        old_parent_task_id: oldSubtaskEdge.source,
-        old_subtask_id: oldSubtaskEdge.target,
-        new_parent_task_id: newParentTaskId,
-        new_subtask_id: newSubtaskId,
+        parent_task_id: parentTaskId,
+        sub_task_id: subTaskId,
       });
 
-      setTaskNodeEdges((eds) => [
-        ...eds.filter((e) => e.id !== oldSubtaskEdge.id),
-        generateSubtaskEdge({
-          parentTaskId: newParentTaskId,
-          subtaskId: newSubtaskId,
-        }),
-      ]);
+      setTaskNodeEdges((old) => {
+        return [
+          ...old,
+          generateSubTaskEdge({ parentTaskId, subTaskId: subTaskId }),
+        ];
+      });
     },
     [flow, mutation, setTaskNodeEdges]
   );
 
-  return { reconnectSubtask };
+  return { connectSubTask: connectSubTask };
 };
 
 const getErrorMessage = (
-  type: z.infer<typeof schemas.ConnectSubtaskErrorType>
+  type: z.infer<typeof schemas.ConnectSubTaskErrorType>
 ): string => {
   switch (type) {
     case "MultipleMainTask": {

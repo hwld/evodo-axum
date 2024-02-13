@@ -41,11 +41,11 @@ pub async fn find_task<'a>(
             description: raw.description,
             created_at: raw.created_at,
             updated_at: raw.updated_at,
-            subtask_ids: Vec::new(),
+            sub_task_ids: Vec::new(),
             blocked_task_ids: Vec::new(),
         });
         if let Some(sub_task_id) = raw.sub_task_id {
-            task.subtask_ids.push(sub_task_id);
+            task.sub_task_ids.push(sub_task_id);
         }
         if let Some(blocked_task_id) = raw.blocked_task_id {
             task.blocked_task_ids.push(blocked_task_id);
@@ -55,8 +55,8 @@ pub async fn find_task<'a>(
         .into_iter()
         .next()
         .map(|(_, mut t)| {
-            t.subtask_ids.sort();
-            t.subtask_ids.dedup();
+            t.sub_task_ids.sort();
+            t.sub_task_ids.dedup();
             t.blocked_task_ids.sort();
             t.blocked_task_ids.dedup();
             t
@@ -90,11 +90,11 @@ pub async fn find_tasks(db: &mut Connection, user_id: &str) -> anyhow::Result<Ve
             user_id: raw.user_id,
             created_at: raw.created_at,
             updated_at: raw.updated_at,
-            subtask_ids: Vec::new(),
+            sub_task_ids: Vec::new(),
             blocked_task_ids: Vec::new(),
         });
-        if let Some(subtask_id) = raw.sub_task_id {
-            task.subtask_ids.push(subtask_id);
+        if let Some(sub_task_id) = raw.sub_task_id {
+            task.sub_task_ids.push(sub_task_id);
         }
         if let Some(blocked_task_id) = raw.blocked_task_id {
             task.blocked_task_ids.push(blocked_task_id);
@@ -103,8 +103,8 @@ pub async fn find_tasks(db: &mut Connection, user_id: &str) -> anyhow::Result<Ve
     let tasks: Vec<Task> = task_map
         .into_values()
         .map(|mut t| {
-            t.subtask_ids.sort();
-            t.subtask_ids.dedup();
+            t.sub_task_ids.sort();
+            t.sub_task_ids.dedup();
             t.blocked_task_ids.sort();
             t.blocked_task_ids.dedup();
             t
@@ -115,7 +115,7 @@ pub async fn find_tasks(db: &mut Connection, user_id: &str) -> anyhow::Result<Ve
 }
 
 pub struct FindParentTaskIdsArgs<'a> {
-    pub subtask_id: &'a str,
+    pub sub_task_id: &'a str,
     pub user_id: &'a str,
 }
 pub async fn find_parent_task_ids<'a>(
@@ -130,7 +130,7 @@ pub async fn find_parent_task_ids<'a>(
             ON (t.id = sc.main_task_id AND t.user_id = sc.user_id)
         WHERE sc.sub_task_id = $1 AND t.user_id = $2;
         "#,
-        args.subtask_id,
+        args.sub_task_id,
         args.user_id,
     )
     .fetch_all(&mut *db)
@@ -438,7 +438,7 @@ pub async fn update_all_ancestors_task_status<'a>(
     let parent_ids = find_parent_task_ids(
         &mut *db,
         FindParentTaskIdsArgs {
-            subtask_id: args.task_id,
+            sub_task_id: args.task_id,
             user_id: args.user_id,
         },
     )
@@ -489,9 +489,9 @@ where
         .await?;
 
         // 子から辿った親がargs.tasksに入っているなら空にはならないが、子を持たないtaskで呼ばれる可能性がある
-        if !task.subtask_ids.is_empty() {
-            let all_subtasks_done = is_all_tasks_done(&mut *db, &task.subtask_ids).await?;
-            let new_status = if all_subtasks_done {
+        if !task.sub_task_ids.is_empty() {
+            let all_sub_tasks_done = is_all_tasks_done(&mut *db, &task.sub_task_ids).await?;
+            let new_status = if all_sub_tasks_done {
                 TaskStatus::Done
             } else {
                 TaskStatus::Todo
@@ -512,7 +512,7 @@ where
         let parent_ids = find_parent_task_ids(
             &mut *db,
             FindParentTaskIdsArgs {
-                subtask_id: &task.id,
+                sub_task_id: &task.id,
                 user_id: args.user_id,
             },
         )
@@ -534,17 +534,17 @@ where
 
 pub struct InsertSubTaskConnectionArgs<'a> {
     pub parent_task_id: &'a str,
-    pub subtask_id: &'a str,
+    pub sub_task_id: &'a str,
     pub user_id: &'a str,
 }
-pub async fn insert_subtask_connection<'a>(
+pub async fn insert_sub_task_connection<'a>(
     db: &mut Connection,
     args: InsertSubTaskConnectionArgs<'a>,
 ) -> anyhow::Result<()> {
     sqlx::query!(
         "INSERT INTO sub_tasks(main_task_id, sub_task_id, user_id) VALUES($1, $2, $3) RETURNING *;",
         args.parent_task_id,
-        args.subtask_id,
+        args.sub_task_id,
         args.user_id,
     )
     .fetch_one(&mut *db)
@@ -574,7 +574,7 @@ pub async fn insert_block_task_connection<'a>(
     Ok(())
 }
 
-pub enum SubtaskConnectionError {
+pub enum SubTaskConnectionError {
     TaskNotFound,
     CircularTask,
     MultipleMainTask,
@@ -582,39 +582,39 @@ pub enum SubtaskConnectionError {
     Unknown(anyhow::Error),
 }
 
-pub async fn check_subtask_connection<'a>(
+pub async fn check_sub_task_connection<'a>(
     db: &mut Connection,
     args: &InsertSubTaskConnectionArgs<'a>,
-) -> Result<(), SubtaskConnectionError> {
+) -> Result<(), SubTaskConnectionError> {
     // ログインユーザーが指定されたタスクを持っているかを確認する
     let tasks = sqlx::query!(
         "SELECT * FROM tasks WHERE id IN ($1, $2) AND user_id = $3;",
         args.parent_task_id,
-        args.subtask_id,
+        args.sub_task_id,
         args.user_id,
     )
     .fetch_all(&mut *db)
     .await
-    .map_err(|e| SubtaskConnectionError::Unknown(e.into()))?;
+    .map_err(|e| SubTaskConnectionError::Unknown(e.into()))?;
 
     if tasks.len() != 2 {
-        return Err(SubtaskConnectionError::TaskNotFound);
+        return Err(SubTaskConnectionError::TaskNotFound);
     }
 
     // タスク同士が循環していないかを確認する。
-    // payload.parent_task_idの祖先に、payload.subtask_idを持つtaskが存在しないことを確認する。
+    // payload.parent_task_idの祖先に、payload.sub_task_idを持つtaskが存在しないことを確認する。
     if detect_circular_connection(
         &mut *db,
         DetectCircularConnectionArgs {
             parent_task_id: args.parent_task_id,
-            child_task_id: args.subtask_id,
+            child_task_id: args.sub_task_id,
             user_id: args.user_id,
         },
     )
     .await
-    .map_err(SubtaskConnectionError::Unknown)?
+    .map_err(SubTaskConnectionError::Unknown)?
     {
-        return Err(SubtaskConnectionError::CircularTask);
+        return Err(SubTaskConnectionError::CircularTask);
     }
 
     // サブタスクがメインタスクにブロックされているタスクではないことを確認する
@@ -622,21 +622,21 @@ pub async fn check_subtask_connection<'a>(
         &mut *db,
         IsBlockedTaskArgs {
             blocking_task_id: args.parent_task_id,
-            task_id: args.subtask_id,
+            task_id: args.sub_task_id,
         },
     )
     .await
-    .map_err(SubtaskConnectionError::Unknown)?
+    .map_err(SubTaskConnectionError::Unknown)?
     {
-        return Err(SubtaskConnectionError::BlockedByMainTask);
+        return Err(SubTaskConnectionError::BlockedByMainTask);
     }
 
     // サブタスクが他のメインタスクを持っていないことを確認する
-    if has_main_task(&mut *db, args.subtask_id)
+    if has_main_task(&mut *db, args.sub_task_id)
         .await
-        .map_err(SubtaskConnectionError::Unknown)?
+        .map_err(SubTaskConnectionError::Unknown)?
     {
-        return Err(SubtaskConnectionError::MultipleMainTask);
+        return Err(SubTaskConnectionError::MultipleMainTask);
     }
 
     Ok(())
@@ -644,12 +644,12 @@ pub async fn check_subtask_connection<'a>(
 
 pub enum BlockTaskConnectionError {
     TaskNotFound,
-    IsSubtask,
+    IsSubTask,
     CircularTask,
     Unknown(anyhow::Error),
 }
 
-// TODO: subtaskと共通化できる？
+// TODO: sub_taskと共通化できる？
 pub async fn check_insert_block_task_connection<'a>(
     db: &mut Connection,
     args: &InsertBlockTaskConnectionArgs<'a>,
@@ -669,9 +669,9 @@ pub async fn check_insert_block_task_connection<'a>(
         return Err(BlockTaskConnectionError::TaskNotFound);
     }
 
-    if is_subtask(
+    if is_sub_task(
         &mut *db,
-        IsSubtaskArgs {
+        IsSubTaskArgs {
             parent_task_id: args.blocking_task_id,
             task_id: args.blocked_task_id,
             user_id: args.user_id,
@@ -680,7 +680,7 @@ pub async fn check_insert_block_task_connection<'a>(
     .await
     .map_err(BlockTaskConnectionError::Unknown)?
     {
-        return Err(BlockTaskConnectionError::IsSubtask);
+        return Err(BlockTaskConnectionError::IsSubTask);
     };
 
     // タスク同士が循環していないかを確認する。
@@ -703,17 +703,17 @@ pub async fn check_insert_block_task_connection<'a>(
 
 pub struct DeleteSubTaskConnectionArgs<'a> {
     pub parent_task_id: &'a str,
-    pub subtask_id: &'a str,
+    pub sub_task_id: &'a str,
     pub user_id: &'a str,
 }
-pub async fn delete_subtask_connection<'a>(
+pub async fn delete_sub_task_connection<'a>(
     db: &mut Connection,
     args: DeleteSubTaskConnectionArgs<'a>,
 ) -> anyhow::Result<()> {
     sqlx::query!(
         "DELETE FROM sub_tasks WHERE main_task_id = $1 AND sub_task_id = $2 AND user_id = $3 RETURNING *",
         args.parent_task_id,
-        args.subtask_id,
+        args.sub_task_id,
         args.user_id
     ).fetch_one(&mut *db).await?;
 
@@ -791,15 +791,15 @@ pub async fn detect_circular_connection<'a>(
     Ok(!result.is_empty())
 }
 
-pub struct IsSubtaskArgs<'a> {
+pub struct IsSubTaskArgs<'a> {
     pub parent_task_id: &'a str,
     pub task_id: &'a str,
     pub user_id: &'a str,
 }
-pub async fn is_subtask<'a>(db: &mut Connection, args: IsSubtaskArgs<'a>) -> anyhow::Result<bool> {
+pub async fn is_sub_task<'a>(db: &mut Connection, args: IsSubTaskArgs<'a>) -> anyhow::Result<bool> {
     let result = sqlx::query!(
         r#"
-        WITH RECURSIVE subtasks AS (
+        WITH RECURSIVE all_sub_tasks AS (
             SELECT sub_task_id, main_task_id
             FROM sub_tasks
             WHERE main_task_id = $1 AND user_id = $2
@@ -808,11 +808,11 @@ pub async fn is_subtask<'a>(db: &mut Connection, args: IsSubtaskArgs<'a>) -> any
 
             SELECT sc.sub_task_id, s.main_task_id
             FROM sub_tasks sc
-            JOIN subtasks s ON sc.main_task_id = s.sub_task_id
+            JOIN all_sub_tasks s ON sc.main_task_id = s.sub_task_id
         )
 
         SELECT DISTINCT sub_task_id
-        FROM subtasks
+        FROM all_sub_tasks
         WHERE sub_task_id = $3
         "#,
         args.parent_task_id,

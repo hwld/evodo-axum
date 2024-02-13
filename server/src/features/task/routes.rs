@@ -5,15 +5,15 @@ use axum::{
 };
 use axum_login::login_required;
 pub mod connect_block_task;
-pub mod connect_subtask;
+pub mod connect_sub_task;
 pub mod create_task;
 pub mod delete_task;
 pub mod disconnect_block_task;
-pub mod disconnect_subtask;
+pub mod disconnect_sub_task;
 pub mod get_task;
 pub mod get_tasks;
 pub mod reconnect_block_task;
-pub mod reconnect_subtask;
+pub mod reconnect_sub_task;
 pub mod update_task;
 pub mod update_task_status;
 
@@ -45,20 +45,20 @@ impl TaskPaths {
         Self::task_open_api() + &Self::update_task_status_base()
     }
 
-    pub fn subtask() -> String {
-        "/subtask".into()
+    pub fn sub_task() -> String {
+        "/sub-task".into()
     }
 
-    pub fn connect_subtask() -> String {
-        Self::subtask() + "/connect"
+    pub fn connect_sub_task() -> String {
+        Self::sub_task() + "/connect"
     }
 
-    pub fn reconnect_subtask() -> String {
-        Self::subtask() + "/reconnect"
+    pub fn reconnect_sub_task() -> String {
+        Self::sub_task() + "/reconnect"
     }
 
-    pub fn disconnect_subtask() -> String {
-        Self::subtask() + "/disconnect"
+    pub fn disconnect_sub_task() -> String {
+        Self::sub_task() + "/disconnect"
     }
 
     pub fn block_task() -> String {
@@ -91,16 +91,16 @@ pub fn router() -> Router<AppState> {
                 .delete(delete_task::handler),
         )
         .route(
-            &TaskPaths::connect_subtask(),
-            post(connect_subtask::handler),
+            &TaskPaths::connect_sub_task(),
+            post(connect_sub_task::handler),
         )
         .route(
-            &TaskPaths::reconnect_subtask(),
-            put(reconnect_subtask::handler),
+            &TaskPaths::reconnect_sub_task(),
+            put(reconnect_sub_task::handler),
         )
         .route(
-            &TaskPaths::disconnect_subtask(),
-            delete(disconnect_subtask::handler),
+            &TaskPaths::disconnect_sub_task(),
+            delete(disconnect_sub_task::handler),
         )
         .route(
             &TaskPaths::update_task_status(),

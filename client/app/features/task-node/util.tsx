@@ -2,7 +2,7 @@ import { Edge, Node } from "@xyflow/react";
 import { z } from "zod";
 import { schemas } from "~/api/schema";
 import { TaskNode as TaskNodeComponent } from "./task-node";
-import { SubtaskEdge } from "./subtask-edge";
+import { SubTaskEdge } from "./sub-task-edge";
 import { BlockTaskEdge } from "./block-task-edge";
 import { Task } from "../task";
 
@@ -15,14 +15,14 @@ export type TaskNodeViewData = {
 };
 
 export const nodeTypes = { task: TaskNodeComponent } as const;
-export const edgeTypes = { sub: SubtaskEdge, block: BlockTaskEdge } as const;
+export const edgeTypes = { sub: SubTaskEdge, block: BlockTaskEdge } as const;
 
-type SubtaskConnection = { parentTaskId: string; subtaskId: string };
-export const generateSubtaskEdgeId = ({
+type SubTaskConnection = { parentTaskId: string; subTaskId: string };
+export const generateSubTaskEdgeId = ({
   parentTaskId,
-  subtaskId,
-}: SubtaskConnection) => {
-  return `subtask-${parentTaskId}-${subtaskId}`;
+  subTaskId,
+}: SubTaskConnection) => {
+  return `sub-task-${parentTaskId}-${subTaskId}`;
 };
 
 type BlockTaskConnection = { blockingTaskId: string; blockedTaskId: string };
@@ -33,19 +33,19 @@ export const generateBlockTaskEdgeId = ({
   return `blockTask-${blockingTaskId}-${blockedTaskId}`;
 };
 
-export const subtaskHandle = "sub";
+export const subTaskHandle = "sub";
 export const blockTaskHandle = "block";
 
-export const generateSubtaskEdge = ({
+export const generateSubTaskEdge = ({
   parentTaskId,
-  subtaskId,
-}: SubtaskConnection): Edge => {
+  subTaskId,
+}: SubTaskConnection): Edge => {
   return {
     type: "sub",
-    id: generateSubtaskEdgeId({ parentTaskId, subtaskId }),
+    id: generateSubTaskEdgeId({ parentTaskId, subTaskId: subTaskId }),
     source: parentTaskId,
-    target: subtaskId,
-    sourceHandle: subtaskHandle,
+    target: subTaskId,
+    sourceHandle: subTaskHandle,
     targetHandle: "",
   };
 };
@@ -105,7 +105,7 @@ const calcAllBlockedTasks = (
         return blockedIds.has(task.id);
       })
       .map(({ task }) => {
-        return task.subtask_ids;
+        return task.sub_task_ids;
       })
       .flat();
   }
@@ -122,16 +122,16 @@ export type TaskNodeData = z.infer<typeof schemas.TaskNode>;
 export const buildTaskNodes = (
   taskNodes: TaskNodeData[]
 ): Node<TaskNodeViewData>[] => {
-  const allSubtasks = new Set(
-    taskNodes.map(({ task }) => task.subtask_ids).flat()
+  const allSubTasks = new Set(
+    taskNodes.map(({ task }) => task.sub_task_ids).flat()
   );
   const blockedTasks = calcAllBlockedTasks(taskNodes);
 
   return taskNodes.map(({ task, node_info }): Node<TaskNodeViewData> => {
     const getType = () => {
-      if (task.subtask_ids.length > 0) {
+      if (task.sub_task_ids.length > 0) {
         return "main";
-      } else if (allSubtasks.has(task.id)) {
+      } else if (allSubTasks.has(task.id)) {
         return "sub";
       } else {
         return "normal";
@@ -150,10 +150,10 @@ export const buildTaskNodes = (
 export const buildTaskNodeEdges = (taskNodes: TaskNodeData[]): Edge[] => {
   return taskNodes
     .map(({ task }): Edge[] => {
-      const subtaskEdges = task.subtask_ids.map((subtaskId): Edge => {
-        return generateSubtaskEdge({
+      const subTaskEdges = task.sub_task_ids.map((subTaskId): Edge => {
+        return generateSubTaskEdge({
           parentTaskId: task.id,
-          subtaskId: subtaskId,
+          subTaskId: subTaskId,
         });
       });
 
@@ -166,7 +166,7 @@ export const buildTaskNodeEdges = (taskNodes: TaskNodeData[]): Edge[] => {
         }
       );
 
-      return [...subtaskEdges, ...blockTaskEdges];
+      return [...subTaskEdges, ...blockTaskEdges];
     })
     .flat();
 };

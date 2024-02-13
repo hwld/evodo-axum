@@ -82,7 +82,7 @@ const getErrorMessage = (
     case "CircularTask": {
       return "タスクを循環させることはできません";
     }
-    case "IsSubtask": {
+    case "IsSubTask": {
       return "サブタスクをブロックすることはできません";
     }
     default: {
