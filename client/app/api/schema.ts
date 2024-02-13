@@ -98,7 +98,7 @@ export const schemas = {
   UpdateTaskStatus,
 };
 
-const endpoints = makeApi([
+export const endpoints = makeApi([
   {
     method: "post",
     path: "/auth/cancel-signup",

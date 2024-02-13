@@ -9,7 +9,7 @@
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
     "start": "remix-serve ./build/index.js",
     "typecheck": "tsc",
-    "codegen": "openapi-zod-client \"http://localhost:8787/api-docs/openapi.json\" -o \"./app/api/schema.ts\" --no-with-alias --api-client-name \"_api\" --additional-props-default-value false --export-schemas true"
+    "codegen": "openapi-zod-client \"http://localhost:8787/api-docs/openapi.json\" -o \"./app/api/schema.ts\" --no-with-alias --api-client-name \"_api\" --additional-props-default-value false --export-schemas true -t \"./openapi-zod-client-schema.hbs\""
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
@@ -27,6 +27,7 @@
     "@remix-run/serve": "^2.5.0",
     "@tanstack/react-query": "^5.17.12",
     "@xyflow/react": "^12.0.0-next.8",
+    "@zodios/core": "^10.9.6",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "framer-motion": "^11.0.3",
