@@ -60,7 +60,7 @@ pub async fn handler(
     .await
     {
         // TODO: なんとかならない？
-        let body = match e {
+        let error_type = match e {
             ConnectSubtaskError::CheckError(SubtaskConnectionError::TaskNotFound) => {
                 ConnectSubtaskErrorType::TaskNotFound
             }
@@ -81,7 +81,10 @@ pub async fn handler(
             }
         };
 
-        return Err(AppError::with_json(StatusCode::BAD_REQUEST, body));
+        return Err(AppError::with_json(
+            StatusCode::BAD_REQUEST,
+            ConnectSubtaskErrorBody { error_type },
+        ));
     };
 
     tx.commit().await?;
