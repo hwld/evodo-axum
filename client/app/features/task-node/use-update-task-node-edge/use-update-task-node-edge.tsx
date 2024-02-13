@@ -25,7 +25,7 @@ export const useUpdateTaskNodeEdge = () => {
       if (newConnection.sourceHandle === subTaskHandle) {
         reconnectSubTask({
           oldSubTaskEdge: oldEdge,
-          newParentTaskId: newConnection.source,
+          newMainTaskId: newConnection.source,
           newSubTaskId: newConnection.target,
         });
       } else if (newConnection.sourceHandle === blockTaskHandle) {

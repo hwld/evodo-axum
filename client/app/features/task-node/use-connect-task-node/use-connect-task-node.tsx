@@ -16,7 +16,7 @@ export const useConnectTaskNode = () => {
 
       if (connection.sourceHandle === subTaskHandle) {
         connectSubTask({
-          parentTaskId: connection.source,
+          mainTaskId: connection.source,
           subTaskId: connection.target,
         });
       } else if (connection.sourceHandle === blockTaskHandle) {

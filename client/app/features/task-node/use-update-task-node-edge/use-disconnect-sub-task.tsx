@@ -28,7 +28,7 @@ export const useDisconnectSubTask = () => {
   const disconnectSubTask = useCallback(
     (edge: Edge) => {
       mutation.mutate({
-        parent_task_id: edge.source,
+        main_task_id: edge.source,
         sub_task_id: edge.target,
       });
 

@@ -44,7 +44,7 @@ const ReconnectBlockTaskErrorBody = z.object({
   error_type: ReconnectBlockTaskErrorType,
 });
 const ConnectSubTask = z.object({
-  parent_task_id: z.string(),
+  main_task_id: z.string(),
   sub_task_id: z.string(),
 });
 const ConnectSubTaskErrorType = z.enum([
@@ -57,13 +57,13 @@ const ConnectSubTaskErrorBody = z.object({
   error_type: ConnectSubTaskErrorType,
 });
 const DisconnectSubTask = z.object({
-  parent_task_id: z.string(),
+  main_task_id: z.string(),
   sub_task_id: z.string(),
 });
 const ReconnectSubTask = z.object({
-  new_parent_task_id: z.string(),
+  new_main_task_id: z.string(),
   new_sub_task_id: z.string(),
-  old_parent_task_id: z.string(),
+  old_main_task_id: z.string(),
   old_sub_task_id: z.string(),
 });
 const ReconnectSubTaskErrorType = z.enum([

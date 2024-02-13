@@ -41,15 +41,9 @@ export const useConnectSubTask = () => {
   });
 
   const connectSubTask = useCallback(
-    ({
-      parentTaskId,
-      subTaskId,
-    }: {
-      parentTaskId: string;
-      subTaskId: string;
-    }) => {
+    ({ mainTaskId, subTaskId }: { mainTaskId: string; subTaskId: string }) => {
       const newEdgeId = generateSubTaskEdgeId({
-        parentTaskId,
+        mainTaskId: mainTaskId,
         subTaskId,
       });
       if (flow.getEdges().find((e) => e.id === newEdgeId)) {
@@ -57,14 +51,17 @@ export const useConnectSubTask = () => {
       }
 
       mutation.mutate({
-        parent_task_id: parentTaskId,
+        main_task_id: mainTaskId,
         sub_task_id: subTaskId,
       });
 
       setTaskNodeEdges((old) => {
         return [
           ...old,
-          generateSubTaskEdge({ parentTaskId, subTaskId: subTaskId }),
+          generateSubTaskEdge({
+            mainTaskId: mainTaskId,
+            subTaskId: subTaskId,
+          }),
         ];
       });
     },

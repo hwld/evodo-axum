@@ -17,12 +17,12 @@ export type TaskNodeViewData = {
 export const nodeTypes = { task: TaskNodeComponent } as const;
 export const edgeTypes = { sub: SubTaskEdge, block: BlockTaskEdge } as const;
 
-type SubTaskConnection = { parentTaskId: string; subTaskId: string };
+type SubTaskConnection = { mainTaskId: string; subTaskId: string };
 export const generateSubTaskEdgeId = ({
-  parentTaskId,
+  mainTaskId,
   subTaskId,
 }: SubTaskConnection) => {
-  return `sub-task-${parentTaskId}-${subTaskId}`;
+  return `sub-task-${mainTaskId}-${subTaskId}`;
 };
 
 type BlockTaskConnection = { blockingTaskId: string; blockedTaskId: string };
@@ -37,13 +37,16 @@ export const subTaskHandle = "sub";
 export const blockTaskHandle = "block";
 
 export const generateSubTaskEdge = ({
-  parentTaskId,
+  mainTaskId,
   subTaskId,
 }: SubTaskConnection): Edge => {
   return {
     type: "sub",
-    id: generateSubTaskEdgeId({ parentTaskId, subTaskId: subTaskId }),
-    source: parentTaskId,
+    id: generateSubTaskEdgeId({
+      mainTaskId: mainTaskId,
+      subTaskId: subTaskId,
+    }),
+    source: mainTaskId,
     target: subTaskId,
     sourceHandle: subTaskHandle,
     targetHandle: "",
@@ -152,7 +155,7 @@ export const buildTaskNodeEdges = (taskNodes: TaskNodeData[]): Edge[] => {
     .map(({ task }): Edge[] => {
       const subTaskEdges = task.sub_task_ids.map((subTaskId): Edge => {
         return generateSubTaskEdge({
-          parentTaskId: task.id,
+          mainTaskId: task.id,
           subTaskId: subTaskId,
         });
       });

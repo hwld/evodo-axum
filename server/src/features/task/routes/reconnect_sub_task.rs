@@ -55,9 +55,9 @@ pub async fn handler(
     let result = reconnect_sub_task::action(
         &mut tx,
         ReconnectSubTaskArgs {
-            old_parent_task_id: &payload.old_parent_task_id,
+            old_main_task_id: &payload.old_main_task_id,
             old_sub_task_id: &payload.old_sub_task_id,
-            new_parent_task_id: &payload.new_parent_task_id,
+            new_main_task_id: &payload.new_main_task_id,
             new_sub_task_id: &payload.new_sub_task_id,
             user_id: &user.id,
         },
@@ -113,9 +113,9 @@ mod tests {
             .server()
             .put(&TaskPaths::reconnect_sub_task())
             .json(&ReconnectSubTask {
-                old_parent_task_id: task1.id.clone(),
+                old_main_task_id: task1.id.clone(),
                 old_sub_task_id: task2.id.clone(),
-                new_parent_task_id: task2.id.clone(),
+                new_main_task_id: task2.id.clone(),
                 new_sub_task_id: task3.id.clone(),
             })
             .await;
@@ -156,9 +156,9 @@ mod tests {
             .server()
             .post(&TaskPaths::connect_sub_task())
             .json(&ReconnectSubTask {
-                old_parent_task_id: task3.id.clone(),
+                old_main_task_id: task3.id.clone(),
                 old_sub_task_id: task4.id.clone(),
-                new_parent_task_id: task3.id.clone(),
+                new_main_task_id: task3.id.clone(),
                 new_sub_task_id: task2.id.clone(),
             })
             .await;
@@ -202,9 +202,9 @@ mod tests {
             .server()
             .put(&TaskPaths::reconnect_sub_task())
             .json(&ReconnectSubTask {
-                old_parent_task_id: other_task1.id.clone(),
+                old_main_task_id: other_task1.id.clone(),
                 old_sub_task_id: other_task2.id.clone(),
-                new_parent_task_id: other_task2.id.clone(),
+                new_main_task_id: other_task2.id.clone(),
                 new_sub_task_id: my_task.id.clone(),
             })
             .await;
@@ -245,9 +245,9 @@ mod tests {
             .server()
             .put(&TaskPaths::reconnect_sub_task())
             .json(&ReconnectSubTask {
-                old_parent_task_id: task.id.clone(),
+                old_main_task_id: task.id.clone(),
                 old_sub_task_id: sub_task.id.clone(),
-                new_parent_task_id: task.id.clone(),
+                new_main_task_id: task.id.clone(),
                 new_sub_task_id: task.id.clone(),
             })
             .await;

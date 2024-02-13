@@ -13,8 +13,8 @@ use crate::{
         auth::Auth,
         task::{
             db::{
-                is_all_blocking_tasks_done, update_all_unblocked_descendant_tasks,
-                update_task_status, update_tasks_and_ancestors_status, TasksAndUser,
+                is_all_blocking_tasks_done, update_all_unblocked_descendant_sub_tasks,
+                update_task_status, update_tasks_and_all_ancestor_main_tasks_status, TasksAndUser,
                 UpdateTaskStatusArgs,
             },
             TaskStatus, UpdateTaskStatus,
@@ -55,8 +55,8 @@ pub async fn handler(
     )
     .await?;
 
-    //　ブロッキングタスクにブロックされていない子孫タスクをすべて更新する
-    update_all_unblocked_descendant_tasks(
+    //　ブロッキングタスクにブロックされていない子孫サブタスクをすべて更新する
+    update_all_unblocked_descendant_sub_tasks(
         &mut tx,
         UpdateTaskStatusArgs {
             id: &updated_task.id,
@@ -66,8 +66,8 @@ pub async fn handler(
     )
     .await?;
 
-    // メインタスクと、すべての祖先タスクを更新する
-    update_tasks_and_ancestors_status(
+    // メインタスクと、すべての祖先メインタスクを更新する
+    update_tasks_and_all_ancestor_main_tasks_status(
         &mut tx,
         TasksAndUser {
             task_ids: &vec![updated_task.id.clone()],
@@ -94,7 +94,9 @@ mod tests {
     };
 
     #[sqlx::test]
-    async fn すべての祖先タスクの状態が更新される(db: Db) -> AppResult<()> {
+    async fn すべての祖先メインタスクの状態が更新される(
+        db: Db,
+    ) -> AppResult<()> {
         let test = AppTest::new(&db).await?;
         let user = test.login(None).await?;
 
@@ -150,7 +152,7 @@ mod tests {
         assert_eq!(root.status, TaskStatus::Done);
 
         let mut conn = db.acquire().await?;
-        let parent = find_task(
+        let main = find_task(
             &mut conn,
             FindTaskArgs {
                 task_id: &t12.id,
@@ -158,7 +160,7 @@ mod tests {
             },
         )
         .await?;
-        assert_eq!(parent.status, TaskStatus::Done);
+        assert_eq!(main.status, TaskStatus::Done);
 
         let mut conn = db.acquire().await?;
         let sub1 = find_task(
@@ -197,7 +199,7 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn サブタスクが全て完了にならないと親タスクは完了にならない(
+    async fn サブタスクが全て完了にならないとメインタスクは完了にならない(
         db: Db,
     ) -> AppResult<()> {
         let test = AppTest::new(&db).await?;
@@ -220,7 +222,7 @@ mod tests {
         res.assert_status_ok();
 
         let mut conn = db.acquire().await?;
-        let parent = find_task(
+        let main = find_task(
             &mut conn,
             FindTaskArgs {
                 user_id: &user.id,
@@ -228,25 +230,25 @@ mod tests {
             },
         )
         .await?;
-        assert_eq!(parent.status, TaskStatus::Todo);
+        assert_eq!(main.status, TaskStatus::Todo);
 
         Ok(())
     }
 
     #[sqlx::test]
-    async fn 親タスクが完了状態になるとサブタスクもすべて完了状態になる(
+    async fn メインタスクが完了状態になるとサブタスクもすべて完了状態になる(
         db: Db,
     ) -> AppResult<()> {
         let test = AppTest::new(&db).await?;
         let user = test.login(None).await?;
 
-        // parent --> sub1
-        // parent --> sub2
+        // main --> sub1
+        // main --> sub2
         // sub1 --> sub11
-        let parent = task_factory::create_with_user(&db, &user.id).await?;
+        let main = task_factory::create_with_user(&db, &user.id).await?;
         let sub1 = task_factory::create_sub_task(
             &db,
-            &parent.id,
+            &main.id,
             Task {
                 status: TaskStatus::Todo,
                 user_id: user.id.clone(),
@@ -256,7 +258,7 @@ mod tests {
         .await?;
         let sub2 = task_factory::create_sub_task(
             &db,
-            &parent.id,
+            &main.id,
             Task {
                 status: TaskStatus::Todo,
                 user_id: user.id.clone(),
@@ -277,7 +279,7 @@ mod tests {
 
         let res = test
             .server()
-            .put(&TaskPaths::one_update_task_status(&parent.id))
+            .put(&TaskPaths::one_update_task_status(&main.id))
             .json(&UpdateTaskStatus {
                 status: TaskStatus::Done,
             })
@@ -317,19 +319,19 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn 親タスクが未完了になるとサブタスクもすべて未完了になる(
+    async fn メインタスクが未完了になるとサブタスクもすべて未完了になる(
         db: Db,
     ) -> AppResult<()> {
         let test = AppTest::new(&db).await?;
         let user = test.login(None).await?;
 
-        // parent --> sub1
-        // parent --> sub2
+        // main --> sub1
+        // main --> sub2
         // sub1 --> sub11
-        let parent = task_factory::create_with_user(&db, &user.id).await?;
+        let main = task_factory::create_with_user(&db, &user.id).await?;
         let sub1 = task_factory::create_sub_task(
             &db,
-            &parent.id,
+            &main.id,
             Task {
                 status: TaskStatus::Done,
                 user_id: user.id.clone(),
@@ -339,7 +341,7 @@ mod tests {
         .await?;
         let sub2 = task_factory::create_sub_task(
             &db,
-            &parent.id,
+            &main.id,
             Task {
                 status: TaskStatus::Done,
                 user_id: user.id.clone(),
@@ -360,7 +362,7 @@ mod tests {
 
         let res = test
             .server()
-            .put(&TaskPaths::one_update_task_status(&parent.id))
+            .put(&TaskPaths::one_update_task_status(&main.id))
             .json(&UpdateTaskStatus {
                 status: TaskStatus::Todo,
             })

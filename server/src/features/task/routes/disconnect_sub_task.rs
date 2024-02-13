@@ -29,7 +29,7 @@ pub async fn handler(
     disconnect_sub_task::action(
         &mut tx,
         DisconnectSubTaskArgs {
-            parent_task_id: &payload.parent_task_id,
+            main_task_id: &payload.main_task_id,
             sub_task_id: &payload.sub_task_id,
             user_id: &user.id,
         },
@@ -68,7 +68,7 @@ mod tests {
             .server()
             .delete(&TaskPaths::disconnect_sub_task())
             .json(&DisconnectSubTask {
-                parent_task_id: task.id,
+                main_task_id: task.id,
                 sub_task_id: sub_task.id,
             })
             .await;
@@ -98,7 +98,7 @@ mod tests {
             .server()
             .delete(&TaskPaths::disconnect_sub_task())
             .json(&DisconnectSubTask {
-                parent_task_id: other_user_task.id,
+                main_task_id: other_user_task.id,
                 sub_task_id: other_user_sub_task.id,
             })
             .await;
@@ -113,13 +113,13 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn 完了していないサブタスク関係を削除すると親は完了状態になる(
+    async fn 完了していないサブタスク関係を削除するとメインタスクは完了状態になる(
         db: Db,
     ) -> AppResult<()> {
         let test = AppTest::new(&db).await?;
         let user = test.login(None).await?;
 
-        let parent = task_factory::create(
+        let main = task_factory::create(
             &db,
             Task {
                 status: TaskStatus::Todo,
@@ -130,7 +130,7 @@ mod tests {
         .await?;
         let _done_sub = task_factory::create_sub_task(
             &db,
-            &parent.id,
+            &main.id,
             Task {
                 status: TaskStatus::Done,
                 user_id: user.id.clone(),
@@ -140,7 +140,7 @@ mod tests {
         .await?;
         let todo_sub = task_factory::create_sub_task(
             &db,
-            &parent.id,
+            &main.id,
             Task {
                 status: TaskStatus::Todo,
                 user_id: user.id.clone(),
@@ -153,22 +153,22 @@ mod tests {
             .server()
             .delete(&TaskPaths::disconnect_sub_task())
             .json(&DisconnectSubTask {
-                parent_task_id: parent.id.clone(),
+                main_task_id: main.id.clone(),
                 sub_task_id: todo_sub.id.clone(),
             })
             .await;
         res.assert_status_ok();
 
         let mut conn = db.acquire().await?;
-        let parent = find_task(
+        let main = find_task(
             &mut conn,
             FindTaskArgs {
-                task_id: &parent.id,
+                task_id: &main.id,
                 user_id: &user.id,
             },
         )
         .await?;
-        assert_eq!(parent.status, TaskStatus::Done);
+        assert_eq!(main.status, TaskStatus::Done);
 
         Ok(())
     }

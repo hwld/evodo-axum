@@ -10,8 +10,8 @@ use crate::{
     app::AppResult,
     features::task::{
         db::{
-            delete_task, find_parent_task_ids, update_tasks_and_ancestors_status, DeleteTaskArgs,
-            FindParentTaskIdsArgs, TasksAndUser,
+            delete_task, find_main_task_ids, update_tasks_and_all_ancestor_main_tasks_status,
+            DeleteTaskArgs, FindMainTaskIdsArgs, TasksAndUser,
         },
         DeleteTaskResponse,
     },
@@ -31,10 +31,10 @@ pub async fn handler(
 
     let mut tx = db.begin().await?;
 
-    // 祖先タスクを更新するために削除する前に取得しておく
-    let parent_ids = find_parent_task_ids(
+    // すべてのメインタスクを更新するために削除する前に取得しておく
+    let main_ids = find_main_task_ids(
         &mut tx,
-        FindParentTaskIdsArgs {
+        FindMainTaskIdsArgs {
             sub_task_id: &id,
             user_id: &user.id,
         },
@@ -50,11 +50,11 @@ pub async fn handler(
     )
     .await?;
 
-    // 祖先タスクを更新
-    update_tasks_and_ancestors_status(
+    // 祖先メインタスクを更新
+    update_tasks_and_all_ancestor_main_tasks_status(
         &mut tx,
         TasksAndUser {
-            task_ids: &parent_ids,
+            task_ids: &main_ids,
             user_id: &user.id,
         },
     )
@@ -129,7 +129,7 @@ mod tests {
         let test = AppTest::new(&db).await?;
         let user = test.login(None).await?;
 
-        let parent = task_factory::create(
+        let main = task_factory::create(
             &db,
             Task {
                 status: TaskStatus::Todo,
@@ -140,7 +140,7 @@ mod tests {
         .await?;
         let _done_sub = task_factory::create_sub_task(
             &db,
-            &parent.id,
+            &main.id,
             Task {
                 status: TaskStatus::Done,
                 user_id: user.id.clone(),
@@ -150,7 +150,7 @@ mod tests {
         .await?;
         let todo_sub = task_factory::create_sub_task(
             &db,
-            &parent.id,
+            &main.id,
             Task {
                 status: TaskStatus::Todo,
                 user_id: user.id.clone(),
@@ -166,15 +166,15 @@ mod tests {
         res.assert_status_ok();
 
         let mut conn = db.acquire().await?;
-        let parent = find_task(
+        let main = find_task(
             &mut conn,
             FindTaskArgs {
-                task_id: &parent.id,
+                task_id: &main.id,
                 user_id: &user.id,
             },
         )
         .await?;
-        assert_eq!(parent.status, TaskStatus::Done);
+        assert_eq!(main.status, TaskStatus::Done);
 
         Ok(())
     }

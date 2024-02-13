@@ -1,13 +1,13 @@
 use crate::{
     app::Connection,
     features::task::db::{
-        check_sub_task_connection, insert_sub_task_connection, update_all_ancestors_task_status,
+        check_sub_task_connection, insert_sub_task_connection, update_all_main_tasks_status,
         InsertSubTaskConnectionArgs, SubTaskConnectionError, TaskAndUser,
     },
 };
 
 pub struct ConnectSubTaskArgs<'a> {
-    pub parent_task_id: &'a str,
+    pub main_task_id: &'a str,
     pub sub_task_id: &'a str,
     pub user_id: &'a str,
 }
@@ -22,7 +22,7 @@ pub async fn action<'a>(
     args: ConnectSubTaskArgs<'a>,
 ) -> Result<(), ConnectSubTaskError> {
     let insert_args = InsertSubTaskConnectionArgs {
-        parent_task_id: args.parent_task_id,
+        main_task_id: args.main_task_id,
         sub_task_id: args.sub_task_id,
         user_id: args.user_id,
     };
@@ -35,7 +35,7 @@ pub async fn action<'a>(
         .await
         .map_err(ConnectSubTaskError::Unknown)?;
 
-    update_all_ancestors_task_status(
+    update_all_main_tasks_status(
         db,
         TaskAndUser {
             task_id: args.sub_task_id,

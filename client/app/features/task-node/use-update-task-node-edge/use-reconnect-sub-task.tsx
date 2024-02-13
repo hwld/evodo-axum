@@ -41,15 +41,15 @@ export const useReconnectSubTask = () => {
   const reconnectSubTask = useCallback(
     ({
       oldSubTaskEdge,
-      newParentTaskId,
+      newMainTaskId,
       newSubTaskId,
     }: {
       oldSubTaskEdge: Edge;
-      newParentTaskId: string;
+      newMainTaskId: string;
       newSubTaskId: string;
     }) => {
       const id = generateSubTaskEdgeId({
-        parentTaskId: newParentTaskId,
+        mainTaskId: newMainTaskId,
         subTaskId: newSubTaskId,
       });
       // Edgeの重複を確認する
@@ -58,16 +58,16 @@ export const useReconnectSubTask = () => {
       }
 
       mutation.mutate({
-        old_parent_task_id: oldSubTaskEdge.source,
+        old_main_task_id: oldSubTaskEdge.source,
         old_sub_task_id: oldSubTaskEdge.target,
-        new_parent_task_id: newParentTaskId,
+        new_main_task_id: newMainTaskId,
         new_sub_task_id: newSubTaskId,
       });
 
       setTaskNodeEdges((eds) => [
         ...eds.filter((e) => e.id !== oldSubTaskEdge.id),
         generateSubTaskEdge({
-          parentTaskId: newParentTaskId,
+          mainTaskId: newMainTaskId,
           subTaskId: newSubTaskId,
         }),
       ]);

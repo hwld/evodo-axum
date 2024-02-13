@@ -64,24 +64,23 @@ pub struct DeleteTaskResponse {
     pub task_id: String,
 }
 
-// TODO: parent_task_idじゃなくてmain_task_idとかにしたい・・・。
 #[derive(Serialize, Deserialize, ToSchema, Debug, Clone)]
 pub struct ConnectSubTask {
-    pub parent_task_id: String,
+    pub main_task_id: String,
     pub sub_task_id: String,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Debug)]
 pub struct ReconnectSubTask {
-    pub old_parent_task_id: String,
+    pub old_main_task_id: String,
     pub old_sub_task_id: String,
-    pub new_parent_task_id: String,
+    pub new_main_task_id: String,
     pub new_sub_task_id: String,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Debug)]
 pub struct DisconnectSubTask {
-    pub parent_task_id: String,
+    pub main_task_id: String,
     pub sub_task_id: String,
 }
 

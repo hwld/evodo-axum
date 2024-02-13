@@ -9,9 +9,9 @@ use super::{
 };
 
 pub struct ReconnectSubTaskArgs<'a> {
-    pub old_parent_task_id: &'a str,
+    pub old_main_task_id: &'a str,
     pub old_sub_task_id: &'a str,
-    pub new_parent_task_id: &'a str,
+    pub new_main_task_id: &'a str,
     pub new_sub_task_id: &'a str,
     pub user_id: &'a str,
 }
@@ -28,7 +28,7 @@ pub async fn action<'a>(
     disconnect_sub_task::action(
         db,
         DisconnectSubTaskArgs {
-            parent_task_id: args.old_parent_task_id,
+            main_task_id: args.old_main_task_id,
             sub_task_id: args.old_sub_task_id,
             user_id: args.user_id,
         },
@@ -39,7 +39,7 @@ pub async fn action<'a>(
     connect_sub_task::action(
         db,
         ConnectSubTaskArgs {
-            parent_task_id: args.new_parent_task_id,
+            main_task_id: args.new_main_task_id,
             sub_task_id: args.new_sub_task_id,
             user_id: args.user_id,
         },

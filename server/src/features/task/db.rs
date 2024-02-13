@@ -114,15 +114,17 @@ pub async fn find_tasks(db: &mut Connection, user_id: &str) -> anyhow::Result<Ve
     Ok(tasks)
 }
 
-pub struct FindParentTaskIdsArgs<'a> {
+pub struct FindMainTaskIdsArgs<'a> {
     pub sub_task_id: &'a str,
     pub user_id: &'a str,
 }
-pub async fn find_parent_task_ids<'a>(
+// TODO: メインタスクは一つに制限することにしたので、VecではなくてStringを返すようにする
+// また、これをSQLレベルで制限したいので、tasksにNULL許容のmain_task_idを追加する
+pub async fn find_main_task_ids<'a>(
     db: &mut Connection,
-    args: FindParentTaskIdsArgs<'a>,
+    args: FindMainTaskIdsArgs<'a>,
 ) -> anyhow::Result<Vec<String>> {
-    let parent_ids = sqlx::query!(
+    let main_ids = sqlx::query!(
         r#"
         SELECT id
         FROM sub_tasks sc 
@@ -136,11 +138,11 @@ pub async fn find_parent_task_ids<'a>(
     .fetch_all(&mut *db)
     .await?;
 
-    let parent_ids: Vec<String> = parent_ids.into_iter().map(|r| r.id).collect();
-    Ok(parent_ids)
+    let main_ids: Vec<String> = main_ids.into_iter().map(|r| r.id).collect();
+    Ok(main_ids)
 }
 
-pub async fn update_all_unblocked_descendant_tasks<'a>(
+pub async fn update_all_unblocked_descendant_sub_tasks<'a>(
     db: &mut Connection,
     args: UpdateTaskStatusArgs<'a>,
 ) -> anyhow::Result<()> {
@@ -431,27 +433,27 @@ pub struct TaskAndUser<'a> {
     pub task_id: &'a str,
     pub user_id: &'a str,
 }
-pub async fn update_all_ancestors_task_status<'a>(
+pub async fn update_all_main_tasks_status<'a>(
     db: &mut Connection,
     args: TaskAndUser<'a>,
 ) -> anyhow::Result<()> {
-    let parent_ids = find_parent_task_ids(
+    let main_ids = find_main_task_ids(
         &mut *db,
-        FindParentTaskIdsArgs {
+        FindMainTaskIdsArgs {
             sub_task_id: args.task_id,
             user_id: args.user_id,
         },
     )
     .await?;
 
-    if parent_ids.is_empty() {
+    if main_ids.is_empty() {
         return Ok(());
     };
 
-    update_tasks_and_ancestors_status(
+    update_tasks_and_all_ancestor_main_tasks_status(
         &mut *db,
         TasksAndUser {
-            task_ids: &parent_ids,
+            task_ids: &main_ids,
             user_id: args.user_id,
         },
     )
@@ -467,7 +469,7 @@ pub struct TasksAndUser<'a> {
 
 // パフォーマンス悪いかも
 #[async_recursion]
-pub async fn update_tasks_and_ancestors_status<'a>(
+pub async fn update_tasks_and_all_ancestor_main_tasks_status<'a>(
     db: &mut Connection,
     args: TasksAndUser<'a>,
 ) -> anyhow::Result<()>
@@ -488,7 +490,7 @@ where
         )
         .await?;
 
-        // 子から辿った親がargs.tasksに入っているなら空にはならないが、子を持たないtaskで呼ばれる可能性がある
+        // サブタスクから辿ったメインタスクがargs.tasksに入っているなら空にはならないが、サブタスクを持たないtaskで呼ばれる可能性がある
         if !task.sub_task_ids.is_empty() {
             let all_sub_tasks_done = is_all_tasks_done(&mut *db, &task.sub_task_ids).await?;
             let new_status = if all_sub_tasks_done {
@@ -509,20 +511,20 @@ where
             .await?;
         }
 
-        let parent_ids = find_parent_task_ids(
+        let main_ids = find_main_task_ids(
             &mut *db,
-            FindParentTaskIdsArgs {
+            FindMainTaskIdsArgs {
                 sub_task_id: &task.id,
                 user_id: args.user_id,
             },
         )
         .await?;
 
-        // 親の祖先も同じように処理する
-        update_tasks_and_ancestors_status(
+        // メインタスクのメインタスクも再帰的にに処理する
+        update_tasks_and_all_ancestor_main_tasks_status(
             &mut *db,
             TasksAndUser {
-                task_ids: &parent_ids,
+                task_ids: &main_ids,
                 user_id: args.user_id,
             },
         )
@@ -533,7 +535,7 @@ where
 }
 
 pub struct InsertSubTaskConnectionArgs<'a> {
-    pub parent_task_id: &'a str,
+    pub main_task_id: &'a str,
     pub sub_task_id: &'a str,
     pub user_id: &'a str,
 }
@@ -543,7 +545,7 @@ pub async fn insert_sub_task_connection<'a>(
 ) -> anyhow::Result<()> {
     sqlx::query!(
         "INSERT INTO sub_tasks(main_task_id, sub_task_id, user_id) VALUES($1, $2, $3) RETURNING *;",
-        args.parent_task_id,
+        args.main_task_id,
         args.sub_task_id,
         args.user_id,
     )
@@ -589,7 +591,7 @@ pub async fn check_sub_task_connection<'a>(
     // ログインユーザーが指定されたタスクを持っているかを確認する
     let tasks = sqlx::query!(
         "SELECT * FROM tasks WHERE id IN ($1, $2) AND user_id = $3;",
-        args.parent_task_id,
+        args.main_task_id,
         args.sub_task_id,
         args.user_id,
     )
@@ -602,11 +604,11 @@ pub async fn check_sub_task_connection<'a>(
     }
 
     // タスク同士が循環していないかを確認する。
-    // payload.parent_task_idの祖先に、payload.sub_task_idを持つtaskが存在しないことを確認する。
+    // payload.main_task_idの祖先に、payload.sub_task_idを持つtaskが存在しないことを確認する。
     if detect_circular_connection(
         &mut *db,
         DetectCircularConnectionArgs {
-            parent_task_id: args.parent_task_id,
+            parent_task_id: args.main_task_id,
             child_task_id: args.sub_task_id,
             user_id: args.user_id,
         },
@@ -621,7 +623,7 @@ pub async fn check_sub_task_connection<'a>(
     if is_blocked_task(
         &mut *db,
         IsBlockedTaskArgs {
-            blocking_task_id: args.parent_task_id,
+            blocking_task_id: args.main_task_id,
             task_id: args.sub_task_id,
         },
     )
@@ -672,7 +674,7 @@ pub async fn check_insert_block_task_connection<'a>(
     if is_sub_task(
         &mut *db,
         IsSubTaskArgs {
-            parent_task_id: args.blocking_task_id,
+            main_task_id: args.blocking_task_id,
             task_id: args.blocked_task_id,
             user_id: args.user_id,
         },
@@ -702,7 +704,7 @@ pub async fn check_insert_block_task_connection<'a>(
 }
 
 pub struct DeleteSubTaskConnectionArgs<'a> {
-    pub parent_task_id: &'a str,
+    pub main_task_id: &'a str,
     pub sub_task_id: &'a str,
     pub user_id: &'a str,
 }
@@ -712,7 +714,7 @@ pub async fn delete_sub_task_connection<'a>(
 ) -> anyhow::Result<()> {
     sqlx::query!(
         "DELETE FROM sub_tasks WHERE main_task_id = $1 AND sub_task_id = $2 AND user_id = $3 RETURNING *",
-        args.parent_task_id,
+        args.main_task_id,
         args.sub_task_id,
         args.user_id
     ).fetch_one(&mut *db).await?;
@@ -792,7 +794,7 @@ pub async fn detect_circular_connection<'a>(
 }
 
 pub struct IsSubTaskArgs<'a> {
-    pub parent_task_id: &'a str,
+    pub main_task_id: &'a str,
     pub task_id: &'a str,
     pub user_id: &'a str,
 }
@@ -815,7 +817,7 @@ pub async fn is_sub_task<'a>(db: &mut Connection, args: IsSubTaskArgs<'a>) -> an
         FROM all_sub_tasks
         WHERE sub_task_id = $3
         "#,
-        args.parent_task_id,
+        args.main_task_id,
         args.user_id,
         args.task_id,
     )
@@ -833,13 +835,14 @@ pub async fn is_all_blocking_tasks_done(
         r#"
         WITH RECURSIVE ancestors AS (
             -- 非再帰
-            -- サブタスクの親のステータスは関係ないのでNULLにする
+            -- サブタスクのメインタスクのステータスは関係ないのでNULLにする
             SELECT main_task_id, sub_task_id as child_task_id, NULL as parent_task_status
             FROM sub_tasks
             WHERE sub_task_id = $1
 
             UNION
 
+            -- ブロックしているタスクのステータスをSELECTする
             SELECT blocking_task_id as main_task_id, blocked_task_id as child_task_id, status
             FROM blocking_tasks b JOIN tasks t ON b.blocking_task_id = t.id
             WHERE blocked_task_id = $1
