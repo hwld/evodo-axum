@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO blocking_tasks(blocking_task_id, blocked_task_id, user_id) VALUES($1, $2, $3);",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "ebacf2f461d6abb361d35b1493aee6ee72d4cec3edd0adbdc7bbafc518082f2d"
+}

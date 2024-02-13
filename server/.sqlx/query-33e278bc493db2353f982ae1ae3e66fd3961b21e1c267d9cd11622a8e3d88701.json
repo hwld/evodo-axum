@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT * FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2 AND user_id = $3",
+  "describe": {
+    "columns": [
+      {
+        "name": "subtask_id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "parent_task_id",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "user_id",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "33e278bc493db2353f982ae1ae3e66fd3961b21e1c267d9cd11622a8e3d88701"
+}

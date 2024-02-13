@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT * FROM blocking_tasks WHERE blocking_task_id = $1 AND blocked_task_id = $2;",
+  "describe": {
+    "columns": [
+      {
+        "name": "blocking_task_id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "blocked_task_id",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "user_id",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "1ec79b536792f778cc85d720685545bc5cf4f11bec325866c743902ef714b565"
+}

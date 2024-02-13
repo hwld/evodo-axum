@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": " INSERT INTO task_node_info(task_id, user_id, x, y) VALUES($1, $2, $3, $4) RETURNING task_id;",
+  "describe": {
+    "columns": [
+      {
+        "name": "task_id",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "6e4861f3e963c691ca92fb0e5e7d6a1bbba6f6799113cb26dafa577c87c5980e"
+}

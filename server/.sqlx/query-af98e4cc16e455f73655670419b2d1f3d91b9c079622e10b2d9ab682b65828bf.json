@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            WITH RECURSIVE descendants AS (\n                SELECT subtask_id, parent_task_id\n                FROM subtask_connections\n                WHERE parent_task_id = $1 AND user_id = $2\n    \n                UNION\n    \n                SELECT s.subtask_id, d.parent_task_id\n                FROM subtask_connections s\n                JOIN descendants d ON s.parent_task_id = d.subtask_id\n            )\n    \n            SELECT DISTINCT subtask_id\n            FROM descendants\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "subtask_id",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "af98e4cc16e455f73655670419b2d1f3d91b9c079622e10b2d9ab682b65828bf"
+}

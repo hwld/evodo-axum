@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT id\n        FROM subtask_connections sc \n            LEFT OUTER JOIN tasks t \n            ON (t.id = sc.parent_task_id AND t.user_id = sc.user_id)\n        WHERE sc.subtask_id = $1 AND t.user_id = $2;\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "4489f3c6b8f2d174b809baefa4371fa401836b01adb66965fd7926a8df9bc224"
+}

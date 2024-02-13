@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        WITH RECURSIVE ancestors AS (\n            -- 非再帰\n            SELECT subtask_id as child_id, parent_task_id as parent_id\n            FROM subtask_connections\n            WHERE subtask_id = $1 AND user_id = $2\n\n            UNION\n\n            SELECT blocked_task_id as child_id, blocking_task_id as parent_id\n            FROM blocking_tasks\n            WHERE blocked_task_id = $1 AND user_id = $2\n\n            UNION\n            -- 再帰\n            SELECT s.subtask_id, s.parent_task_id\n            FROM subtask_connections s\n            JOIN ancestors a ON s.subtask_id = a.parent_id\n\n            UNION\n\n            SELECT b.blocked_task_id, b.blocking_task_id\n            FROM blocking_tasks b\n            JOIN ancestors a ON b.blocked_task_id = a.parent_id\n        )\n\n        SELECT DISTINCT parent_id\n        FROM ancestors\n        WHERE parent_id = $3\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "parent_id",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "e3767237e13cd151378bf1c5003f619319a7abea66ea6f6e75c1bfa05c3848d9"
+}

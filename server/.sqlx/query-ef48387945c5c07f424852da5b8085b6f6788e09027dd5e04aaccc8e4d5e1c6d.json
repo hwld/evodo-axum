@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM blocking_tasks WHERE blocking_task_id = $1 AND blocked_task_id = $2 AND user_id = $3 RETURNING *",
+  "describe": {
+    "columns": [
+      {
+        "name": "blocking_task_id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "blocked_task_id",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "user_id",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ef48387945c5c07f424852da5b8085b6f6788e09027dd5e04aaccc8e4d5e1c6d"
+}
