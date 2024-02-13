@@ -5,9 +5,10 @@ import { Edge, useReactFlow } from "@xyflow/react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { api } from "~/api/index.client";
-import { schemas } from "~/api/schema";
+import { endpoints, schemas } from "~/api/schema";
 import { generateBlockTaskEdge, generateBlockTaskEdgeId } from "../util";
 import { useTaskNodeViewAction } from "../task-node-view-provider";
+import { isErrorFromPath } from "@zodios/core";
 
 export const useReconnectBlockTask = () => {
   const flow = useReactFlow();
@@ -19,9 +20,18 @@ export const useReconnectBlockTask = () => {
       return api.put("/block-task/reconnect", { ...data });
     },
     onError: (err) => {
-      console.log("errorr");
       console.error(err);
-      toast.error("ブロックタスクをつなぐことができませんでした。");
+
+      const message = isErrorFromPath(
+        endpoints,
+        "post",
+        "/block-task/connect",
+        err
+      )
+        ? getErrorMessage(err.response.data.error_type)
+        : "ブロックタスクをつなげることができませんでした";
+
+      toast.error(message);
     },
     onSettled: () => {
       revalidator.revalidate();
@@ -65,4 +75,23 @@ export const useReconnectBlockTask = () => {
   );
 
   return { reconnectBlockTask };
+};
+
+const getErrorMessage = (
+  type: z.infer<typeof schemas.ConnectBlockTaskErrorType>
+): string => {
+  switch (type) {
+    case "TaskNotFound": {
+      return "タスクが存在しません";
+    }
+    case "CircularTask": {
+      return "タスクを循環させることはできません";
+    }
+    case "IsSubtask": {
+      return "サブタスクをブロックすることはできません";
+    }
+    default: {
+      throw new Error(type satisfies never);
+    }
+  }
 };

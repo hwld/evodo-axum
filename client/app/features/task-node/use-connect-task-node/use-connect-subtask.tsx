@@ -73,13 +73,13 @@ const getErrorMessage = (
 ): string => {
   switch (type) {
     case "MultipleMainTask": {
-      return "複数のメインタスクを持つことはできません";
+      return "複数のメインタスクを持たせることはできません";
     }
     case "BlockedByMainTask": {
       return "ブロックしているタスクをサブタスクにすることはできません";
     }
     case "CircularTask": {
-      return "タスクが循環しています";
+      return "タスクを循環させることはできません";
     }
     case "TaskNotFound": {
       return "タスクが存在しません";

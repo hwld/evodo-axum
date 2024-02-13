@@ -5,9 +5,10 @@ import { Edge, useReactFlow } from "@xyflow/react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { api } from "~/api/index.client";
-import { schemas } from "~/api/schema";
+import { endpoints, schemas } from "~/api/schema";
 import { generateSubtaskEdge, generateSubtaskEdgeId } from "../util";
 import { useTaskNodeViewAction } from "../task-node-view-provider";
+import { isErrorFromPath } from "@zodios/core";
 
 export const useReconnectSubtask = () => {
   const flow = useReactFlow();
@@ -20,7 +21,17 @@ export const useReconnectSubtask = () => {
     },
     onError: (err) => {
       console.error(err);
-      toast.error("サブタスクをつなぐことができませんでした。");
+
+      const message = isErrorFromPath(
+        endpoints,
+        "post",
+        "/subtask/connect",
+        err
+      )
+        ? getErrorMessage(err.response.data.error_type)
+        : "サブタスクをつなげることができませんでした";
+
+      toast.error(message);
     },
     onSettled: () => {
       revalidator.revalidate();
@@ -65,4 +76,26 @@ export const useReconnectSubtask = () => {
   );
 
   return { reconnectSubtask };
+};
+
+const getErrorMessage = (
+  type: z.infer<typeof schemas.ConnectSubtaskErrorType>
+): string => {
+  switch (type) {
+    case "MultipleMainTask": {
+      return "複数のメインタスクを持たせることはできません";
+    }
+    case "BlockedByMainTask": {
+      return "ブロックしているタスクをサブタスクにすることはできません";
+    }
+    case "CircularTask": {
+      return "タスクを循環させることはできません";
+    }
+    case "TaskNotFound": {
+      return "タスクが存在しません";
+    }
+    default: {
+      throw new Error(type satisfies never);
+    }
+  }
 };
