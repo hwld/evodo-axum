@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use async_recursion::async_recursion;
 use sqlx::{Execute, QueryBuilder, Row, Sqlite};
 
-use crate::app::{AppResult, Connection};
+use crate::app::Connection;
 
 use super::{Task, TaskStatus};
 
@@ -66,7 +66,7 @@ pub async fn find_task<'a>(
     Ok(task)
 }
 
-pub async fn find_tasks(db: &mut Connection, user_id: &str) -> AppResult<Vec<Task>> {
+pub async fn find_tasks(db: &mut Connection, user_id: &str) -> anyhow::Result<Vec<Task>> {
     let raw_tasks = sqlx::query!(
         r#"
         SELECT t.*, s.parent_task_id, s.subtask_id, b.blocked_task_id
@@ -143,7 +143,7 @@ pub async fn find_parent_task_ids<'a>(
 pub async fn update_all_unblocked_descendant_tasks<'a>(
     db: &mut Connection,
     args: UpdateTaskStatusArgs<'a>,
-) -> AppResult<()> {
+) -> anyhow::Result<()> {
     let descendant_ids: Vec<String> = if args.status == &TaskStatus::Todo {
         // TODOに変更する場合は何もチェックしない
         let result = sqlx::query!(
@@ -261,7 +261,10 @@ pub struct InsertTaskArgs<'a> {
     pub user_id: &'a str,
     pub status: &'a TaskStatus,
 }
-pub async fn insert_task<'a>(db: &mut Connection, args: InsertTaskArgs<'a>) -> AppResult<Task> {
+pub async fn insert_task<'a>(
+    db: &mut Connection,
+    args: InsertTaskArgs<'a>,
+) -> anyhow::Result<Task> {
     let result = sqlx::query!(
         r#" INSERT INTO tasks(id, title, description, user_id, status) VALUES($1, $2, $3, $4, $5) RETURNING *"#,
         args.id,
@@ -289,7 +292,10 @@ pub struct DeleteTaskArgs<'a> {
     pub id: &'a str,
     pub user_id: &'a str,
 }
-pub async fn delete_task<'a>(db: &mut Connection, args: DeleteTaskArgs<'a>) -> AppResult<String> {
+pub async fn delete_task<'a>(
+    db: &mut Connection,
+    args: DeleteTaskArgs<'a>,
+) -> anyhow::Result<String> {
     let result = sqlx::query!(
         r#"DELETE FROM tasks WHERE id = $1 AND user_id = $2 RETURNING *;"#,
         args.id,
@@ -307,7 +313,10 @@ pub struct UpdateTaskArgs<'a> {
     pub description: &'a str,
     pub user_id: &'a str,
 }
-pub async fn update_task<'a>(db: &mut Connection, args: UpdateTaskArgs<'a>) -> AppResult<Task> {
+pub async fn update_task<'a>(
+    db: &mut Connection,
+    args: UpdateTaskArgs<'a>,
+) -> anyhow::Result<Task> {
     let result = sqlx::query!(
         r#"
         UPDATE
@@ -385,7 +394,7 @@ pub struct UpdateTasksStatusArgs<'a> {
 pub async fn update_tasks_status<'a>(
     db: &mut Connection,
     args: UpdateTasksStatusArgs<'a>,
-) -> AppResult<()> {
+) -> anyhow::Result<()> {
     if args.task_ids.is_empty() {
         return Ok(());
     };
@@ -552,7 +561,7 @@ pub struct InsertBlockTaskConnectionArgs<'a> {
 pub async fn insert_block_task_connection<'a>(
     db: &mut Connection,
     args: InsertBlockTaskConnectionArgs<'a>,
-) -> AppResult<()> {
+) -> anyhow::Result<()> {
     sqlx::query!(
         "INSERT INTO blocking_tasks(blocking_task_id, blocked_task_id, user_id) VALUES ($1, $2, $3) RETURNING *;",
         args.blocking_task_id,
@@ -637,7 +646,7 @@ pub async fn check_subtask_connection<'a>(
 pub async fn check_insert_block_task_connection<'a>(
     db: &mut Connection,
     args: &InsertBlockTaskConnectionArgs<'a>,
-) -> AppResult<()> {
+) -> anyhow::Result<()> {
     // ログインユーザーが指定されたタスクを持っているかを確認する
     let tasks = sqlx::query!(
         "SELECT * FROM tasks WHERE id IN ($1, $2) AND user_id = $3;",
@@ -649,7 +658,7 @@ pub async fn check_insert_block_task_connection<'a>(
     .await?;
 
     if tasks.len() != 2 {
-        return Err(anyhow!("タスクが存在しません").into());
+        return Err(anyhow!("タスクが存在しません"));
     }
 
     if is_subtask(
@@ -662,7 +671,7 @@ pub async fn check_insert_block_task_connection<'a>(
     )
     .await?
     {
-        return Err(anyhow!("サブタスクをブロックすることはできません").into());
+        return Err(anyhow!("サブタスクをブロックすることはできません"));
     };
 
     // タスク同士が循環していないかを確認する。
@@ -676,7 +685,7 @@ pub async fn check_insert_block_task_connection<'a>(
     )
     .await?
     {
-        return Err(anyhow!("タスクの循環は許可されていません").into());
+        return Err(anyhow!("タスクの循環は許可されていません"));
     }
 
     Ok(())
@@ -690,7 +699,7 @@ pub struct DeleteSubTaskConnectionArgs<'a> {
 pub async fn delete_subtask_connection<'a>(
     db: &mut Connection,
     args: DeleteSubTaskConnectionArgs<'a>,
-) -> AppResult<()> {
+) -> anyhow::Result<()> {
     sqlx::query!(
         "DELETE FROM subtask_connections WHERE parent_task_id = $1 AND subtask_id = $2 AND user_id = $3 RETURNING *",
         args.parent_task_id,
@@ -709,7 +718,7 @@ pub struct DeleteBlockTaskConnectionArgs<'a> {
 pub async fn delete_block_task_connection<'a>(
     db: &mut Connection,
     args: DeleteBlockTaskConnectionArgs<'a>,
-) -> AppResult<()> {
+) -> anyhow::Result<()> {
     sqlx::query!(
         "DELETE FROM blocking_tasks WHERE blocking_task_id = $1 AND blocked_task_id = $2 AND user_id = $3 RETURNING *",
         args.blocking_task_id,
@@ -777,7 +786,7 @@ pub struct IsSubtaskArgs<'a> {
     pub task_id: &'a str,
     pub user_id: &'a str,
 }
-pub async fn is_subtask<'a>(db: &mut Connection, args: IsSubtaskArgs<'a>) -> AppResult<bool> {
+pub async fn is_subtask<'a>(db: &mut Connection, args: IsSubtaskArgs<'a>) -> anyhow::Result<bool> {
     let result = sqlx::query!(
         r#"
         WITH RECURSIVE subtasks AS (
@@ -806,7 +815,10 @@ pub async fn is_subtask<'a>(db: &mut Connection, args: IsSubtaskArgs<'a>) -> App
     Ok(!result.is_empty())
 }
 
-pub async fn is_all_blocking_tasks_done(db: &mut Connection, task_id: &str) -> AppResult<bool> {
+pub async fn is_all_blocking_tasks_done(
+    db: &mut Connection,
+    task_id: &str,
+) -> anyhow::Result<bool> {
     let result = sqlx::query!(
         r#"
         WITH RECURSIVE ancestors AS (

@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Empty;
 
+// thiserror::ErrorをderiveするとFromの実装でコンフリクトが起こるのでderiveをしていない
+// 下から上がってきたErrorを?で返せるようにしたいからFromを実装しているのだが、素直にmap_errorとかを使うべきなんだろうか。
 #[derive(Debug)]
 pub struct AppError {
     code: StatusCode,

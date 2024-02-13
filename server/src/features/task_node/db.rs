@@ -1,5 +1,5 @@
 use crate::{
-    app::{AppResult, Connection},
+    app::Connection,
     features::task::{
         db::{find_task, find_tasks, insert_task, FindTaskArgs, InsertTaskArgs},
         TaskStatus,
@@ -26,7 +26,7 @@ pub async fn insert_task_node<'a>(
         x,
         y,
     }: InsertTaskNodeArgs<'a>,
-) -> AppResult<TaskNode> {
+) -> anyhow::Result<TaskNode> {
     let task = insert_task(
         db,
         InsertTaskArgs {
@@ -60,14 +60,17 @@ pub struct FindTaskNodeArgs<'a> {
 pub async fn find_task_node<'a>(
     db: &mut Connection,
     FindTaskNodeArgs { task_id, user_id }: FindTaskNodeArgs<'a>,
-) -> AppResult<TaskNode> {
+) -> anyhow::Result<TaskNode> {
     let task = find_task(db, FindTaskArgs { task_id, user_id }).await?;
     let node_info = find_task_node_info(db, FindTaskNodeInfo { task_id, user_id }).await?;
 
     Ok(TaskNode { task, node_info })
 }
 
-pub async fn find_task_nodes<'a>(db: &mut Connection, user_id: &str) -> AppResult<Vec<TaskNode>> {
+pub async fn find_task_nodes<'a>(
+    db: &mut Connection,
+    user_id: &str,
+) -> anyhow::Result<Vec<TaskNode>> {
     let tasks = find_tasks(db, user_id).await?;
     let node_info_list = find_task_node_info_list(db, user_id).await?;
 
@@ -105,7 +108,7 @@ pub async fn insert_task_node_info<'a>(
         x,
         y,
     }: InsertTaskNodeInfoArgs<'a>,
-) -> AppResult<TaskNodeInfo> {
+) -> anyhow::Result<TaskNodeInfo> {
     let result = sqlx::query!(
         r#" INSERT INTO task_node_info(task_id, user_id, x, y) VALUES($1, $2, $3, $4) RETURNING task_id;"#,
         task_id,
@@ -140,7 +143,7 @@ pub async fn update_task_node_info<'a>(
         x,
         y,
     }: UpdateTaskNodeInfoArgs<'a>,
-) -> AppResult<TaskNodeInfo> {
+) -> anyhow::Result<TaskNodeInfo> {
     let result = sqlx::query!(
         r#"
         UPDATE 
@@ -180,7 +183,7 @@ pub struct FindTaskNodeInfo<'a> {
 pub async fn find_task_node_info<'a>(
     db: &mut Connection,
     FindTaskNodeInfo { task_id, user_id }: FindTaskNodeInfo<'a>,
-) -> AppResult<TaskNodeInfo> {
+) -> anyhow::Result<TaskNodeInfo> {
     let result = sqlx::query!(
         r#"SELECT * FROM task_node_info WHERE task_id = $1 AND user_id = $2"#,
         task_id,
@@ -201,7 +204,7 @@ pub async fn find_task_node_info<'a>(
 pub async fn find_task_node_info_list<'a>(
     db: &mut Connection,
     user_id: &str,
-) -> AppResult<Vec<TaskNodeInfo>> {
+) -> anyhow::Result<Vec<TaskNodeInfo>> {
     let result = sqlx::query_as!(
         TaskNodeInfo,
         r#"SELECT * FROM task_node_info WHERE user_id = $1"#,
