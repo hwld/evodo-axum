@@ -15,7 +15,7 @@ pub struct FindTaskArgs<'a> {
 pub async fn find_task<'a>(
     db: &mut Connection,
     FindTaskArgs { user_id, task_id }: FindTaskArgs<'a>,
-) -> AppResult<Task> {
+) -> anyhow::Result<Task> {
     let raw_task = sqlx::query!(
         r#"
         SELECT t.*, s.parent_task_id, s.subtask_id, b.blocked_task_id
@@ -121,7 +121,7 @@ pub struct FindParentTaskIdsArgs<'a> {
 pub async fn find_parent_task_ids<'a>(
     db: &mut Connection,
     args: FindParentTaskIdsArgs<'a>,
-) -> AppResult<Vec<String>> {
+) -> anyhow::Result<Vec<String>> {
     let parent_ids = sqlx::query!(
         r#"
         SELECT id
@@ -227,7 +227,10 @@ pub async fn update_all_unblocked_descendant_tasks<'a>(
     Ok(())
 }
 
-pub async fn is_all_tasks_done(db: &mut Connection, task_ids: &Vec<String>) -> AppResult<bool> {
+pub async fn is_all_tasks_done(
+    db: &mut Connection,
+    task_ids: &Vec<String>,
+) -> anyhow::Result<bool> {
     if task_ids.is_empty() {
         return Ok(true);
     }
@@ -344,7 +347,7 @@ pub struct UpdateTaskStatusArgs<'a> {
 pub async fn update_task_status<'a>(
     db: &mut Connection,
     args: UpdateTaskStatusArgs<'a>,
-) -> AppResult<Task> {
+) -> anyhow::Result<Task> {
     let result = sqlx::query!(
         r#"
         UPDATE
@@ -422,7 +425,7 @@ pub struct TaskAndUser<'a> {
 pub async fn update_all_ancestors_task_status<'a>(
     db: &mut Connection,
     args: TaskAndUser<'a>,
-) -> AppResult<()> {
+) -> anyhow::Result<()> {
     let parent_ids = find_parent_task_ids(
         &mut *db,
         FindParentTaskIdsArgs {
@@ -458,7 +461,7 @@ pub struct TasksAndUser<'a> {
 pub async fn update_tasks_and_ancestors_status<'a>(
     db: &mut Connection,
     args: TasksAndUser<'a>,
-) -> AppResult<()>
+) -> anyhow::Result<()>
 where
     'a: 'async_recursion,
 {
@@ -528,7 +531,7 @@ pub struct InsertSubTaskConnectionArgs<'a> {
 pub async fn insert_subtask_connection<'a>(
     db: &mut Connection,
     args: InsertSubTaskConnectionArgs<'a>,
-) -> AppResult<()> {
+) -> anyhow::Result<()> {
     sqlx::query!(
         "INSERT INTO subtask_connections(parent_task_id, subtask_id, user_id) VALUES($1, $2, $3) RETURNING *;",
         args.parent_task_id,
@@ -562,10 +565,18 @@ pub async fn insert_block_task_connection<'a>(
     Ok(())
 }
 
+pub enum SubtaskConnectionError {
+    TaskNotFound,
+    CircularTask,
+    MultipleMainTask,
+    BlockedByMainTask,
+    Unknown(anyhow::Error),
+}
+
 pub async fn check_subtask_connection<'a>(
     db: &mut Connection,
     args: &InsertSubTaskConnectionArgs<'a>,
-) -> AppResult<()> {
+) -> Result<(), SubtaskConnectionError> {
     // ログインユーザーが指定されたタスクを持っているかを確認する
     let tasks = sqlx::query!(
         "SELECT * FROM tasks WHERE id IN ($1, $2) AND user_id = $3;",
@@ -574,10 +585,11 @@ pub async fn check_subtask_connection<'a>(
         args.user_id,
     )
     .fetch_all(&mut *db)
-    .await?;
+    .await
+    .map_err(|e| SubtaskConnectionError::Unknown(e.into()))?;
 
     if tasks.len() != 2 {
-        return Err(anyhow!("タスクが存在しません").into());
+        return Err(SubtaskConnectionError::TaskNotFound);
     }
 
     // タスク同士が循環していないかを確認する。
@@ -590,9 +602,10 @@ pub async fn check_subtask_connection<'a>(
             user_id: args.user_id,
         },
     )
-    .await?
+    .await
+    .map_err(SubtaskConnectionError::Unknown)?
     {
-        return Err(anyhow!("タスクの循環は許可されていません").into());
+        return Err(SubtaskConnectionError::CircularTask);
     }
 
     // サブタスクがメインタスクにブロックされているタスクではないことを確認する
@@ -603,17 +616,18 @@ pub async fn check_subtask_connection<'a>(
             task_id: args.subtask_id,
         },
     )
-    .await?
+    .await
+    .map_err(SubtaskConnectionError::Unknown)?
     {
-        return Err(anyhow!(
-            "メインタスクがブロックしているタスクをサブスクにすることはできません"
-        )
-        .into());
+        return Err(SubtaskConnectionError::BlockedByMainTask);
     }
 
     // サブタスクが他のメインタスクを持っていないことを確認する
-    if has_main_task(&mut *db, args.subtask_id).await? {
-        return Err(anyhow!("複数のメインタスクを持つことはできません").into());
+    if has_main_task(&mut *db, args.subtask_id)
+        .await
+        .map_err(SubtaskConnectionError::Unknown)?
+    {
+        return Err(SubtaskConnectionError::MultipleMainTask);
     }
 
     Ok(())
@@ -716,7 +730,7 @@ pub struct DetectCircularConnectionArgs<'a> {
 pub async fn detect_circular_connection<'a>(
     db: &mut Connection,
     args: DetectCircularConnectionArgs<'a>,
-) -> AppResult<bool> {
+) -> anyhow::Result<bool> {
     let result = sqlx::query!(
         r#"
         WITH RECURSIVE ancestors AS (
@@ -835,7 +849,7 @@ pub async fn is_all_blocking_tasks_done(db: &mut Connection, task_id: &str) -> A
     Ok(result.non_done_status_count == 0)
 }
 
-pub async fn has_main_task(db: &mut Connection, task_id: &str) -> AppResult<bool> {
+pub async fn has_main_task(db: &mut Connection, task_id: &str) -> anyhow::Result<bool> {
     let result = sqlx::query!(
         "SELECT * FROM subtask_connections WHERE subtask_id = $1",
         task_id
@@ -853,7 +867,7 @@ pub struct IsBlockedTaskArgs<'a> {
 pub async fn is_blocked_task<'a>(
     db: &mut Connection,
     args: IsBlockedTaskArgs<'a>,
-) -> AppResult<bool> {
+) -> anyhow::Result<bool> {
     let result = sqlx::query!(
         "SELECT * FROM blocking_tasks WHERE blocking_task_id = $1 AND blocked_task_id = $2;",
         args.blocking_task_id,

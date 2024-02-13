@@ -1,3 +1,5 @@
+use anyhow::anyhow;
+
 use crate::app::{AppResult, Connection};
 
 use super::{
@@ -23,6 +25,7 @@ pub async fn action<'a>(db: &mut Connection, args: ReconnectSubtaskArgs<'a>) -> 
     )
     .await?;
 
+    // TODO
     connect_subtask::action(
         db,
         ConnectSubtaskArgs {
@@ -31,7 +34,8 @@ pub async fn action<'a>(db: &mut Connection, args: ReconnectSubtaskArgs<'a>) -> 
             user_id: args.user_id,
         },
     )
-    .await?;
+    .await
+    .map_err(|_| anyhow!("error"))?;
 
     Ok(())
 }

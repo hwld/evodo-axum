@@ -1,11 +1,8 @@
-use http::StatusCode;
-
 use crate::{
-    app::{AppResult, Connection},
-    error::AppError,
+    app::Connection,
     features::task::db::{
         check_subtask_connection, insert_subtask_connection, update_all_ancestors_task_status,
-        InsertSubTaskConnectionArgs, TaskAndUser,
+        InsertSubTaskConnectionArgs, SubtaskConnectionError, TaskAndUser,
     },
 };
 
@@ -14,7 +11,16 @@ pub struct ConnectSubtaskArgs<'a> {
     pub subtask_id: &'a str,
     pub user_id: &'a str,
 }
-pub async fn action<'a>(db: &mut Connection, args: ConnectSubtaskArgs<'a>) -> AppResult<()> {
+
+pub enum ConnectSubtaskError {
+    CheckError(SubtaskConnectionError),
+    Unknown(anyhow::Error),
+}
+
+pub async fn action<'a>(
+    db: &mut Connection,
+    args: ConnectSubtaskArgs<'a>,
+) -> Result<(), ConnectSubtaskError> {
     let insert_args = InsertSubTaskConnectionArgs {
         parent_task_id: args.parent_task_id,
         subtask_id: args.subtask_id,
@@ -23,9 +29,11 @@ pub async fn action<'a>(db: &mut Connection, args: ConnectSubtaskArgs<'a>) -> Ap
 
     check_subtask_connection(db, &insert_args)
         .await
-        .map_err(|e| AppError::new(StatusCode::NOT_FOUND, Some(&e.to_string())))?;
+        .map_err(ConnectSubtaskError::CheckError)?;
 
-    insert_subtask_connection(db, insert_args).await?;
+    insert_subtask_connection(db, insert_args)
+        .await
+        .map_err(ConnectSubtaskError::Unknown)?;
 
     update_all_ancestors_task_status(
         db,
@@ -34,7 +42,8 @@ pub async fn action<'a>(db: &mut Connection, args: ConnectSubtaskArgs<'a>) -> Ap
             user_id: args.user_id,
         },
     )
-    .await?;
+    .await
+    .map_err(ConnectSubtaskError::Unknown)?;
 
     Ok(())
 }

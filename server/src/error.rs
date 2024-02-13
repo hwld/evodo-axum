@@ -1,10 +1,15 @@
 use axum::response::IntoResponse;
 use http::StatusCode;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct Empty;
 
 #[derive(Debug)]
 pub struct AppError {
     code: StatusCode,
     inner: anyhow::Error,
+    body: Option<serde_json::Value>,
 }
 
 impl AppError {
@@ -15,6 +20,19 @@ impl AppError {
         AppError {
             code,
             inner: anyhow::anyhow!("{}", msg),
+            body: None,
+        }
+    }
+
+    pub fn with_json<T>(code: StatusCode, json: T) -> Self
+    where
+        T: Serialize,
+    {
+        let msg = serde_json::to_string(&json).unwrap_or("Unknown".into());
+        AppError {
+            code,
+            inner: anyhow::anyhow!("{}", msg),
+            body: Some(serde_json::to_value(&json).unwrap_or(serde_json::Value::Null)),
         }
     }
 
@@ -25,8 +43,12 @@ impl AppError {
 
 impl IntoResponse for AppError {
     fn into_response(self) -> axum::response::Response {
-        // 内部のエラーメッセージは外に出さない
-        (self.code, self.code.canonical_reason().unwrap_or("Unknown")).into_response()
+        if let Some(json) = self.body {
+            (self.code, json.to_string()).into_response()
+        } else {
+            // bodyが存在しない場合は内部のエラーメッセージは外に出さない
+            (self.code, self.code.canonical_reason().unwrap_or("Unknown")).into_response()
+        }
     }
 }
 
@@ -39,6 +61,7 @@ where
         Self {
             code: StatusCode::INTERNAL_SERVER_ERROR,
             inner: err,
+            body: None,
         }
     }
 }

@@ -1,5 +1,9 @@
+use anyhow::anyhow;
 use axum::{extract::State, response::IntoResponse, Json};
 use axum_login::AuthSession;
+use http::StatusCode;
+use serde::Serialize;
+use utoipa::ToSchema;
 
 use crate::{
     app::{AppResult, AppState},
@@ -7,14 +11,33 @@ use crate::{
     features::{
         auth::Auth,
         task::{
-            usecases::connect_subtask::{self, ConnectSubtaskArgs},
+            db::SubtaskConnectionError,
+            usecases::connect_subtask::{self, ConnectSubtaskArgs, ConnectSubtaskError},
             ConnectSubtask,
         },
     },
 };
 
+#[derive(Debug, Serialize, ToSchema)]
+pub enum ConnectSubtaskErrorType {
+    TaskNotFound,
+    CircularTask,
+    MultipleMainTask,
+    BlockedByMainTask,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ConnectSubtaskErrorBody {
+    error_type: ConnectSubtaskErrorType,
+}
+
 #[tracing::instrument(err)]
-#[utoipa::path(post, tag = super::TAG, path = super::TaskPaths::connect_subtask(), responses((status = 200)))]
+#[utoipa::path(post, tag = super::TAG, path = super::TaskPaths::connect_subtask(),
+    responses(
+        (status = 200),
+        (status = 400, body = ConnectSubtaskErrorBody)
+    )
+)]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     State(AppState { db }): State<AppState>,
@@ -26,7 +49,7 @@ pub async fn handler(
 
     let mut tx = db.begin().await?;
 
-    connect_subtask::action(
+    if let Err(e) = connect_subtask::action(
         &mut tx,
         ConnectSubtaskArgs {
             parent_task_id: &payload.parent_task_id,
@@ -34,7 +57,32 @@ pub async fn handler(
             user_id: &user.id,
         },
     )
-    .await?;
+    .await
+    {
+        // TODO: なんとかならない？
+        let body = match e {
+            ConnectSubtaskError::CheckError(SubtaskConnectionError::TaskNotFound) => {
+                ConnectSubtaskErrorType::TaskNotFound
+            }
+            ConnectSubtaskError::CheckError(SubtaskConnectionError::CircularTask) => {
+                ConnectSubtaskErrorType::CircularTask
+            }
+            ConnectSubtaskError::CheckError(SubtaskConnectionError::MultipleMainTask) => {
+                ConnectSubtaskErrorType::MultipleMainTask
+            }
+            ConnectSubtaskError::CheckError(SubtaskConnectionError::BlockedByMainTask) => {
+                ConnectSubtaskErrorType::BlockedByMainTask
+            }
+            ConnectSubtaskError::CheckError(SubtaskConnectionError::Unknown(_)) => {
+                return Err(anyhow!("Unknown").into());
+            }
+            ConnectSubtaskError::Unknown(_) => {
+                return Err(anyhow!("Unknown").into());
+            }
+        };
+
+        return Err(AppError::with_json(StatusCode::BAD_REQUEST, body));
+    };
 
     tx.commit().await?;
 

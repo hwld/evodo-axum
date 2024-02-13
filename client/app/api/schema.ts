@@ -31,6 +31,15 @@ const ConnectSubtask = z.object({
   parent_task_id: z.string(),
   subtask_id: z.string(),
 });
+const ConnectSubtaskErrorType = z.enum([
+  "TaskNotFound",
+  "CircularTask",
+  "MultipleMainTask",
+  "BlockedByMainTask",
+]);
+const ConnectSubtaskErrorBody = z.object({
+  error_type: ConnectSubtaskErrorType,
+});
 const DisconnectSubtask = z.object({
   parent_task_id: z.string(),
   subtask_id: z.string(),
@@ -84,6 +93,8 @@ export const schemas = {
   DisconnectBlockTask,
   ReconnectBlockTask,
   ConnectSubtask,
+  ConnectSubtaskErrorType,
+  ConnectSubtaskErrorBody,
   DisconnectSubtask,
   ReconnectSubtask,
   UpdateTaskNodeInfo,
@@ -206,6 +217,12 @@ export const endpoints = makeApi([
       },
     ],
     response: z.void(),
+    errors: [
+      {
+        status: 400,
+        schema: ConnectSubtaskErrorBody,
+      },
+    ],
   },
   {
     method: "delete",
