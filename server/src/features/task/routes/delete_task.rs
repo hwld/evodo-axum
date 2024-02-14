@@ -10,8 +10,8 @@ use crate::{
     app::AppResult,
     features::task::{
         db::{
-            delete_task, find_main_task_ids, update_tasks_and_all_ancestor_main_tasks_status,
-            DeleteTaskArgs, FindMainTaskIdsArgs, TasksAndUser,
+            delete_task, find_main_task_id, update_task_and_all_ancestor_main_tasks_status,
+            DeleteTaskArgs, FindMainTaskIdsArgs, TaskAndUser,
         },
         DeleteTaskResponse,
     },
@@ -31,8 +31,8 @@ pub async fn handler(
 
     let mut tx = db.begin().await?;
 
-    // すべてのメインタスクを更新するために削除する前に取得しておく
-    let main_ids = find_main_task_ids(
+    // すべての祖先メインタスクを更新するために削除する前に取得しておく
+    let main_task_id = find_main_task_id(
         &mut tx,
         FindMainTaskIdsArgs {
             sub_task_id: &id,
@@ -50,15 +50,17 @@ pub async fn handler(
     )
     .await?;
 
-    // 祖先メインタスクを更新
-    update_tasks_and_all_ancestor_main_tasks_status(
-        &mut tx,
-        TasksAndUser {
-            task_ids: &main_ids,
-            user_id: &user.id,
-        },
-    )
-    .await?;
+    // すべての祖先メインタスクを更新
+    if let Some(id) = main_task_id {
+        update_task_and_all_ancestor_main_tasks_status(
+            &mut tx,
+            TaskAndUser {
+                task_id: &id,
+                user_id: &user.id,
+            },
+        )
+        .await?;
+    }
 
     tx.commit().await?;
 

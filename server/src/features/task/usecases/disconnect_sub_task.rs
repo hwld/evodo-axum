@@ -1,9 +1,9 @@
 use crate::{
     app::Connection,
     features::task::db::{
-        delete_sub_task_connection, find_main_task_ids,
-        update_tasks_and_all_ancestor_main_tasks_status, DeleteSubTaskConnectionArgs,
-        FindMainTaskIdsArgs, TasksAndUser,
+        delete_sub_task_connection, find_main_task_id,
+        update_task_and_all_ancestor_main_tasks_status, DeleteSubTaskConnectionArgs,
+        FindMainTaskIdsArgs, TaskAndUser,
     },
 };
 
@@ -17,7 +17,7 @@ pub async fn action<'a>(
     args: DisconnectSubTaskArgs<'a>,
 ) -> anyhow::Result<()> {
     // 後でサブタスクのメインタスクをすべてを更新する必要があるので、sub_tasksを削除する前に直近のメインタスクを取得しておく
-    let main_ids = find_main_task_ids(
+    let main_task_id = find_main_task_id(
         &mut *db,
         FindMainTaskIdsArgs {
             sub_task_id: args.sub_task_id,
@@ -36,15 +36,17 @@ pub async fn action<'a>(
     )
     .await?;
 
-    // 接続を切り離したサブタスクのすべてのメインタスクの状態をすべて更新する
-    update_tasks_and_all_ancestor_main_tasks_status(
-        &mut *db,
-        TasksAndUser {
-            task_ids: &main_ids,
-            user_id: args.user_id,
-        },
-    )
-    .await?;
+    if let Some(id) = main_task_id {
+        // 接続を切り離したサブタスクのすべての祖先メインタスクの状態を更新する
+        update_task_and_all_ancestor_main_tasks_status(
+            &mut *db,
+            TaskAndUser {
+                task_id: &id,
+                user_id: args.user_id,
+            },
+        )
+        .await?;
+    }
 
     Ok(())
 }

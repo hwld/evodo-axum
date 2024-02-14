@@ -14,7 +14,7 @@ use crate::{
         task::{
             db::{
                 is_all_blocking_tasks_done, update_all_unblocked_descendant_sub_tasks,
-                update_task_status, update_tasks_and_all_ancestor_main_tasks_status, TasksAndUser,
+                update_task_and_all_ancestor_main_tasks_status, update_task_status, TaskAndUser,
                 UpdateTaskStatusArgs,
             },
             TaskStatus, UpdateTaskStatus,
@@ -66,11 +66,12 @@ pub async fn handler(
     )
     .await?;
 
-    // メインタスクと、すべての祖先メインタスクを更新する
-    update_tasks_and_all_ancestor_main_tasks_status(
+    // 子孫サブタスクを更新しているので、タスクの状態が変更している可能性があるため、
+    // タスクをもう一度更新して、その祖先メインタスクも更新する
+    update_task_and_all_ancestor_main_tasks_status(
         &mut tx,
-        TasksAndUser {
-            task_ids: &vec![updated_task.id.clone()],
+        TaskAndUser {
+            task_id: &updated_task.id,
             user_id: &user.id,
         },
     )

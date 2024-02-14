@@ -118,28 +118,20 @@ pub struct FindMainTaskIdsArgs<'a> {
     pub sub_task_id: &'a str,
     pub user_id: &'a str,
 }
-// TODO: メインタスクは一つに制限することにしたので、VecではなくてStringを返すようにする
-// また、これをSQLレベルで制限したいので、tasksにNULL許容のmain_task_idを追加する
-pub async fn find_main_task_ids<'a>(
+
+pub async fn find_main_task_id<'a>(
     db: &mut Connection,
     args: FindMainTaskIdsArgs<'a>,
-) -> anyhow::Result<Vec<String>> {
-    let main_ids = sqlx::query!(
-        r#"
-        SELECT id
-        FROM sub_tasks sc 
-            LEFT OUTER JOIN tasks t 
-            ON (t.id = sc.main_task_id AND t.user_id = sc.user_id)
-        WHERE sc.sub_task_id = $1 AND t.user_id = $2;
-        "#,
+) -> anyhow::Result<Option<String>> {
+    let result = sqlx::query!(
+        r#"SELECT main_task_id FROM sub_tasks WHERE sub_task_id = $1 AND user_id = $2;"#,
         args.sub_task_id,
         args.user_id,
     )
-    .fetch_all(&mut *db)
+    .fetch_optional(&mut *db)
     .await?;
 
-    let main_ids: Vec<String> = main_ids.into_iter().map(|r| r.id).collect();
-    Ok(main_ids)
+    Ok(result.map(|r| r.main_task_id))
 }
 
 pub async fn update_all_unblocked_descendant_sub_tasks<'a>(
@@ -433,11 +425,11 @@ pub struct TaskAndUser<'a> {
     pub task_id: &'a str,
     pub user_id: &'a str,
 }
-pub async fn update_all_main_tasks_status<'a>(
+pub async fn update_all_ancestor_main_tasks_status<'a>(
     db: &mut Connection,
     args: TaskAndUser<'a>,
 ) -> anyhow::Result<()> {
-    let main_ids = find_main_task_ids(
+    let main_task_id = find_main_task_id(
         &mut *db,
         FindMainTaskIdsArgs {
             sub_task_id: args.task_id,
@@ -446,85 +438,72 @@ pub async fn update_all_main_tasks_status<'a>(
     )
     .await?;
 
-    if main_ids.is_empty() {
-        return Ok(());
-    };
+    if let Some(id) = main_task_id {
+        update_task_and_all_ancestor_main_tasks_status(
+            &mut *db,
+            TaskAndUser {
+                task_id: &id,
+                user_id: args.user_id,
+            },
+        )
+        .await?;
+    }
 
-    update_tasks_and_all_ancestor_main_tasks_status(
+    Ok(())
+}
+
+// パフォーマンス悪いかも
+#[async_recursion]
+pub async fn update_task_and_all_ancestor_main_tasks_status<'a>(
+    db: &mut Connection,
+    args: TaskAndUser<'a>,
+) -> anyhow::Result<()>
+where
+    'a: 'async_recursion,
+{
+    let task = find_task(
         &mut *db,
-        TasksAndUser {
-            task_ids: &main_ids,
+        FindTaskArgs {
+            task_id: args.task_id,
             user_id: args.user_id,
         },
     )
     .await?;
 
-    Ok(())
-}
+    if !task.sub_task_ids.is_empty() {
+        // サブタスクの状態を見てタスクの状態を更新する
+        let is_all_sub_tasks_done = is_all_tasks_done(&mut *db, &task.sub_task_ids).await?;
+        let new_status = if is_all_sub_tasks_done {
+            TaskStatus::Done
+        } else {
+            TaskStatus::Todo
+        };
 
-pub struct TasksAndUser<'a> {
-    pub task_ids: &'a Vec<String>,
-    pub user_id: &'a str,
-}
-
-// パフォーマンス悪いかも
-#[async_recursion]
-pub async fn update_tasks_and_all_ancestor_main_tasks_status<'a>(
-    db: &mut Connection,
-    args: TasksAndUser<'a>,
-) -> anyhow::Result<()>
-where
-    'a: 'async_recursion,
-{
-    if args.task_ids.is_empty() {
-        return Ok(());
+        update_task_status(
+            &mut *db,
+            UpdateTaskStatusArgs {
+                id: &task.id,
+                status: &new_status,
+                user_id: args.user_id,
+            },
+        )
+        .await?;
     }
 
-    for task_id in args.task_ids {
-        let task = find_task(
+    let main_task_id = find_main_task_id(
+        &mut *db,
+        FindMainTaskIdsArgs {
+            sub_task_id: &task.id,
+            user_id: args.user_id,
+        },
+    )
+    .await?;
+
+    if let Some(id) = main_task_id {
+        update_task_and_all_ancestor_main_tasks_status(
             &mut *db,
-            FindTaskArgs {
-                task_id,
-                user_id: args.user_id,
-            },
-        )
-        .await?;
-
-        // サブタスクから辿ったメインタスクがargs.tasksに入っているなら空にはならないが、サブタスクを持たないtaskで呼ばれる可能性がある
-        if !task.sub_task_ids.is_empty() {
-            let all_sub_tasks_done = is_all_tasks_done(&mut *db, &task.sub_task_ids).await?;
-            let new_status = if all_sub_tasks_done {
-                TaskStatus::Done
-            } else {
-                TaskStatus::Todo
-            };
-
-            // 渡されたタスクが多いことを想定するならupdateをまとめたほうがいいかもしれないけど、多くならないと思う
-            update_task_status(
-                &mut *db,
-                UpdateTaskStatusArgs {
-                    id: &task.id,
-                    status: &new_status,
-                    user_id: args.user_id,
-                },
-            )
-            .await?;
-        }
-
-        let main_ids = find_main_task_ids(
-            &mut *db,
-            FindMainTaskIdsArgs {
-                sub_task_id: &task.id,
-                user_id: args.user_id,
-            },
-        )
-        .await?;
-
-        // メインタスクのメインタスクも再帰的にに処理する
-        update_tasks_and_all_ancestor_main_tasks_status(
-            &mut *db,
-            TasksAndUser {
-                task_ids: &main_ids,
+            TaskAndUser {
+                task_id: &id,
                 user_id: args.user_id,
             },
         )
