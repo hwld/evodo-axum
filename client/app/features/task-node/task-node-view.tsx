@@ -1,4 +1,9 @@
-import { OnEdgesChange, Panel, applyEdgeChanges } from "@xyflow/react";
+import {
+  EdgeSelectionChange,
+  OnEdgesChange,
+  Panel,
+  applyEdgeChanges,
+} from "@xyflow/react";
 import { TaskNodeForm } from "~/features/task-node/task-node-form";
 import { useCallback } from "react";
 import { useUpdateTaskNode } from "~/features/task-node/use-update-task-node";
@@ -25,7 +30,23 @@ export const TaskNodeView: React.FC = () => {
 
   const handleEdgesChange: OnEdgesChange = useCallback(
     (changes) => {
-      setTaskNodeEdges((old) => applyEdgeChanges(changes, old));
+      setTaskNodeEdges((old) => {
+        const selects = new Map(
+          changes
+            .filter((c): c is EdgeSelectionChange => c.type === "select")
+            .map((c) => [c.id, c])
+        );
+
+        return applyEdgeChanges(changes, old).map((edge) => {
+          const selectChange = selects.get(edge.id);
+          if (!selectChange) {
+            return edge;
+          }
+
+          const selected = selectChange.selected;
+          return { ...edge, selected, zIndex: selected ? 1 : 0 };
+        });
+      });
     },
     [setTaskNodeEdges]
   );
