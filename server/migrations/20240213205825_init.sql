@@ -23,14 +23,13 @@ BEGIN
 END;
 
 CREATE TABLE `sub_tasks` (
-    `sub_task_id` text NOT NULL,
+    `sub_task_id` text NOT NULL PRIMARY KEY,
     `main_task_id` text NOT NULL,
     `user_id` text NOT NULL,
 
     FOREIGN KEY (`sub_task_id`) REFERENCES `tasks`(`id`) ON UPDATE no action ON DELETE cascade,
     FOREIGN KEY (`main_task_id`) REFERENCES `tasks`(`id`) ON UPDATE no action ON DELETE cascade,
-    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade,
-    PRIMARY KEY (`sub_task_id`, `main_task_id`)
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 
 CREATE TABLE `blocking_tasks` (
