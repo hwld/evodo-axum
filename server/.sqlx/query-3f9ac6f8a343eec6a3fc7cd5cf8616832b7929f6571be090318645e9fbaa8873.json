@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO sub_tasks(main_task_id, sub_task_id, user_id) VALUES($1, $2, $3) RETURNING *;",
+  "describe": {
+    "columns": [
+      {
+        "name": "sub_task_id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "main_task_id",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "user_id",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "3f9ac6f8a343eec6a3fc7cd5cf8616832b7929f6571be090318645e9fbaa8873"
+}

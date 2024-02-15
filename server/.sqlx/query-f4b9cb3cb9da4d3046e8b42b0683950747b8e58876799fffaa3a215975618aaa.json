@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            WITH RECURSIVE all_blocked_tasks AS (\n                SELECT blocking_task_id, blocked_task_id\n                FROM blocking_tasks b\n                JOIN tasks t ON (b.blocking_task_id = t.id)\n                WHERE t.status = 'Todo'\n\n                UNION\n\n                SELECT blocking_task_id, sub_task_id as blocked_task_id\n                FROM sub_tasks s\n                JOIN all_blocked_tasks a ON (s.main_task_id = a.blocked_task_id)\n            )\n            , descendants AS (\n                SELECT sub_task_id, main_task_id\n                FROM sub_tasks\n                WHERE main_task_id = $1 AND user_id = $2\n    \n                UNION\n    \n                SELECT s.sub_task_id, d.main_task_id\n                FROM sub_tasks s\n                JOIN descendants d ON s.main_task_id = d.sub_task_id\n            )\n    \n            SELECT DISTINCT d.sub_task_id\n            FROM descendants d\n            LEFT OUTER JOIN all_blocked_tasks a ON (d.sub_task_id = a.blocked_task_id)\n            WHERE a.blocked_task_id IS NULL\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "sub_task_id",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "f4b9cb3cb9da4d3046e8b42b0683950747b8e58876799fffaa3a215975618aaa"
+}

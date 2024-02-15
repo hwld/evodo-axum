@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT main_task_id FROM sub_tasks WHERE sub_task_id = $1 AND user_id = $2;",
+  "describe": {
+    "columns": [
+      {
+        "name": "main_task_id",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "20ea95327f9894992d952a601b1615f96ccbc3fbba6d0b3224017ec0197c1406"
+}

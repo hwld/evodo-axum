@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        WITH RECURSIVE ancestors AS (\n            -- 非再帰\n            -- サブタスクのメインタスクのステータスは関係ないのでNULLにする\n            SELECT main_task_id, sub_task_id as child_task_id, NULL as parent_task_status\n            FROM sub_tasks\n            WHERE sub_task_id = $1\n\n            UNION\n\n            -- ブロックしているタスクのステータスをSELECTする\n            SELECT blocking_task_id as main_task_id, blocked_task_id as child_task_id, status\n            FROM blocking_tasks b JOIN tasks t ON b.blocking_task_id = t.id\n            WHERE blocked_task_id = $1\n\n            UNION\n\n            -- 再帰\n            SELECT s.main_task_id, a.child_task_id, NULL as status\n            FROM sub_tasks s\n            JOIN ancestors a ON s.sub_task_id = a.main_task_id\n\n            UNION\n\n            SELECT b.blocking_task_id, a.child_task_id, t.status\n            FROM blocking_tasks b\n            JOIN ancestors a ON b.blocked_task_id = a.main_task_id\n            JOIN tasks t ON b.blocking_task_id = t.id\n        )\n\n        SELECT COUNT(*) as non_done_status_count\n        FROM ancestors a\n        WHERE a.parent_task_status != 'Done'\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "non_done_status_count",
+        "ordinal": 0,
+        "type_info": "Int"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "26eb64daec5a01ae0b83fe8258f47fbccb6448a1880fb3f1e8c863aba3a79f24"
+}

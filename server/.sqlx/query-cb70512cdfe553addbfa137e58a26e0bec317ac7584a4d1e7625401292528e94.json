@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT t.*, s.main_task_id, s.sub_task_id, b.blocked_task_id\n        FROM tasks t \n        LEFT OUTER JOIN sub_tasks s ON (t.id = s.main_task_id AND t.user_id = s.user_id)\n        LEFT OUTER JOIN blocking_tasks b ON (t.id = b.blocking_task_id AND t.user_id = b.user_id)\n        WHERE t.user_id = $1;\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "status",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "title",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "user_id",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "updated_at",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "main_task_id",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "sub_task_id",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "blocked_task_id",
+        "ordinal": 9,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "cb70512cdfe553addbfa137e58a26e0bec317ac7584a4d1e7625401292528e94"
+}

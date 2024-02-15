@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        UPDATE \n            task_node_info\n        SET \n            x = $1,\n            y = $2\n        WHERE\n            task_id = $3 AND user_id = $4\n        RETURNING \n            task_id;\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "task_id",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e11f87af475c07f7d77ec1126ae2d14a0f1aebc8a0eabdad54da59a7664f9b82"
+}

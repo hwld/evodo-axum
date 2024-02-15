@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO sub_tasks(main_task_id, sub_task_id, user_id) VALUES($1, $2, $3);",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "2075026f79630d5197fa3c042333b25bff1efde80c62245d3bac5640e88df75b"
+}

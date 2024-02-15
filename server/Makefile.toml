@@ -1,0 +1,3 @@
+[tasks.sqlx-prepare]
+command = "cargo"
+args = ["sqlx", "prepare", "--", "--all-targets", "--all-features"]
