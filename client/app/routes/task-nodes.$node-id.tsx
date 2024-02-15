@@ -48,43 +48,45 @@ export default function TaskNodeDetail() {
       initial={{ opacity: 0, x: 128 }}
       animate={{ opacity: 1, x: 0 }}
     >
-      <Card className="h-full w-full p-6 flex flex-col">
-        <Button
-          size="icon"
-          variant="ghost"
-          className="absolute right-5 top-5"
-          onClick={handleClose}
-        >
-          <XIcon />
-        </Button>
-        <div className="scape-y-1">
-          <div className="text-sm text-muted-foreground">タスクの詳細</div>
-          <div className="text-2xl font-bold">{task.title}</div>
-          <div className="text-xs text-muted-foreground">ID: {task.id}</div>
-        </div>
-
-        <VerticalDatailRow icon={CircleIcon} title="状態">
-          <div className="ml-2">
-            <TaskStatusBadge status={task.status} />
+      <Card className="h-full w-full overflow-hidden">
+        <div className="overflow-auto p-6 h-full">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="absolute right-5 top-5"
+            onClick={handleClose}
+          >
+            <XIcon />
+          </Button>
+          <div className="scape-y-1">
+            <div className="text-sm text-muted-foreground">タスクの詳細</div>
+            <div className="text-2xl font-bold">{task.title}</div>
+            <div className="text-xs text-muted-foreground">ID: {task.id}</div>
           </div>
-        </VerticalDatailRow>
 
-        <div className="mt-5 space-y-1">
-          <HorizontalDetailRow
-            icon={Clock4Icon}
-            title="作成日"
-            label={task.created_at}
-          />
-          <HorizontalDetailRow
-            icon={HistoryIcon}
-            title="更新日"
-            label={task.updated_at}
-          />
+          <VerticalDatailRow icon={CircleIcon} title="状態">
+            <div className="ml-2">
+              <TaskStatusBadge status={task.status} />
+            </div>
+          </VerticalDatailRow>
+
+          <div className="mt-5 space-y-1">
+            <HorizontalDetailRow
+              icon={Clock4Icon}
+              title="作成日"
+              label={task.created_at}
+            />
+            <HorizontalDetailRow
+              icon={HistoryIcon}
+              title="更新日"
+              label={task.updated_at}
+            />
+          </div>
+
+          <VerticalDatailRow icon={TextIcon} title="説明">
+            <TaskDescriptionForm defaultTask={task} key={task.id} />
+          </VerticalDatailRow>
         </div>
-
-        <VerticalDatailRow icon={TextIcon} title="説明">
-          <TaskDescriptionForm defaultTask={task} key={task.id} />
-        </VerticalDatailRow>
       </Card>
     </motion.div>
   );

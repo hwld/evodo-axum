@@ -1,12 +1,13 @@
 import { PanelRightOpenIcon, SearchIcon, SettingsIcon } from "lucide-react";
 import { AppControlItem } from "../app-control-item";
 import { AppControlMode } from "../app-control";
+import { motion } from "framer-motion";
 
 type Props = { onChangeMode: (mode: AppControlMode) => void };
 
 export const IdleContent: React.FC<Props> = ({ onChangeMode }) => {
   return (
-    <div className="flex w-full">
+    <motion.div layout className="flex p-2">
       <AppControlItem
         position="left"
         icon={SearchIcon}
@@ -22,6 +23,6 @@ export const IdleContent: React.FC<Props> = ({ onChangeMode }) => {
         icon={PanelRightOpenIcon}
         onClick={() => {}}
       />
-    </div>
+    </motion.div>
   );
 };

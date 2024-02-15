@@ -1,9 +1,9 @@
+import { motion } from "framer-motion";
 import { HandMetalIcon, LogOutIcon, LucideIcon, UserIcon } from "lucide-react";
 import { Separator } from "~/components/ui/separator";
 import { useAuth } from "~/features/auth/use-auth";
 
-type Props = { width: number };
-export const SettingsContent: React.FC<Props> = ({ width }) => {
+export const SettingsContent: React.FC = () => {
   const { session, logoutMutation } = useAuth();
 
   const handleLogout = () => {
@@ -11,10 +11,7 @@ export const SettingsContent: React.FC<Props> = ({ width }) => {
   };
 
   return (
-    <div
-      className="flex flex-col space-y-2 p-2 overflow-hidden"
-      style={{ width }}
-    >
+    <motion.div layout className="flex flex-col space-y-2 p-4 w-[200px]">
       <div className="flex gap-2 items-start pt-2 px-1">
         <div className="rounded-full border-2">
           <UserIcon />
@@ -34,7 +31,7 @@ export const SettingsContent: React.FC<Props> = ({ width }) => {
       <SettingItem icon={HandMetalIcon} label="設定1" onClick={() => {}} />
       <SettingItem icon={HandMetalIcon} label="設定2" onClick={() => {}} />
       <SettingItem icon={HandMetalIcon} label="設定3" onClick={() => {}} />
-    </div>
+    </motion.div>
   );
 };
 
