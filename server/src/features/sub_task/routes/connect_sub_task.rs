@@ -10,10 +10,10 @@ use crate::{
     error::AppError,
     features::{
         auth::Auth,
+        sub_task::ConnectSubTask,
         task::{
             db::SubTaskConnectionError,
             usecases::connect_sub_task::{self, ConnectSubTaskArgs, ConnectSubTaskError},
-            ConnectSubTask,
         },
     },
 };
@@ -35,7 +35,7 @@ pub struct ConnectSubTaskErrorBody {
 #[utoipa::path(
     post,
     tag = super::TAG,
-    path = super::TaskPaths::connect_sub_task(),
+    path = super::SubTaskPaths::connect_sub_task(),
     responses(
         (status = 200),
         (status = 400, body = ConnectSubTaskErrorBody)
@@ -91,10 +91,11 @@ pub async fn handler(
 #[cfg(test)]
 mod tests {
     use crate::app::{tests::AppTest, AppResult, Db};
+    use crate::features::sub_task::routes::SubTaskPaths;
+    use crate::features::sub_task::ConnectSubTask;
     use crate::features::task::db::{find_task, FindTaskArgs};
-    use crate::features::task::routes::TaskPaths;
     use crate::features::task::test::task_factory::{self};
-    use crate::features::task::{ConnectSubTask, Task, TaskStatus};
+    use crate::features::task::{Task, TaskStatus};
     use crate::features::user::test::user_factory;
 
     #[sqlx::test]
@@ -107,7 +108,7 @@ mod tests {
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_sub_task())
+            .post(&SubTaskPaths::connect_sub_task())
             .json(&ConnectSubTask {
                 main_task_id: main_task.id.clone(),
                 sub_task_id: sub_task.id.clone(),
@@ -138,7 +139,7 @@ mod tests {
         test.login(None).await?;
         let res = test
             .server()
-            .post(&TaskPaths::connect_sub_task())
+            .post(&SubTaskPaths::connect_sub_task())
             .json(&ConnectSubTask {
                 main_task_id: other_user_task1.id,
                 sub_task_id: other_user_task2.id,
@@ -167,7 +168,7 @@ mod tests {
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_sub_task())
+            .post(&SubTaskPaths::connect_sub_task())
             .json(&ConnectSubTask {
                 main_task_id: task2.id.clone(),
                 sub_task_id: task1.id.clone(),
@@ -200,7 +201,7 @@ mod tests {
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_sub_task())
+            .post(&SubTaskPaths::connect_sub_task())
             .json(&ConnectSubTask {
                 main_task_id: task5.id.clone(),
                 sub_task_id: task2.id.clone(),
@@ -228,7 +229,7 @@ mod tests {
         let task = task_factory::create_with_user(&db, &user.id).await?;
         let res = test
             .server()
-            .post(&TaskPaths::connect_sub_task())
+            .post(&SubTaskPaths::connect_sub_task())
             .json(&ConnectSubTask {
                 main_task_id: task.id.clone(),
                 sub_task_id: task.id.clone(),
@@ -264,7 +265,7 @@ mod tests {
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_sub_task())
+            .post(&SubTaskPaths::connect_sub_task())
             .json(&ConnectSubTask {
                 main_task_id: main.id.clone(),
                 sub_task_id: sub.id.clone(),
@@ -324,7 +325,7 @@ mod tests {
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_sub_task())
+            .post(&SubTaskPaths::connect_sub_task())
             .json(&ConnectSubTask {
                 main_task_id: main.id.clone(),
                 sub_task_id: todo_sub.id.clone(),
@@ -359,7 +360,7 @@ mod tests {
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_sub_task())
+            .post(&SubTaskPaths::connect_sub_task())
             .json(&ConnectSubTask {
                 main_task_id: sub.id.clone(),
                 sub_task_id: blocking.id.clone(),
@@ -392,7 +393,7 @@ mod tests {
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_sub_task())
+            .post(&SubTaskPaths::connect_sub_task())
             .json(&ConnectSubTask {
                 main_task_id: blocking.id.clone(),
                 sub_task_id: blocked.id.clone(),
@@ -423,7 +424,7 @@ mod tests {
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_sub_task())
+            .post(&SubTaskPaths::connect_sub_task())
             .json(&ConnectSubTask {
                 main_task_id: main2.id.clone(),
                 sub_task_id: sub.id.clone(),

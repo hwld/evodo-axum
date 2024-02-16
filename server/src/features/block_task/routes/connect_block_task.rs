@@ -10,10 +10,10 @@ use crate::{
     error::AppError,
     features::{
         auth::Auth,
+        block_task::ConnectBlockTask,
         task::{
             db::BlockTaskConnectionError,
             usecases::connect_block_task::{self, ConnectBlockTaskArgs, ConnectBlockTaskError},
-            ConnectBlockTask,
         },
     },
 };
@@ -34,7 +34,7 @@ pub struct ConnectBlockTaskErrorBody {
 #[utoipa::path(
     post,
     tag = super::TAG,
-    path = super::TaskPaths::connect_block_task(),
+    path = super::BlockTaskPaths::connect_block_task(),
     responses(
         (status = 200),
         (status = 400, body = ConnectBlockTaskErrorBody)
@@ -89,8 +89,8 @@ mod tests {
     use crate::{
         app::{tests::AppTest, AppResult, Db},
         features::{
-            task::{routes::TaskPaths, test::task_factory, ConnectBlockTask},
-            user::test::user_factory,
+            block_task::routes::connect_block_task::ConnectBlockTask,
+            block_task::routes::BlockTaskPaths, task::test::task_factory, user::test::user_factory,
         },
     };
 
@@ -104,7 +104,7 @@ mod tests {
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_block_task())
+            .post(&BlockTaskPaths::connect_block_task())
             .json(&ConnectBlockTask {
                 blocking_task_id: blocking.id.clone(),
                 blocked_task_id: blocked.id.clone(),
@@ -133,7 +133,7 @@ mod tests {
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_block_task())
+            .post(&BlockTaskPaths::connect_block_task())
             .json(&ConnectBlockTask {
                 blocking_task_id: blocking.id.clone(),
                 blocked_task_id: other_user_task.id.clone(),
@@ -158,7 +158,7 @@ mod tests {
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_block_task())
+            .post(&BlockTaskPaths::connect_block_task())
             .json(&ConnectBlockTask {
                 blocking_task_id: blocking.id.clone(),
                 blocked_task_id: blocking.id.clone(),
@@ -190,7 +190,7 @@ mod tests {
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_block_task())
+            .post(&BlockTaskPaths::connect_block_task())
             .json(&ConnectBlockTask {
                 blocking_task_id: main.id.clone(),
                 blocked_task_id: sub112.id.clone(),
@@ -219,7 +219,7 @@ mod tests {
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_block_task())
+            .post(&BlockTaskPaths::connect_block_task())
             .json(&ConnectBlockTask {
                 blocking_task_id: blocked11.id.clone(),
                 blocked_task_id: blocking.id.clone(),
@@ -255,7 +255,7 @@ mod tests {
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_block_task())
+            .post(&BlockTaskPaths::connect_block_task())
             .json(&ConnectBlockTask {
                 blocking_task_id: sub.id.clone(),
                 blocked_task_id: blocking.id.clone(),

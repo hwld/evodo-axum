@@ -6,15 +6,13 @@ use crate::{
     error::AppError,
     features::{
         auth::Auth,
-        task::{
-            usecases::disconnect_sub_task::{self, DisconnectSubTaskArgs},
-            DisconnectSubTask,
-        },
+        sub_task::DisconnectSubTask,
+        task::usecases::disconnect_sub_task::{self, DisconnectSubTaskArgs},
     },
 };
 
 #[tracing::instrument(err)]
-#[utoipa::path(delete, tag = super::TAG, path = super::TaskPaths::disconnect_sub_task(), responses(( status = 200)))]
+#[utoipa::path(delete, tag = super::TAG, path = super::SubTaskPaths::disconnect_sub_task(), responses(( status = 200)))]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     State(AppState { db }): State<AppState>,
@@ -46,11 +44,11 @@ mod tests {
     use crate::{
         app::{tests::AppTest, AppResult, Db},
         features::{
+            sub_task::{routes::SubTaskPaths, DisconnectSubTask},
             task::{
                 db::{find_task, FindTaskArgs},
-                routes::TaskPaths,
                 test::task_factory,
-                DisconnectSubTask, Task, TaskStatus,
+                Task, TaskStatus,
             },
             user::test::user_factory,
         },
@@ -66,7 +64,7 @@ mod tests {
 
         let res = test
             .server()
-            .delete(&TaskPaths::disconnect_sub_task())
+            .delete(&SubTaskPaths::disconnect_sub_task())
             .json(&DisconnectSubTask {
                 main_task_id: task.id,
                 sub_task_id: sub_task.id,
@@ -96,7 +94,7 @@ mod tests {
         test.login(None).await?;
         let res = test
             .server()
-            .delete(&TaskPaths::disconnect_sub_task())
+            .delete(&SubTaskPaths::disconnect_sub_task())
             .json(&DisconnectSubTask {
                 main_task_id: other_user_task.id,
                 sub_task_id: other_user_sub_task.id,
@@ -151,7 +149,7 @@ mod tests {
 
         let res = test
             .server()
-            .delete(&TaskPaths::disconnect_sub_task())
+            .delete(&SubTaskPaths::disconnect_sub_task())
             .json(&DisconnectSubTask {
                 main_task_id: main.id.clone(),
                 sub_task_id: todo_sub.id.clone(),

@@ -10,12 +10,12 @@ use crate::{
     error::AppError,
     features::{
         auth::Auth,
+        block_task::ReconnectBlockTask,
         task::{
             db::BlockTaskConnectionError,
             usecases::reconnect_block_task::{
                 self, ReconnectBlockTaskArgs, ReconnectBlockTaskError,
             },
-            ReconnectBlockTask,
         },
     },
 };
@@ -36,7 +36,7 @@ pub struct ReconnectBlockTaskErrorBody {
 #[utoipa::path(
     put,
     tag = super::TAG,
-    path = super::TaskPaths::reconnect_block_task(),
+    path = super::BlockTaskPaths::reconnect_block_task(),
     responses(
         (status = 200),
         (status = 400, body = ReconnectBlockTaskErrorBody)
@@ -92,7 +92,10 @@ pub async fn handler(
 mod tests {
     use crate::{
         app::{tests::AppTest, AppResult, Db},
-        features::task::{routes::TaskPaths, test::task_factory, ReconnectBlockTask},
+        features::{
+            block_task::{routes::BlockTaskPaths, ReconnectBlockTask},
+            task::test::task_factory,
+        },
     };
 
     #[sqlx::test]
@@ -107,7 +110,7 @@ mod tests {
 
         let res = test
             .server()
-            .put(&TaskPaths::reconnect_block_task())
+            .put(&BlockTaskPaths::reconnect_block_task())
             .json(&ReconnectBlockTask {
                 old_blocking_task_id: task1.id.clone(),
                 old_blocked_task_id: task2.id.clone(),

@@ -10,10 +10,10 @@ use crate::{
     error::AppError,
     features::{
         auth::Auth,
+        sub_task::ReconnectSubTask,
         task::{
             db::SubTaskConnectionError,
             usecases::reconnect_sub_task::{self, ReconnectSubTaskArgs, ReconnectSubTaskError},
-            ReconnectSubTask,
         },
     },
 };
@@ -35,7 +35,7 @@ pub struct ReconnectSubTaskErrorBody {
 #[utoipa::path(
     put,
     tag = super::TAG,
-    path = super::TaskPaths::reconnect_sub_task(),
+    path = super::SubTaskPaths::reconnect_sub_task(),
     responses(
         (status = 200),
         (status = 400, body = ReconnectSubTaskErrorBody)
@@ -95,7 +95,8 @@ mod tests {
     use crate::{
         app::{tests::AppTest, AppResult, Db},
         features::{
-            task::{routes::TaskPaths, test::task_factory, ReconnectSubTask},
+            sub_task::{routes::SubTaskPaths, ReconnectSubTask},
+            task::test::task_factory,
             user::test::user_factory,
         },
     };
@@ -111,7 +112,7 @@ mod tests {
 
         let res = test
             .server()
-            .put(&TaskPaths::reconnect_sub_task())
+            .put(&SubTaskPaths::reconnect_sub_task())
             .json(&ReconnectSubTask {
                 old_main_task_id: task1.id.clone(),
                 old_sub_task_id: task2.id.clone(),
@@ -154,7 +155,7 @@ mod tests {
 
         let res = test
             .server()
-            .post(&TaskPaths::connect_sub_task())
+            .post(&SubTaskPaths::connect_sub_task())
             .json(&ReconnectSubTask {
                 old_main_task_id: task3.id.clone(),
                 old_sub_task_id: task4.id.clone(),
@@ -200,7 +201,7 @@ mod tests {
         let my_task = task_factory::create_with_user(&db, &user.id).await?;
         let res = test
             .server()
-            .put(&TaskPaths::reconnect_sub_task())
+            .put(&SubTaskPaths::reconnect_sub_task())
             .json(&ReconnectSubTask {
                 old_main_task_id: other_task1.id.clone(),
                 old_sub_task_id: other_task2.id.clone(),
@@ -243,7 +244,7 @@ mod tests {
 
         let res = test
             .server()
-            .put(&TaskPaths::reconnect_sub_task())
+            .put(&SubTaskPaths::reconnect_sub_task())
             .json(&ReconnectSubTask {
                 old_main_task_id: task.id.clone(),
                 old_sub_task_id: sub_task.id.clone(),

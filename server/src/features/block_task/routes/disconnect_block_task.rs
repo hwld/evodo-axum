@@ -6,15 +6,13 @@ use crate::{
     error::AppError,
     features::{
         auth::Auth,
-        task::{
-            usecases::disconnect_block_task::{self, DisconnectBlockTaskArgs},
-            DisconnectBlockTask,
-        },
+        block_task::DisconnectBlockTask,
+        task::usecases::disconnect_block_task::{self, DisconnectBlockTaskArgs},
     },
 };
 
 #[tracing::instrument(err)]
-#[utoipa::path(delete, tag = super::TAG, path = super::TaskPaths::disconnect_block_task(), responses(( status = 200)))]
+#[utoipa::path(delete, tag = super::TAG, path = super::BlockTaskPaths::disconnect_block_task(), responses(( status = 200)))]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     State(AppState { db }): State<AppState>,
@@ -46,7 +44,8 @@ mod tests {
     use crate::{
         app::{tests::AppTest, AppResult, Db},
         features::{
-            task::{routes::TaskPaths, test::task_factory, DisconnectBlockTask},
+            block_task::{routes::BlockTaskPaths, DisconnectBlockTask},
+            task::test::task_factory,
             user::test::user_factory,
         },
     };
@@ -62,7 +61,7 @@ mod tests {
 
         let res = test
             .server()
-            .delete(&TaskPaths::disconnect_block_task())
+            .delete(&BlockTaskPaths::disconnect_block_task())
             .json(&DisconnectBlockTask {
                 blocking_task_id: blocking.id,
                 blocked_task_id: blocked.id,
@@ -93,7 +92,7 @@ mod tests {
         test.login(None).await?;
         let res = test
             .server()
-            .delete(&TaskPaths::disconnect_block_task())
+            .delete(&BlockTaskPaths::disconnect_block_task())
             .json(&DisconnectBlockTask {
                 blocking_task_id: other_user_blocking.id,
                 blocked_task_id: other_user_blocked.id,

@@ -62,6 +62,8 @@ async fn build_inner(db: Db, router: Option<Router<AppState>>) -> Router {
     app.merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .merge(features::auth::router())
         .merge(features::task::router())
+        .merge(features::sub_task::router())
+        .merge(features::block_task::router())
         .merge(features::task_node::router())
         .layer(
             CorsLayer::new()
