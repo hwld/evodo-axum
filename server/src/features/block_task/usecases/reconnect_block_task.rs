@@ -1,4 +1,4 @@
-use crate::{app::Connection, features::task::db::BlockTaskConnectionError};
+use crate::{app::Connection, features::block_task::db::BlockTaskConnectionError};
 
 use super::{
     connect_block_task::{self, ConnectBlockTaskArgs, ConnectBlockTaskError},

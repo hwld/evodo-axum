@@ -1,6 +1,6 @@
 use crate::{
     app::Connection,
-    features::task::db::{delete_block_task_connection, DeleteBlockTaskConnectionArgs},
+    features::block_task::db::{delete_block_task_connection, DeleteBlockTaskConnectionArgs},
 };
 
 pub struct DisconnectBlockTaskArgs<'a> {

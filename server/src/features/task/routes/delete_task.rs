@@ -8,12 +8,15 @@ use http::StatusCode;
 
 use crate::{
     app::AppResult,
-    features::task::{
-        db::{
-            delete_task, find_main_task_id, update_task_and_all_ancestor_main_tasks_status,
-            DeleteTaskArgs, FindMainTaskIdsArgs, TaskAndUser,
+    features::{
+        sub_task::db::{
+            find_main_task_id, update_task_and_all_ancestor_main_tasks_status, FindMainTaskIdsArgs,
+            TaskAndUser,
         },
-        DeleteTaskResponse,
+        task::{
+            db::{delete_task, DeleteTaskArgs},
+            DeleteTaskResponse,
+        },
     },
 };
 use crate::{app::AppState, error::AppError, features::auth::Auth};

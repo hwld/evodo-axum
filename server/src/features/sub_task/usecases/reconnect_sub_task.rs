@@ -1,7 +1,7 @@
 use crate::{
     app::Connection,
-    features::{
-        sub_task::usecases::connect_sub_task::ConnectSubTaskError, task::db::SubTaskConnectionError,
+    features::sub_task::{
+        db::SubTaskConnectionError, usecases::connect_sub_task::ConnectSubTaskError,
     },
 };
 

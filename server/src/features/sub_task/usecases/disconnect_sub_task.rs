@@ -1,6 +1,6 @@
 use crate::{
     app::Connection,
-    features::task::db::{
+    features::sub_task::db::{
         delete_sub_task_connection, find_main_task_id,
         update_task_and_all_ancestor_main_tasks_status, DeleteSubTaskConnectionArgs,
         FindMainTaskIdsArgs, TaskAndUser,

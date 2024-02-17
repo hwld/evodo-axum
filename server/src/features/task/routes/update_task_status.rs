@@ -11,12 +11,10 @@ use crate::{
     error::AppError,
     features::{
         auth::Auth,
+        block_task::db::{is_all_blocking_tasks_done, update_all_unblocked_descendant_sub_tasks},
+        sub_task::db::{update_task_and_all_ancestor_main_tasks_status, TaskAndUser},
         task::{
-            db::{
-                is_all_blocking_tasks_done, update_all_unblocked_descendant_sub_tasks,
-                update_task_and_all_ancestor_main_tasks_status, update_task_status, TaskAndUser,
-                UpdateTaskStatusArgs,
-            },
+            db::{update_task_status, UpdateTaskStatusArgs},
             TaskStatus, UpdateTaskStatus,
         },
     },

@@ -1,6 +1,6 @@
 use crate::{
     app::Connection,
-    features::task::db::{
+    features::sub_task::db::{
         check_sub_task_connection, insert_sub_task_connection,
         update_all_ancestor_main_tasks_status, InsertSubTaskConnectionArgs, SubTaskConnectionError,
         TaskAndUser,

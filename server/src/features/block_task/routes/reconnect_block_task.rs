@@ -11,12 +11,12 @@ use crate::{
     features::{
         auth::Auth,
         block_task::{
+            db::BlockTaskConnectionError,
             usecases::reconnect_block_task::{
                 self, ReconnectBlockTaskArgs, ReconnectBlockTaskError,
             },
             ReconnectBlockTask,
         },
-        task::db::BlockTaskConnectionError,
     },
 };
 

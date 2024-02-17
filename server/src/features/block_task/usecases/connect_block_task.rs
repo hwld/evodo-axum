@@ -1,6 +1,6 @@
 use crate::{
     app::Connection,
-    features::task::db::{
+    features::block_task::db::{
         check_insert_block_task_connection, insert_block_task_connection, BlockTaskConnectionError,
         InsertBlockTaskConnectionArgs,
     },
