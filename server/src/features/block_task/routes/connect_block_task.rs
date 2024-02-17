@@ -10,11 +10,11 @@ use crate::{
     error::AppError,
     features::{
         auth::Auth,
-        block_task::ConnectBlockTask,
-        task::{
-            db::BlockTaskConnectionError,
+        block_task::{
             usecases::connect_block_task::{self, ConnectBlockTaskArgs, ConnectBlockTaskError},
+            ConnectBlockTask,
         },
+        task::db::BlockTaskConnectionError,
     },
 };
 

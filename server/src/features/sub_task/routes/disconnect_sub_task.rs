@@ -6,8 +6,10 @@ use crate::{
     error::AppError,
     features::{
         auth::Auth,
-        sub_task::DisconnectSubTask,
-        task::usecases::disconnect_sub_task::{self, DisconnectSubTaskArgs},
+        sub_task::{
+            usecases::disconnect_sub_task::{self, DisconnectSubTaskArgs},
+            DisconnectSubTask,
+        },
     },
 };
 
