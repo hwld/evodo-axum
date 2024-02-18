@@ -12,13 +12,10 @@ import {
   FormMessage,
 } from "~/components/ui/form";
 import { cn } from "~/lib/utils";
-import { useMutation } from "@tanstack/react-query";
-import { api } from "~/api/index.client";
-import { toast } from "sonner";
-import { useRevalidator } from "@remix-run/react";
 import { Button } from "~/components/ui/button";
 import { AlertCircleIcon } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useUpdateTask } from "./use-update-task";
 
 const updateTaskDescriptionSchema = schemas.UpdateTask.pick({
   description: true,
@@ -36,29 +33,16 @@ export const TaskDescriptionForm: React.FC<Props> = ({ defaultTask }) => {
 
   const isDirty = form.formState.isDirty;
 
-  const revalidator = useRevalidator();
-  const updateMutation = useMutation({
-    mutationFn: (data: UpdateTaskDescription) => {
-      return api.put(
-        "/tasks/:id",
-        { ...defaultTask, description: data.description },
-        { params: { id: defaultTask.id } }
-      );
-    },
-    onError: (e) => {
-      console.error(e);
-      toast.error("タスクを更新できませんでした。");
-    },
-    onSuccess: (data) => {
-      form.reset({ description: data.description });
-    },
-    onSettled: () => {
-      revalidator.revalidate();
-    },
-  });
-
+  const updateMutation = useUpdateTask();
   const handleSubmit = (data: UpdateTaskDescription) => {
-    updateMutation.mutate(data);
+    updateMutation.mutate(
+      { ...defaultTask, ...data },
+      {
+        onSuccess: (data) => {
+          form.reset({ description: data.description });
+        },
+      }
+    );
   };
 
   const handleReset = () => {

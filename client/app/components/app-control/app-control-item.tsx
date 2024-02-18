@@ -27,7 +27,7 @@ export const AppControlItem: React.FC<Props> = ({
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger>
+        <TooltipTrigger asChild>
           <button
             onClick={onClick}
             className={cn(

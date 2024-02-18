@@ -15,6 +15,7 @@ import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { TaskDescriptionForm } from "~/features/task/task-description-form";
 import { TaskStatusBadge } from "~/features/task/task-status-badge";
+import { TaskTitleForm } from "~/features/task/task-title-form";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const id = params["node-id"];
@@ -60,7 +61,7 @@ export default function TaskNodeDetail() {
           </Button>
           <div className="scape-y-1">
             <div className="text-sm text-muted-foreground">タスクの詳細</div>
-            <div className="text-2xl font-bold">{task.title}</div>
+            <TaskTitleForm key={task.id} defaultTask={task} />
             <div className="text-xs text-muted-foreground">ID: {task.id}</div>
           </div>
 
