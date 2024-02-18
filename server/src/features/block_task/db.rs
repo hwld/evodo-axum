@@ -4,7 +4,8 @@ use crate::{
         sub_task::db::{is_sub_task, IsSubTaskArgs},
         task::{
             db::{
-                detect_circular_connection, update_tasks_status, DetectCircularConnectionArgs,
+                detect_circular_connection, exists_tasks, update_tasks_status,
+                DetectCircularConnectionArgs, ExistsTasksArg, ExistsTasksError,
                 UpdateTaskStatusArgs, UpdateTasksStatusArgs,
             },
             TaskStatus,
@@ -146,25 +147,26 @@ pub enum BlockTaskConnectionError {
     Unknown(anyhow::Error),
 }
 
-// TODO: sub_taskと共通化できる？
 pub async fn check_insert_block_task_connection<'a>(
     db: &mut Connection,
     args: &InsertBlockTaskConnectionArgs<'a>,
 ) -> Result<(), BlockTaskConnectionError> {
-    // ログインユーザーが指定されたタスクを持っているかを確認する
-    let tasks = sqlx::query!(
-        "SELECT * FROM tasks WHERE id IN ($1, $2) AND user_id = $3;",
-        args.blocking_task_id,
-        args.blocked_task_id,
-        args.user_id,
+    exists_tasks(
+        &mut *db,
+        ExistsTasksArg {
+            task_ids: &vec![args.blocking_task_id, args.blocked_task_id],
+            user_id: args.user_id,
+        },
     )
-    .fetch_all(&mut *db)
     .await
-    .map_err(|e| BlockTaskConnectionError::Unknown(e.into()))?;
+    .map_err(|e| {
+        use ExistsTasksError::{TasksNotFound, Unknown};
 
-    if tasks.len() != 2 {
-        return Err(BlockTaskConnectionError::TaskNotFound);
-    }
+        match e {
+            TasksNotFound => BlockTaskConnectionError::TaskNotFound,
+            Unknown(err) => BlockTaskConnectionError::Unknown(err.into()),
+        }
+    })?;
 
     if is_sub_task(
         &mut *db,

@@ -6,8 +6,9 @@ use crate::{
         block_task::db::{is_blocked_task, IsBlockedTaskArgs},
         task::{
             db::{
-                detect_circular_connection, find_task, is_all_tasks_done, update_task_status,
-                DetectCircularConnectionArgs, FindTaskArgs, UpdateTaskStatusArgs,
+                detect_circular_connection, exists_tasks, find_task, is_all_tasks_done,
+                update_task_status, DetectCircularConnectionArgs, ExistsTasksArg, ExistsTasksError,
+                FindTaskArgs, UpdateTaskStatusArgs,
             },
             TaskStatus,
         },
@@ -67,19 +68,22 @@ pub async fn check_sub_task_connection<'a>(
     args: &InsertSubTaskConnectionArgs<'a>,
 ) -> Result<(), SubTaskConnectionError> {
     // ログインユーザーが指定されたタスクを持っているかを確認する
-    let tasks = sqlx::query!(
-        "SELECT * FROM tasks WHERE id IN ($1, $2) AND user_id = $3;",
-        args.main_task_id,
-        args.sub_task_id,
-        args.user_id,
+    exists_tasks(
+        &mut *db,
+        ExistsTasksArg {
+            task_ids: &vec![args.main_task_id, args.sub_task_id],
+            user_id: args.user_id,
+        },
     )
-    .fetch_all(&mut *db)
     .await
-    .map_err(|e| SubTaskConnectionError::Unknown(e.into()))?;
+    .map_err(|e| {
+        use ExistsTasksError::*;
 
-    if tasks.len() != 2 {
-        return Err(SubTaskConnectionError::TaskNotFound);
-    }
+        match e {
+            TasksNotFound => SubTaskConnectionError::TaskNotFound,
+            Unknown(e) => SubTaskConnectionError::Unknown(e.into()),
+        }
+    })?;
 
     // タスク同士が循環していないかを確認する。
     // payload.main_task_idの祖先に、payload.sub_task_idを持つtaskが存在しないことを確認する。

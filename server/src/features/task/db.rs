@@ -363,3 +363,46 @@ pub async fn detect_circular_connection<'a>(
 
     Ok(!result.is_empty())
 }
+
+pub enum ExistsTasksError {
+    TasksNotFound,
+    Unknown(sqlx::Error),
+}
+
+pub struct ExistsTasksArg<'a> {
+    pub task_ids: &'a Vec<&'a str>,
+    pub user_id: &'a str,
+}
+pub async fn exists_tasks<'a>(
+    db: &mut Connection,
+    args: ExistsTasksArg<'a>,
+) -> Result<(), ExistsTasksError> {
+    if args.task_ids.is_empty() {
+        return Err(ExistsTasksError::TasksNotFound);
+    }
+
+    let mut query_builder: QueryBuilder<Sqlite> =
+        QueryBuilder::new("SELECT * FROM tasks WHERE id IN(");
+
+    let mut separated = query_builder.separated(", ");
+    for id in args.task_ids {
+        separated.push_bind(id);
+    }
+    separated.push_unseparated(") AND user_id = ");
+    query_builder.push_bind(args.user_id);
+
+    println!("{}", query_builder.sql());
+
+    let query = query_builder.build();
+    let result = query
+        .fetch_all(&mut *db)
+        .await
+        .map_err(ExistsTasksError::Unknown)?;
+
+    println!("{:?}", args.task_ids);
+    if result.len() != args.task_ids.len() {
+        return Err(ExistsTasksError::TasksNotFound);
+    }
+
+    Ok(())
+}
