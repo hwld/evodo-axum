@@ -15,9 +15,7 @@ import {
   ChangeEventHandler,
   ComponentPropsWithoutRef,
   forwardRef,
-  useRef,
 } from "react";
-import { useMergedRef } from "@mantine/hooks";
 
 const updateTaskTitleSchema = schemas.UpdateTask.pick({ title: true });
 type UpdateTaskTitle = z.infer<typeof updateTaskTitleSchema>;
@@ -79,9 +77,6 @@ const TaskTitleFormField = forwardRef<HTMLTextAreaElement, FieldProps>(
     { fieldState, isDirty, onReset, onChange, ...props },
     ref
   ) {
-    const innerEditableRef = useRef<HTMLTextAreaElement>(null);
-    const editableRef = useMergedRef(ref, innerEditableRef);
-
     const handleChangeTitle: ChangeEventHandler<HTMLTextAreaElement> = (e) => {
       e.target.value = e.target.value.replaceAll(/\n/g, "");
       onChange?.(e);
@@ -89,18 +84,13 @@ const TaskTitleFormField = forwardRef<HTMLTextAreaElement, FieldProps>(
 
     const handleResetTitle = () => {
       onReset();
-
-      if (!innerEditableRef.current) {
-        return;
-      }
-      innerEditableRef.current.style.height = "min-content";
     };
 
     return (
       <FormItem className="relative">
         <FormControl>
           <AutosizeTextarea
-            ref={editableRef}
+            ref={ref}
             className={cn(
               "text-2xl font-bold focus-visible:outline-none w-full rounded break-all",
               fieldState.error && "border border-destructive text-destructive"
