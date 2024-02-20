@@ -12,7 +12,12 @@ pub struct SessionResponse {
 }
 
 #[tracing::instrument(err)]
-#[utoipa::path(get, tag = super::TAG, path = super::AuthPaths::session(), responses((status = 200, body = SessionResponse)))]
+#[utoipa::path(
+    get,
+    tag = super::TAG,
+    path = super::AuthPaths::session(),
+    responses((status = 200, body = SessionResponse))
+)]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
 ) -> AppResult<(StatusCode, Json<SessionResponse>)> {

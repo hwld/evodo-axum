@@ -12,7 +12,13 @@ use crate::{
 };
 
 #[tracing::instrument(err)]
-#[utoipa::path(post, tag = super::TAG, path = super::TaskPaths::tasks(), request_body = CreateTask, responses((status = 201, body = Task)))]
+#[utoipa::path(
+    post,
+    tag = super::TAG,
+    path = super::TaskPaths::tasks(),
+    request_body = CreateTask,
+    responses((status = 201, body = Task))
+)]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     State(AppState { db }): State<AppState>,

@@ -309,6 +309,11 @@ export const endpoints = makeApi([
         type: "Body",
         schema: UpdateTaskNodeInfo,
       },
+      {
+        name: "id",
+        type: "Path",
+        schema: z.string(),
+      },
     ],
     response: TaskNodeInfo,
   },
@@ -335,6 +340,13 @@ export const endpoints = makeApi([
     method: "get",
     path: "/task-nodes/:id",
     requestFormat: "json",
+    parameters: [
+      {
+        name: "id",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
     response: TaskNode,
   },
   {
@@ -360,6 +372,13 @@ export const endpoints = makeApi([
     method: "get",
     path: "/tasks/:id",
     requestFormat: "json",
+    parameters: [
+      {
+        name: "id",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
     response: Task,
   },
   {
@@ -372,6 +391,11 @@ export const endpoints = makeApi([
         type: "Body",
         schema: UpdateTask,
       },
+      {
+        name: "id",
+        type: "Path",
+        schema: z.string(),
+      },
     ],
     response: Task,
   },
@@ -379,6 +403,13 @@ export const endpoints = makeApi([
     method: "delete",
     path: "/tasks/:id",
     requestFormat: "json",
+    parameters: [
+      {
+        name: "id",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
     response: z.object({ task_id: z.string() }),
   },
   {
@@ -390,6 +421,11 @@ export const endpoints = makeApi([
         name: "body",
         type: "Body",
         schema: UpdateTaskStatus,
+      },
+      {
+        name: "id",
+        type: "Path",
+        schema: z.string(),
       },
     ],
     response: Task,

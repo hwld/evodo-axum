@@ -22,7 +22,13 @@ use crate::{
 use crate::{app::AppState, error::AppError, features::auth::Auth};
 
 #[tracing::instrument(err)]
-#[utoipa::path(delete, tag = super::TAG, path = super::TaskPaths::task_open_api(), responses((status = 200, body = DeleteTaskResponse)))]
+#[utoipa::path(
+    delete,
+    tag = super::TAG,
+    path = super::TaskPaths::task_open_api(),
+    responses((status = 200, body = DeleteTaskResponse)),
+    params(("id" = String, Path,))
+)]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     Path(id): Path<String>,

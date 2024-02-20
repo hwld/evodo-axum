@@ -14,7 +14,12 @@ use crate::{
 };
 
 #[tracing::instrument(err)]
-#[utoipa::path(delete, tag = super::TAG, path = super::SubTaskPaths::disconnect_sub_task(), responses(( status = 200)))]
+#[utoipa::path(
+    delete,
+    tag = super::TAG,
+    path = super::SubTaskPaths::disconnect_sub_task(),
+    responses(( status = 200))
+)]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     State(AppState { db }): State<AppState>,

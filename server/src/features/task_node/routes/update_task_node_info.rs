@@ -17,7 +17,13 @@ use crate::{
 };
 
 #[tracing::instrument(err, skip_all)]
-#[utoipa::path(put, tag = super::TAG, path = super::TaskNodePaths::task_node_info_open_api(), responses((status = 200, body = TaskNodeInfo)))]
+#[utoipa::path(
+    put,
+    tag = super::TAG,
+    path = super::TaskNodePaths::task_node_info_open_api(),
+    responses((status = 200, body = TaskNodeInfo)),
+    params(("id" = String, Path,))
+)]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     Path(id): Path<String>,

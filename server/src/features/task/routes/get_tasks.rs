@@ -7,7 +7,12 @@ use crate::features::task::db::find_tasks;
 use crate::{app::AppState, error::AppError, features::auth::Auth};
 
 #[tracing::instrument(err)]
-#[utoipa::path(get, tag = super::TAG, path = super::TaskPaths::tasks(), responses((status = 200, body = [Task])))]
+#[utoipa::path(
+    get,
+    tag = super::TAG,
+    path = super::TaskPaths::tasks(),
+    responses((status = 200, body = [Task]))
+)]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     State(AppState { db }): State<AppState>,

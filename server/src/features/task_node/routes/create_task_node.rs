@@ -11,7 +11,12 @@ use crate::features::task_node::db::{insert_task_node, InsertTaskNodeArgs};
 use crate::features::task_node::CreateTaskNode;
 
 #[tracing::instrument(err)]
-#[utoipa::path(post, tag = super::TAG, path = super::TaskNodePaths::task_nodes(), request_body = CreateTaskNode, responses((status = 201, body = TaskNode)))]
+#[utoipa::path(
+    post,
+    tag = super::TAG,
+    path = super::TaskNodePaths::task_nodes(),
+    request_body = CreateTaskNode, responses((status = 201, body = TaskNode))
+)]
 pub async fn handler(
     auth_session: AuthSession<Auth>,
     State(AppState { db }): State<AppState>,
